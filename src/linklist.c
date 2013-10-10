@@ -289,6 +289,8 @@ static inline list_entry_t *shift_entry(linked_list_t *list)
         entry->list = NULL;
         if (list->cur == entry)
             list->cur = NULL;
+        else if (list->pos)
+            list->pos--;
     }
     if(list->length == 0)
         list->head = list->tail = NULL;
@@ -512,6 +514,8 @@ static inline list_entry_t *remove_entry(linked_list_t *list, unsigned long pos)
         if (list->cur == entry) {
             list->cur = NULL;
             list->pos = 0;
+        } else if (list->pos > pos) {
+            list->pos--;
         }
         MUTEX_UNLOCK(&list->lock);
         return entry;
