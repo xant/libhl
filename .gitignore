@@ -1,0 +1,11 @@
+*~
+*.swp
+*.swo
+*.o
+*.a
+*.out
+*.so
+test/*_test
+.DS_Store
+*.dSYM
+
