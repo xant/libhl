@@ -92,7 +92,7 @@ void ht_set_free_item_callback(hashtable_t *table,
     table->free_item_cb = cb;
 }
 
-static int _destroyItem(void *item,unsigned long idx,void *user) {
+static int _destroyItem(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_free_item_callback_t cb = (ht_free_item_callback_t)user;
     ht_item_t *ht_item = (ht_item_t *)item;
@@ -108,7 +108,7 @@ void ht_clear(hashtable_t *table) {
     for (i = 0; i < table->size; i++) {
         linked_list_t *list = table->items[i];
         if (list) {
-            unsigned long count = list_count(list);
+            uint32_t count = list_count(list);
             foreach_list_value(list, _destroyItem, (void *)table->free_item_cb);
             destroy_list(list);
             table->items[i] = NULL;
@@ -127,7 +127,7 @@ void ht_destroy(hashtable_t *table) {
     free(table);
 }
 
-static int _get_item(void *item, unsigned long idx, void *user) {
+static int _get_item(void *item, uint32_t idx, void *user) {
     ht_iterator_arg_t *arg = (ht_iterator_arg_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
     if (ht_item->hash == arg->item.hash &&
@@ -149,7 +149,7 @@ typedef struct __ht_copy_helper {
     uint32_t size;
 } ht_copy_helper;
 
-static int _copyItems(void *item, unsigned long idx, void *user) {
+static int _copyItems(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_copy_helper *helper = (ht_copy_helper *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
@@ -406,7 +406,7 @@ void *ht_get(hashtable_t *table, char *key) {
 }
 
 
-static int _collect_key(void *item,unsigned long idx,void *user) {
+static int _collect_key(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_item_t *ht_item = (ht_item_t *)item;
     ht_collector_arg_t *arg = (ht_collector_arg_t *)user;
@@ -437,7 +437,7 @@ linked_list_t *ht_get_all_keys(hashtable_t *table) {
     return arg.output;
 }
 
-static int _collect_value(void *item,unsigned long idx,void *user) {
+static int _collect_value(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_item_t *ht_item = (ht_item_t *)item;
     ht_collector_arg_t *arg = (ht_collector_arg_t *)user;
@@ -468,7 +468,7 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
     return arg.output;
 }
 
-static int _keyIterator(void *item,unsigned long idx,void *user) {
+static int _keyIterator(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
@@ -507,7 +507,7 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
     }
 }
 
-static int _valueIterator(void *item, unsigned long idx, void *user) {
+static int _valueIterator(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
@@ -545,7 +545,7 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
     }
 }
 
-static int _pair_iterator(void *item, unsigned long idx, void *user) {
+static int _pair_iterator(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;

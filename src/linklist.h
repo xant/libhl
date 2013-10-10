@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/types.h>
 #ifdef WIN32
 #ifdef THREAD_SAFE
@@ -68,7 +69,7 @@ void clear_list(linked_list_t *list);
  * @arg list : A valid pointer to a linked_list_t structure
  * @return the actual number of items stored in the list
  */
-unsigned long list_count(linked_list_t *list);
+uint32_t list_count(linked_list_t *list);
 
 /**
  * @brief Set the callback which must be called to release values stored in the list
@@ -136,7 +137,7 @@ void *shift_value(linked_list_t *list);
  * If the list is shorter than pos-1 empty values will be inserted up to
  * that position before inserting the new one
  */
-int insert_value(linked_list_t *list, void *val, unsigned long pos);
+int insert_value(linked_list_t *list, void *val, uint32_t pos);
 
 /**
  * @brief Pick the value at a specific position
@@ -146,7 +147,7 @@ int insert_value(linked_list_t *list, void *val, unsigned long pos);
  *
  * Note this is a read-only access and the value will not be removed from the list
  */
-void *pick_value(linked_list_t *list, unsigned long pos);
+void *pick_value(linked_list_t *list, uint32_t pos);
 
 /**
  * @brief Fetch (aka: Pick and Remove) the value at a specific position
@@ -157,7 +158,7 @@ void *pick_value(linked_list_t *list, unsigned long pos);
  * Note this is a read-write access and the value will be removed from the list before returning it.
  * The value will not be released so the free_value_callback won't be called in this case
  */
-void *fetch_value(linked_list_t *list, unsigned long pos);
+void *fetch_value(linked_list_t *list, uint32_t pos);
 
 /**
  * @brief Move an existing value to a new position
@@ -166,7 +167,7 @@ void *fetch_value(linked_list_t *list, unsigned long pos);
  * @arg dstPos : The new position where to move the value to
  * @return : 0 if success, -1 otherwise
  */ 
-int move_value(linked_list_t *list, unsigned long srcPos, unsigned long dstPos);
+int move_value(linked_list_t *list, uint32_t srcPos, uint32_t dstPos);
 
 /**
  * @brief Replace the value stored at a specific position with a new value
@@ -174,7 +175,7 @@ int move_value(linked_list_t *list, unsigned long srcPos, unsigned long dstPos);
  * @arg pos : The position of the value we want to replace
  * @arg newVal : The new value
  */
-void *subst_value(linked_list_t *list, unsigned long pos, void *newVal);
+void *subst_value(linked_list_t *list, uint32_t pos, void *newVal);
 
 /**
  * @brief Swap two values
@@ -183,13 +184,13 @@ void *subst_value(linked_list_t *list, unsigned long pos, void *newVal);
  * @pos2 : The position of the second value to swap with the first
  * @return 0 if success, -1 otherwise
  */
-int swap_values(linked_list_t *list, unsigned long pos1, unsigned long pos2);
+int swap_values(linked_list_t *list, uint32_t pos1, uint32_t pos2);
 
 
 /**
  * @brief Callback for the value iterator
  */
-typedef int (*item_handler_t)(void *item, unsigned long idx, void *user);
+typedef int (*item_handler_t)(void *item, uint32_t idx, void *user);
 
 /* list iterator. This iterator can be used for both Tag-based and Value-based lists.
  * If tagged, items can simply be casted to a tagged_value_t pointer.
@@ -215,7 +216,7 @@ void foreach_list_value(linked_list_t *list, item_handler_t item_handler, void *
 typedef struct __tagged_value {
     char *tag;
     void *value;
-    unsigned long vlen;
+    uint32_t vlen;
     char type;
 #define TV_TYPE_STRING 0
 #define TV_TYPE_BINARY 1
@@ -235,7 +236,7 @@ typedef struct __tagged_value {
  *
  * Both the tag and the value will be copied. len will be the size used by the copy
  */
-tagged_value_t *create_tagged_value(char *tag, void *val, unsigned long len);
+tagged_value_t *create_tagged_value(char *tag, void *val, uint32_t len);
 
 /**
  * @brief Allocate resources for a new tagged value without copying the value
@@ -302,7 +303,7 @@ tagged_value_t *shift_tagged_value(linked_list_t *list);
  * @arg pos: The position (index) where to store the new tagged value
  * @return 0 if success, -1 otherwise
  */
-int insert_tagged_value(linked_list_t *list, tagged_value_t *tval, unsigned long pos);
+int insert_tagged_value(linked_list_t *list, tagged_value_t *tval, uint32_t pos);
 
 /**
  * @brief Same as pick_value but when using the list to store tagged values
@@ -312,7 +313,7 @@ int insert_tagged_value(linked_list_t *list, tagged_value_t *tval, unsigned long
  *
  * Note this is a read-only access and the tagged value will not be removed from the list
  */
-tagged_value_t *pick_tagged_value(linked_list_t *list, unsigned long pos);
+tagged_value_t *pick_tagged_value(linked_list_t *list, uint32_t pos);
 
 /**
  * @brief Same as fetch_value but when using the list to store tagged values
@@ -324,7 +325,7 @@ tagged_value_t *pick_tagged_value(linked_list_t *list, unsigned long pos);
  * the list before returning it.
  * The tagged value will not be released
  */
-tagged_value_t *fetch_tagged_value(linked_list_t *list, unsigned long pos);
+tagged_value_t *fetch_tagged_value(linked_list_t *list, uint32_t pos);
 
 /**
  * @brief Get a tagged value from the list by using its tag instead of the position
@@ -348,7 +349,7 @@ tagged_value_t *get_tagged_value(linked_list_t *list, char *tag);
  * Note The caller MUST NOT release resources for the returned values
  * (since still pointed by the tagged_value_t still in list)
  */
-unsigned long get_tagged_values(linked_list_t *list, char *tag, linked_list_t *values);
+uint32_t get_tagged_values(linked_list_t *list, char *tag, linked_list_t *values);
 
 
 
