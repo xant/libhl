@@ -13,15 +13,15 @@
  * static int
  * validate(args)
  * {
- * 	if (check args for error condition) {
- * 		t_failure("description of discrepency");
- * 	} else if (check args for other error condition) {
- * 		t_failure("description of other discrepancy");
- * 	} else {
- * 		t_success();
- * 		return 1;
- * 	}
- * 	return 0;
+ *     if (check args for error condition) {
+ *         t_failure("description of discrepency");
+ *     } else if (check args for other error condition) {
+ *         t_failure("description of other discrepancy");
+ *     } else {
+ *         t_success();
+ *         return 1;
+ *     }
+ *     return 0;
  * }
  * ...
  * int
@@ -31,20 +31,20 @@
  *      openlog(getprogname(), LOG_CONS|LOG_PERROR, LOG_DAEMON);
  *      setlogmask(LOG_UPTO((verbose>LOG_DEBUG? LOG_DEBUG:verbose)));
  *
- * 	t_init();
+ *     t_init();
  *
  * ...
- * 	t_testing("function1(args1)");
- * 	function1(args1);
- * 	validate(args2);
+ *     t_testing("function1(args1)");
+ *     function1(args1);
+ *     validate(args2);
  *
- * 	t_testing("function2(args3)");
- * 	function2(args3);
- * 	validate(args4);
+ *     t_testing("function2(args3)");
+ *     function2(args3);
+ *     validate(args4);
  *
- * 	t_summary();				// print a summary and validate the test counters
+ *     t_summary();                // print a summary and validate the test counters
  *
- * 	return t_failed;			// return the error count
+ *     return t_failed;            // return the error count
  * }
  * \endcode
  */
@@ -73,14 +73,14 @@ static int left_width;
 static int right_width;
 static int backspace = 0;
 
-int t_tests = 0;		//!< Number of tests run
-int t_sections = 0;		//!< Number of sections
-int t_succeeded = 0;		//!< Number of succesfull tests
-int t_skipped = 0;		//!< Number of skipped tests
-int t_tobeimplemented = 0;	//!< Number of tests that are still to be implemented
-int t_failed = 0;		//!< Number of failed tests
+int t_tests = 0;        //!< Number of tests run
+int t_sections = 0;        //!< Number of sections
+int t_succeeded = 0;        //!< Number of succesfull tests
+int t_skipped = 0;        //!< Number of skipped tests
+int t_tobeimplemented = 0;    //!< Number of tests that are still to be implemented
+int t_failed = 0;        //!< Number of failed tests
 
-static char *hex_escape(char *buf, int len) {
+static char *hex_escape(const char *buf, int len) {
     int i;
     static char *str = NULL;
 
@@ -104,17 +104,17 @@ t_windowsize(void)
     struct winsize ws;
 
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1) {
-	cols = ws.ws_col;
-	rows = ws.ws_row;
+        cols = ws.ws_col;
+        rows = ws.ws_row;
     } else {
-	char co[] = "co", li[] = "li";
-	char *s;
-	if ((s = getenv("COLUMNS")) == NULL || (cols = strtol(s, NULL, 0)) == 0
-	     || (s = getenv("LINES")) == NULL || (rows = strtol(s, NULL, 0)) == 0)
-	{
-	    cols = 80;      // default values as a fallback option
-	    rows = 25;
-	}
+        char co[] = "co", li[] = "li";
+        char *s;
+        if ((s = getenv("COLUMNS")) == NULL || (cols = strtol(s, NULL, 0)) == 0
+             || (s = getenv("LINES")) == NULL || (rows = strtol(s, NULL, 0)) == 0)
+        {
+            cols = 80;      // default values as a fallback option
+            rows = 25;
+        }
     }
 
     left_width = cols*0.60;
@@ -132,7 +132,7 @@ t_init()
     _malloc_options = "AJX";
 #else
     extern const char *malloc_options;
-    malloc_options = "AJRX";		// Bomb on malloc failure.
+    malloc_options = "AJRX";        // Bomb on malloc failure.
 #endif
 #endif
 
@@ -151,7 +151,7 @@ void
 t_section(const char *subtitle)
 {
     if (t_sections > 0)
-	printf("\n");
+    printf("\n");
 
     t_sections++;
     printf("==> Section %d: %s\n", t_sections, subtitle);
@@ -178,8 +178,10 @@ t_testing(const char *fmt, ...)
     va_start(args, fmt);
 
     n -= vprintf(fmt, args);
+
     for (; n > 0; n--)
-	putchar(' ');
+        putchar(' ');
+
     fflush (stdout);
 
     va_end(args);
@@ -192,7 +194,7 @@ static void
 t_backspace(void)
 {
     for (; backspace > 0; backspace--)
-	printf("\b \b");
+        printf("\b \b");
 }
 
 /*!
@@ -345,7 +347,7 @@ t_vfatal(int err, const char *fmt, va_list args)
  *
  * Example:
  * \code
- * 	t_rc(strlen(""), 0);
+ *     t_rc(strlen(""), 0);
  * \endcode
  */
 int
@@ -386,9 +388,9 @@ int
 t_vresult(int r, const char *fmt, va_list args)
 {
     if (r)
-	t_success();
+        t_success();
     else
-	t_vfailure(fmt, args);
+        t_vfailure(fmt, args);
 
     return r;
 }
@@ -402,17 +404,22 @@ t_summary(void)
     int r = t_succeeded+t_failed+t_skipped+t_tobeimplemented;
 
     if (t_tests == 0)
-	t_fatal(99, "no tests");
+        t_fatal(99, "no tests");
+
     if (r != t_tests)
-	t_fatal(99, "number of tests (%d) does not match number of results (%d)", t_tests, r);
+        t_fatal(99, "number of tests (%d) does not match number of results (%d)", t_tests, r);
 
     printf("==> Summary: %d tests, %d succeeded", t_tests, t_succeeded);
+
     if (t_failed)
-	printf(", %d failed", t_failed);
+        printf(", %d failed", t_failed);
+
     if (t_skipped)
-	printf(", %d skipped", t_skipped);
+        printf(", %d skipped", t_skipped);
+
     if (t_tobeimplemented)
-	printf(", %d to be implemented", t_tobeimplemented);
+        printf(", %d to be implemented", t_tobeimplemented);
+
     printf(".\n");
 }
 
@@ -432,18 +439,18 @@ t_validate_buffer(const char *result, int result_len, const char *orig, int orig
     } else if (result == NULL && orig != NULL) {
         return t_failure("should not be NULL");
     } else if (result == NULL && result_len != 0) {
-	return t_failure("NULL but len is not 0");
+        return t_failure("NULL but len is not 0");
     } else if (result_len != orig_len) {
-	return t_failure("result len == %d but should be %d", result_len, orig_len);
+        return t_failure("result len == %d but should be %d", result_len, orig_len);
     } else if (result == NULL && orig == NULL) {
         return t_success();
     } else if (memcmp(result, orig, orig_len) != 0) {
-	char *buf1 = strdup(hex_escape(result, result_len));
-	char *buf2 = strdup(hex_escape(orig, orig_len));
+        char *buf1 = strdup(hex_escape(result, result_len));
+        char *buf2 = strdup(hex_escape(orig, orig_len));
         t_failure("'%s' should be '%s'", buf1, buf2);
-	free(buf1);
-	free(buf2);
-	return 0;
+        free(buf1);
+        free(buf2);
+        return 0;
     } else {
         return t_success();
     }
@@ -465,12 +472,10 @@ t_validate_string(const char *result, const char *orig)
     } else if (result == NULL && orig == NULL) {
         return t_success();
     } else if (strcmp(result, orig) != 0) {
-	char *result2 = strdup(result);		// is result from *_escape functions in escape_test.c, so strdup it first.
+        char *result2 = strdup(result);        // is result from *_escape functions in escape_test.c, so strdup it first.
         t_failure("'%s' should be '%s'", result2, orig);
-	free(result2);
-	free(buf1);
-	free(buf2);
-	return 0;
+        free(result2);
+        return 0;
     } else {
         return t_success();
     }
