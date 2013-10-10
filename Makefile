@@ -46,4 +46,5 @@ tests: static support/testing.o
 	@for i in $(TESTS); do\
 	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS)";\
 	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS);\
-	done
+	done;\
+	for i in test/*_test; do echo; $$i; echo; done
