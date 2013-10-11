@@ -17,10 +17,10 @@ void log_message(int prio, int dbglevel, const char *fmt, ...);
 
 #define ERROR(__fmt, __args...)      do { log_message(LOG_ERR,     0, __fmt, ## __args); } while (0)
 #define WARNING(__fmt, __args...)    do { log_message(LOG_WARNING, 0, __fmt, ## __args); } while (0)
-#define WARN(__fmt, __args...) WARNING(__fmt, __args)
+#define WARN(__fmt, __args...) WARNING(__fmt, ## __args)
 #define NOTICE(__fmt, __args...)     do { log_message(LOG_NOTICE,  0, __fmt, ## __args); } while (0)
 #define INFO(__fmt, __args...)       do { log_message(LOG_INFO,    0, __fmt, ## __args); } while (0)
-#define DIE(__fmt, __args...)        do { ERROR(__fmt, __args); exit(-1); } while (0)
+#define DIE(__fmt, __args...)        do { ERROR(__fmt, ## __args); exit(-1); } while (0)
 
 #define __DEBUG(__n, __fmt, __args...)  do { if (log_level() >= __n)  log_message(LOG_DEBUG,   __n, __fmt, ## __args); } while (0)
 
