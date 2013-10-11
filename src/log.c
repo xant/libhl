@@ -1,7 +1,7 @@
 #include "log.h"
 
 static unsigned int __loglevel = 0;
-void log_init(char *ident, int loglevel)
+void log_initialize(char *ident, int loglevel)
 {
     __loglevel = loglevel;
     openlog(ident, LOG_CONS|LOG_PERROR, LOG_LOCAL0);

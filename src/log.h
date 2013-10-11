@@ -11,7 +11,7 @@ extern "C" {
 #include <string.h>
 #include <syslog.h>
 
-void log_init(char *ident, int loglevel);
+void log_initialize(char *ident, int loglevel);
 unsigned int log_level();
 void log_message(int prio, int dbglevel, const char *fmt, ...);
 
