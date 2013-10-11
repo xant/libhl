@@ -233,7 +233,11 @@ static inline list_entry_t *pop_entry(linked_list_t *list)
         if(list->tail)
             list->tail->next = NULL;
         list->length--;
+
         entry->list = NULL;
+        entry->prev = NULL;
+        entry->next = NULL;
+
         if (list->cur == entry)
             list->cur = NULL;
     }
@@ -286,7 +290,11 @@ static inline list_entry_t *shift_entry(linked_list_t *list)
         if(list->head) 
             list->head->prev = NULL;
         list->length--;
+
         entry->list = NULL;
+        entry->prev = NULL;
+        entry->next = NULL;
+
         if (list->cur == entry)
             list->cur = NULL;
         else if (list->pos)
@@ -334,33 +342,40 @@ static inline int unshift_entry(linked_list_t *list, list_entry_t *entry)
 static inline int insert_entry(linked_list_t *list, list_entry_t *entry, uint32_t pos) 
 {
     list_entry_t *prev, *next;
-    if(pos == 0)
-        return unshift_entry(list, entry);
-    else if(pos == list->length)
-        return push_entry(list, entry);
-    else if (pos > list->length) {
+    int ret = -1;
+    MUTEX_LOCK(&list->lock);
+    if(pos == 0) {
+        ret = unshift_entry(list, entry);
+    } else if(pos == list->length) {
+        ret = push_entry(list, entry);
+    } else if (pos > list->length) {
         unsigned int i;
         for (i = list->length; i < pos; i++) {
             list_entry_t *emptyEntry = create_entry();
             push_entry(list, emptyEntry);
         }
-        push_entry(list, entry);
+        ret = push_entry(list, entry);
     }
+
+    if (ret == 0) {
+        MUTEX_UNLOCK(&list->lock);
+        return ret;
+    }
+
     prev = pick_entry(list, pos-1);
-    MUTEX_LOCK(&list->lock);
     if(prev) 
     {
         next = prev->next;
         prev->next = entry;
         entry->prev = prev;
         entry->next = next;
-        next->prev = entry;
+        if (next)
+            next->prev = entry;
         list->length++;
-        MUTEX_UNLOCK(&list->lock);
-        return 0;
+        ret = 0;
     }
     MUTEX_UNLOCK(&list->lock);
-    return -1;
+    return ret;
 }
 
 /* 
@@ -379,19 +394,22 @@ static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
         entry = list->cur;
         if (list->pos != pos) {
             if (list->pos < pos) {
-                for(i=list->pos; i < pos; i++) 
+                for(i=list->pos; i < pos; i++)  {
                     entry = entry->next;
+                }
             } else if (list->pos > pos) {
-                for(i=list->pos; i > pos; i--) 
+                for(i=list->pos; i > pos; i--)  {
                     entry = entry->prev;
+                }
             }
         }
     } else {
         if (pos > half_length) 
         {
             entry = list->tail;
-            for(i=list->length - 1;i>pos;i--) 
+            for(i=list->length - 1;i>pos;i--)  {
                 entry = entry->prev;
+            }
         }
         else 
         {
@@ -400,7 +418,7 @@ static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
                 entry = entry->next;
         }
     }
-    if (list->pos != pos) {
+    if (entry) {
         list->pos = pos;
         list->cur = entry;
     }
@@ -482,12 +500,15 @@ static inline int swap_entries(linked_list_t *list, uint32_t pos1, uint32_t pos2
 static inline list_entry_t *subst_entry(linked_list_t *list, uint32_t pos, list_entry_t *entry)
 {
     list_entry_t *old;
+
+    MUTEX_LOCK(&list->lock);
+
     old = fetch_entry(list,  pos);
     if(!old)
         return NULL;
     insert_entry(list, entry, pos);
-    if (list->cur == old)
-        list->cur = entry;
+
+    MUTEX_UNLOCK(&list->lock);
     /* XXX - NO CHECK ON INSERTION */
     return old;
 }
@@ -513,6 +534,9 @@ static inline list_entry_t *remove_entry(linked_list_t *list, uint32_t pos)
 
         list->length--;
         entry->list = NULL;
+        entry->prev = NULL;
+        entry->next = NULL;
+
         if (list->cur == entry) {
             list->cur = NULL;
             list->pos = 0;
@@ -636,25 +660,33 @@ int move_value(linked_list_t *list, uint32_t srcPos, uint32_t dstPos)
     return move_entry(list, srcPos, dstPos);
 }
 
-/* return old value at pos */
-void *subst_value(linked_list_t *list, uint32_t pos, void *newval)
+void *set_value(linked_list_t *list, void *newval, uint32_t pos)
 {
-    list_entry_t *new_entry;
-    list_entry_t *old_entry;
-    void *oldVal;
-    new_entry = create_entry();
-    if(new_entry)
-    {
-        set_entry_value(new_entry, newval);
-        old_entry = subst_entry(list, pos, new_entry);
-        if(old_entry)
-        {
-            oldVal = get_entry_value(old_entry);
-            destroy_entry(old_entry);
-            return oldVal;
-        }
+    void *old_value = NULL;
+    MUTEX_LOCK(&list->lock);
+    list_entry_t *entry = pick_entry(list, pos);
+    if (entry) {
+        old_value = get_entry_value(entry);
+        set_entry_value(entry, newval);
+    } else {
+        insert_value(list, newval, pos);
     }
-    return NULL;
+    MUTEX_UNLOCK(&list->lock);
+    return old_value;
+}
+
+/* return old value at pos */
+void *subst_value(linked_list_t *list, void *newval, uint32_t pos)
+{
+    void *old_value = NULL;
+    MUTEX_LOCK(&list->lock);
+    list_entry_t *entry = pick_entry(list, pos);
+    if (entry) {
+        old_value = get_entry_value(entry);
+        set_entry_value(entry, newval);
+    }
+    MUTEX_UNLOCK(&list->lock);
+    return old_value;
 }
 
 int swap_values(linked_list_t *list,  uint32_t pos1, uint32_t pos2)

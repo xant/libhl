@@ -127,6 +127,7 @@ int unshift_value(linked_list_t *list, void *val);
  */
 
 void *shift_value(linked_list_t *list);
+
 /**
  * @brief Insert a value at a specific position
  * @arg list : A valid pointer to a linked_list_t structure
@@ -138,6 +139,27 @@ void *shift_value(linked_list_t *list);
  * that position before inserting the new one
  */
 int insert_value(linked_list_t *list, void *val, uint32_t pos);
+
+
+/**
+ * @brief Set the value at a specific position
+ * @arg list : A valid pointer to a linked_list_t structure
+ * @arg val : The value to store at pos
+ * @arg pos : The position (offset) where to store the value
+ *
+ * This function will replace the value at pos if present or insert it if missing
+ * filling in the gaps with NULL values if the length of the list is shorter than pos
+ */
+void *set_value(linked_list_t *list, void *newval, uint32_t pos);
+
+/**
+ * @brief Replace the value stored at a specific position with a new value
+ * @arg list : A valid pointer to a linked_list_t structure
+ * @arg newVal : The new value
+ * @arg pos : The position of the value we want to replace
+ */
+void *subst_value(linked_list_t *list, void *newVal, uint32_t pos);
+
 
 /**
  * @brief Pick the value at a specific position
@@ -168,14 +190,6 @@ void *fetch_value(linked_list_t *list, uint32_t pos);
  * @return : 0 if success, -1 otherwise
  */ 
 int move_value(linked_list_t *list, uint32_t srcPos, uint32_t dstPos);
-
-/**
- * @brief Replace the value stored at a specific position with a new value
- * @arg list : A valid pointer to a linked_list_t structure
- * @arg pos : The position of the value we want to replace
- * @arg newVal : The new value
- */
-void *subst_value(linked_list_t *list, uint32_t pos, void *newVal);
 
 /**
  * @brief Swap two values
