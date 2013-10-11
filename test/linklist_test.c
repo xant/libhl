@@ -3,6 +3,31 @@
 #include <stdio.h>
 #include <testing.h>
 #include <linklist.h>
+#include <pthread.h>
+
+
+typedef struct {
+    int start;
+    int end;
+    linked_list_t *list;
+} parallel_insert_arg;
+
+static void *parallel_insert(void *user) {
+    parallel_insert_arg *arg = (parallel_insert_arg *)user;
+    int i;
+    for (i = arg->start; i <= arg->end; i++) {
+        char *v = malloc(100);
+        sprintf(v, "test%d", i);
+        set_value(arg->list, v, i);
+    }
+    return NULL;
+}
+
+static int free_count = 0;
+static void free_value(void *val) {
+    free(val);
+    free_count++;
+}
 
 int iterator_callback(void *item, uint32_t idx, void *user) {
     int *failed = (int *)user;
@@ -26,10 +51,10 @@ int main(int argc, char **argv) {
     t_result(list != NULL, "Can't create a new list");
 
     t_testing("push_value() return value on success");
-    t_result(push_value(list, "test1") == 0, "Can't push value");
+    t_result(push_value(list, strdup("test1")) == 0, "Can't push value");
 
-    push_value(list, "test2");
-    push_value(list, "test3");
+    push_value(list, strdup("test2"));
+    push_value(list, strdup("test3"));
 
     t_testing("list_count() after push");
     t_result(list_count(list) == 3, "Length is not 3 after 3 pushes");
@@ -38,13 +63,14 @@ int main(int argc, char **argv) {
     t_validate_string(pick_value(list, 1), "test2");
 
     t_testing("shift_value()");
-    t_validate_string(shift_value(list), "test1"); 
+    char *v = shift_value(list);
+    t_validate_string(v, "test1"); 
 
     t_testing("list_count() after shift");
     t_result(list_count(list) == 2, "Length is not 2 after shifting one value");
 
     t_testing("unshift_value()");
-    unshift_value(list, "test1");
+    unshift_value(list, v);
     t_validate_string(pick_value(list, 0), "test1"); 
 
     t_testing("push_value() accepts NULL");
@@ -54,16 +80,16 @@ int main(int argc, char **argv) {
     t_result(list_count(list) == 4, "Length is not 4 after pushing the NULL value");
 
     t_testing("pop_value()");
-    void *val = pop_value(list);
+    v = pop_value(list);
     t_result(list_count(list) == 3, "Length is not 3 after popping a value from the list");
     t_testing("pop_value() returned last element");
-    t_result(val == NULL, "Value is not NULL");
+    t_result(v == NULL, "Value is not NULL");
 
     t_testing("still pop_value() return value");
-    val = pop_value(list);
-    t_validate_string(val, "test3");
+    v = pop_value(list);
+    t_validate_string(v, "test3");
 
-    push_value(list, "test3");
+    push_value(list, v);
     t_testing("list_count() consistent");
     t_result(list_count(list) == 3, "Length is not 3 after pushing back the 'test3' value");
 
@@ -98,6 +124,38 @@ int main(int argc, char **argv) {
     if (!failed)
         t_success();
 
+    set_free_value_callback(list, free_value);
+
+    t_testing("clear_list()");
+    clear_list(list);
+    t_result(list_count(list) == 0, "List count is not 0 after clear_list()");
+
+    t_testing("free value callback");
+    t_result(free_count == 100, "Free count is not 100 after clear_list() (%d)", free_count);
+
+    int num_parallel_threads = 4;
+
+    parallel_insert_arg args[num_parallel_threads];
+    pthread_t threads[num_parallel_threads];
+    for (i = 0; i < num_parallel_threads; i++) {
+        args[i].start = 0 + (i * (100/num_parallel_threads)); 
+        args[i].end = args[i].start + (100/num_parallel_threads) -1;
+        args[i].list = list;
+        pthread_create(&threads[i], NULL, parallel_insert, &args[i]);
+    }
+
+    for (i = 0; i < num_parallel_threads; i++) {
+        pthread_join(threads[i], NULL);
+    }
+    t_testing("Parallel insert");
+    t_result(list_count(list) == 100, "Count is not 100 after parallel insert (%d)", list_count(list));
+
+    free_count = 0;
+
+    t_testing("destroy_list()");
+    destroy_list(list);
+    t_result(free_count == 100, "Free count is not 100 after destroy_list() (%d)", free_count);
+    
     t_summary();
 
 }
