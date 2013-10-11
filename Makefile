@@ -19,6 +19,8 @@ endif
 TARGETS = $(patsubst %.c, %.o, $(wildcard src/*.c))
 TESTS = $(patsubst %.c, %, $(wildcard test/*.c))
 
+TEST_EXEC_ORDER = linklist_test hashtable_test
+
 all: objects static shared tests
 
 static: objects
@@ -47,4 +49,4 @@ tests: static support/testing.o
 	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS)";\
 	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS);\
 	done;\
-	for i in test/*_test; do echo; $$i; echo; done
+	for i in $(TEST_EXEC_ORDER); do echo; test/$$i; echo; done
