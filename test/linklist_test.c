@@ -18,7 +18,7 @@ static void *parallel_insert(void *user) {
     for (i = arg->start; i <= arg->end; i++) {
         char *v = malloc(100);
         sprintf(v, "test%d", i+1);
-        set_value(arg->list, v, i);
+        set_value(arg->list, i, v);
     }
     return NULL;
 }
@@ -125,6 +125,19 @@ int main(int argc, char **argv) {
     else
         t_failure("Order is wrong");
 
+    t_testing("set_value() overrides previous value (and returns it)");
+    // Note: we need to copy the string because the value will be released from our free callback
+    char *test_value = strdup("blah");
+    char *old_value = set_value(list, 5, test_value);
+    char *new_value = pick_value(list, 5);
+    if (strcmp(old_value, "test6") != 0) {
+        t_failure("Old value is wrong ('%s' should have been 'test6', old_value)", old_value);
+    } else if (strcmp(new_value, test_value) != 0) {
+        t_failure("New value is wrong ('%s' should have been '%s', old_value)", new_value, test_value);
+    } else {
+        t_success();
+    }
+
     set_free_value_callback(list, free_value);
 
     t_testing("clear_list()");
@@ -166,5 +179,4 @@ int main(int argc, char **argv) {
     t_result(free_count == 10000, "Free count is not 10000 after destroy_list() (%d)", free_count);
     
     t_summary();
-
 }

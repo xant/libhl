@@ -144,21 +144,21 @@ int insert_value(linked_list_t *list, void *val, uint32_t pos);
 /**
  * @brief Set the value at a specific position
  * @arg list : A valid pointer to a linked_list_t structure
- * @arg val : The value to store at pos
  * @arg pos : The position (offset) where to store the value
+ * @arg val : The value to store at pos
  *
  * This function will replace the value at pos if present or insert it if missing
  * filling in the gaps with NULL values if the length of the list is shorter than pos
  */
-void *set_value(linked_list_t *list, void *newval, uint32_t pos);
+void *set_value(linked_list_t *list, uint32_t pos, void *val);
 
 /**
  * @brief Replace the value stored at a specific position with a new value
  * @arg list : A valid pointer to a linked_list_t structure
- * @arg newVal : The new value
  * @arg pos : The position of the value we want to replace
+ * @arg val : The new value
  */
-void *subst_value(linked_list_t *list, void *newVal, uint32_t pos);
+void *subst_value(linked_list_t *list, uint32_t pos, void *val);
 
 
 /**

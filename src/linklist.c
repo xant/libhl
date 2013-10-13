@@ -657,7 +657,7 @@ int move_value(linked_list_t *list, uint32_t srcPos, uint32_t dstPos)
     return move_entry(list, srcPos, dstPos);
 }
 
-void *set_value(linked_list_t *list, void *newval, uint32_t pos)
+void *set_value(linked_list_t *list, uint32_t pos, void *newval)
 {
     void *old_value = NULL;
     MUTEX_LOCK(&list->lock);
@@ -673,7 +673,7 @@ void *set_value(linked_list_t *list, void *newval, uint32_t pos)
 }
 
 /* return old value at pos */
-void *subst_value(linked_list_t *list, void *newval, uint32_t pos)
+void *subst_value(linked_list_t *list, uint32_t pos, void *newval)
 {
     void *old_value = NULL;
     MUTEX_LOCK(&list->lock);
