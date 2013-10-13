@@ -32,7 +32,6 @@ void free_item(void *item) {
 }
 
 int main(int argc, char **argv) {
-    /*
     int i;
 
     t_init();
@@ -50,7 +49,7 @@ int main(int argc, char **argv) {
     ht_clear(table);
 
     int num_parallel_threads = 4;
-    int num_parallel_items = 100000;
+    int num_parallel_items = 10000;
 
     parallel_insert_arg args[num_parallel_threads];
     pthread_t threads[num_parallel_threads];
@@ -69,26 +68,4 @@ int main(int argc, char **argv) {
 
 
     t_summary();
-    */
-    int i;
-    struct timeval t1, t2; 
-#define NUM_ITEMS 10000000
-    char **keys = malloc(sizeof(char *) * NUM_ITEMS);
-
-    hashtable_t *table = ht_create(NUM_ITEMS);
-    ht_set_free_item_callback(table, free);
-    for (i = 0; i < NUM_ITEMS; i++) {
-        char *key = malloc(11);
-        char *data = malloc(14);
-        sprintf(key, "k_%d", i); 
-        keys[i] = key;
-        sprintf(data, "data_%d", i); 
-        ht_set(table, key, data);
-    }   
-
-    for (i = 0; i < NUM_ITEMS; i++) {
-        char *v = ht_get(table, keys[i]);
-        //printf("%s\n", v);
-    }   
-    ht_destroy(table);
 } 
