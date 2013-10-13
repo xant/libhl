@@ -84,7 +84,7 @@ void ht_destroy(hashtable_t *table);
  * @brief Get the value stored at a specific key
  * @arg table : A valid pointer to an hashtable_t structure
  * @arg key : The key to use
- * @return The previous value if any, NULL otherwise
+ * @return The stored value if any, NULL otherwise
  */
 void *ht_get(hashtable_t *table, char *key);
 
