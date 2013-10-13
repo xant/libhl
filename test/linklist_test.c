@@ -4,6 +4,7 @@
 #include <testing.h>
 #include <linklist.h>
 #include <pthread.h>
+#include <unistd.h>
 
 
 typedef struct {
@@ -42,9 +43,27 @@ int iterator_callback(void *item, uint32_t idx, void *user) {
     return 1;
 }
 
+typedef struct {
+    linked_list_t *list;
+    int count;
+} queue_worker_arg;
+
+void *queue_worker(void *user) {
+    void *v;
+    queue_worker_arg *arg = (queue_worker_arg *)user;
+    for (;;) {
+        v = shift_value(arg->list);
+        if (v) {
+            __sync_add_and_fetch(&arg->count, 1);
+            free(v);
+        }
+        pthread_testcancel();
+    }
+    return NULL;
+}
+
 int main(int argc, char **argv) {
     t_init();
-    t_section("Value-based API");
 
     t_testing("Create list");
     linked_list_t *list = create_list();
@@ -137,6 +156,24 @@ int main(int argc, char **argv) {
     } else {
         t_success();
     }
+    free(old_value);
+
+    t_testing("swap_values()");
+    swap_values(list, 9, 19);
+    char *v1 = pick_value(list, 9);
+    char *v2 = pick_value(list, 19);
+    if (strcmp(v1, "test20") != 0) {
+        t_failure("Value at position 9 (%s) should have been equal to 'test20'", v1);
+    } else if (strcmp(v2, "test10") != 0) {
+        t_failure("Value at position 19 (%s) should have been equal to 'test10'", v2);
+    } else {
+        t_success();
+    }
+
+    t_testing("move_value()");
+    old_value = pick_value(list, 45);
+    move_value(list, 45, 67);
+    t_validate_string(pick_value(list, 67), old_value);
 
     set_free_value_callback(list, free_value);
 
@@ -147,7 +184,7 @@ int main(int argc, char **argv) {
     t_testing("free value callback");
     t_result(free_count == 100, "Free count is not 100 after clear_list() (%d)", free_count);
 
-    int num_parallel_threads = 4;
+    int num_parallel_threads = 5;
     int num_parallel_items = 10000;
 
     parallel_insert_arg args[num_parallel_threads];
@@ -176,7 +213,53 @@ int main(int argc, char **argv) {
     free_count = 0;
     t_testing("destroy_list()");
     destroy_list(list);
-    t_result(free_count == 10000, "Free count is not 10000 after destroy_list() (%d)", free_count);
-    
+    t_result(free_count == num_parallel_items, "Free count is not %d after destroy_list() (%d)", num_parallel_items, free_count);
+
+    queue_worker_arg arg = {
+        .list = create_list(),
+        .count = 0
+    };
+
+    int num_queued_items = 10000;
+    t_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
+              num_parallel_threads, num_queued_items);
+    for (i = 0; i < num_parallel_threads; i++) {
+        pthread_create(&threads[i], NULL, queue_worker, &arg);
+    }
+
+    for (i = 0; i < num_queued_items; i++) {
+        char *val = malloc(21);
+        sprintf(val, "%d", i);
+        push_value(arg.list, val);
+    }
+
+    while(list_count(arg.list))
+        usleep(500);
+
+    for (i = 0; i < num_parallel_threads; i++) {
+        pthread_cancel(threads[i]);
+        pthread_join(threads[i], NULL);
+    }
+
+    t_result(arg.count == num_queued_items, "Handled items should have been %d (was %d)", num_queued_items, arg.count);
+
+    destroy_list(arg.list);
+
+    linked_list_t *tagged_list = create_list();
+    for (i = 0; i < 100; i++) {
+        char key[21];
+        char val[21];
+        sprintf(key, "key%d", i);
+        sprintf(val, "value%d", i);
+        tagged_value_t *tv1 = create_tagged_value(key, val, strlen(val));
+        push_tagged_value(tagged_list, tv1);
+    }
+
+    t_testing("get_tagged_value()");
+    tagged_value_t *test_tagged_value = get_tagged_value(tagged_list, "key10");
+    t_validate_string(test_tagged_value->value, "value10");
+
+    destroy_list(tagged_list);
+
     t_summary();
 }

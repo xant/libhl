@@ -46,6 +46,19 @@ int main(int argc, char **argv) {
     t_testing("ht_get()");
     t_validate_string(ht_get(table, "key1"), "value1");
 
+    t_testing("ht_set() overrides previous value (and returns it)");
+    char *test_value = "blah";
+    char *old_value = ht_set(table, "key1", test_value);
+    char *new_value = ht_get(table, "key1");
+    if (strcmp(old_value, "value1") != 0) {
+        t_failure("Old value not returned from ht_set() (got: %s , expected: value1)", old_value);
+    } else if (strcmp(new_value, test_value) != 0) {
+        t_failure("New value not stored properly (got: %s , expected: %s)", new_value, test_value);
+    } else {
+        t_success();
+    }
+
+
     ht_clear(table);
 
     int num_parallel_threads = 4;
@@ -66,6 +79,33 @@ int main(int argc, char **argv) {
     t_testing("Parallel insert (%d items)", num_parallel_items);
     t_result(ht_count(table) == num_parallel_items, "Count is not %d after parallel insert (%d)", num_parallel_items, ht_count(table));
 
+    ht_set_free_item_callback(table, free_item);
+    t_testing("ht_clear() and free_item_callback");
+    ht_clear(table);
+    t_result(free_count == num_parallel_items, "free_count is not equal to %d after clearing the table", num_parallel_items);
+
+    ht_set_free_item_callback(table, NULL);
+    ht_set(table, "test_key", "test_value");
+
+    t_testing("ht_unset()");
+    old_value = ht_unset(table, "test_key");
+    t_result(ht_get(table, "test_key") == NULL && ht_count(table) == 1, "ht_unset() failed");
+
+    t_testing("ht_unset() returns old value");
+    t_result(strcmp(old_value, "test_value") == 0, "ht_unset() didn't return the correct old value (was: %s)", old_value);
+
+    t_testing("ht_delete()");
+    ht_delete(table, "test_key");
+    t_result(ht_get(table, "test_key") == NULL && ht_count(table) == 0, "ht_delete() failed");
+
+    ht_set(table, "test_key", "test_value");
+    t_testing("ht_pop()");
+    old_value = ht_pop(table, "test_key");
+    t_result(ht_get(table, "test_key") == NULL && ht_count(table) == 0, "ht_pop() failed");
+    t_testing("ht_pop() returns old value");
+    t_result(strcmp(old_value, "test_value") == 0, "ht_pop() didn't return the correct old value (was: %s)", old_value);
+
+    ht_destroy(table);
 
     t_summary();
 } 
