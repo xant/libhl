@@ -17,7 +17,7 @@ static void *parallel_insert(void *user) {
     int i;
     for (i = arg->start; i <= arg->end; i++) {
         char *v = malloc(100);
-        sprintf(v, "test%d", i);
+        sprintf(v, "test%d", i+1);
         set_value(arg->list, v, i);
     }
     return NULL;
@@ -120,9 +120,10 @@ int main(int argc, char **argv) {
     t_testing("Value iterator");
     failed = 0;
     foreach_list_value(list, iterator_callback, &failed);
-
     if (!failed)
         t_success();
+    else
+        t_failure("Order is wrong");
 
     set_free_value_callback(list, free_value);
 
@@ -134,12 +135,13 @@ int main(int argc, char **argv) {
     t_result(free_count == 100, "Free count is not 100 after clear_list() (%d)", free_count);
 
     int num_parallel_threads = 4;
+    int num_parallel_items = 10000;
 
     parallel_insert_arg args[num_parallel_threads];
     pthread_t threads[num_parallel_threads];
     for (i = 0; i < num_parallel_threads; i++) {
-        args[i].start = 0 + (i * (100/num_parallel_threads)); 
-        args[i].end = args[i].start + (100/num_parallel_threads) -1;
+        args[i].start = 0 + (i * (num_parallel_items / num_parallel_threads)); 
+        args[i].end = args[i].start + (num_parallel_items / num_parallel_threads) -1;
         args[i].list = list;
         pthread_create(&threads[i], NULL, parallel_insert, &args[i]);
     }
@@ -147,14 +149,21 @@ int main(int argc, char **argv) {
     for (i = 0; i < num_parallel_threads; i++) {
         pthread_join(threads[i], NULL);
     }
-    t_testing("Parallel insert");
-    t_result(list_count(list) == 100, "Count is not 100 after parallel insert (%d)", list_count(list));
+    t_testing("Parallel insert (%d items)", num_parallel_items);
+    t_result(list_count(list) == num_parallel_items, "Count is not %d after parallel insert (%d)", num_parallel_items, list_count(list));
+
+    t_testing("Order after parallel insertion");
+    failed = 0;
+    foreach_list_value(list, iterator_callback, &failed);
+    if (!failed)
+        t_success();
+    else
+        t_failure("Order is wrong");
 
     free_count = 0;
-
     t_testing("destroy_list()");
     destroy_list(list);
-    t_result(free_count == 100, "Free count is not 100 after destroy_list() (%d)", free_count);
+    t_result(free_count == 10000, "Free count is not 10000 after destroy_list() (%d)", free_count);
     
     t_summary();
 

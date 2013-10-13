@@ -1,12 +1,10 @@
 /* linked list management library - by xant 
- * "$Id: d2f36a6935cf8562e772b118a6d2959bfe2ca668 $" 
  */
  
 #include <stdio.h>
 #ifdef THREAD_SAFE
 #include <pthread.h>
 #endif
-#include <log.h>
 #include "linklist.h"
 #include <string.h>
 #include <errno.h>
@@ -74,11 +72,11 @@ linked_list_t *create_list()
 {
     linked_list_t *list = (linked_list_t *)malloc(sizeof(linked_list_t));
     if(list) {
-        DEBUG5("Created new linked_list_t at address 0x%p \n", list);
         init_list(list);
         list->free = 1;
     } else {
-        DIE("Can't create new linklist: %s", strerror(errno));
+        //fprintf(stderr, "Can't create new linklist: %s", strerror(errno));
+        return NULL;
     }
     return list;
 }
@@ -98,7 +96,6 @@ void init_list(linked_list_t *list)
     pthread_mutexattr_destroy(&attr);
 #endif
 
-    DEBUG5("Initialized linked_list_t at address 0x%p \n", list);
 }
 
 /*
@@ -114,7 +111,6 @@ void destroy_list(linked_list_t *list)
 #endif
         if(list->free) free(list);
     }
-    DEBUG5("Destroyed linked_list_t at address 0x%p \n", list);
 }
 
 /*
@@ -172,9 +168,11 @@ void list_unlock(linked_list_t *list) {
 static inline list_entry_t *create_entry() 
 {
     list_entry_t *new_entry = (list_entry_t *)calloc(1, sizeof(list_entry_t));
-    if (!new_entry)
-        DIE("Can't create new entry: %s", strerror(errno));
-    DEBUG5("Created Entry at address 0x%p \n", new_entry);
+    /*
+    if (!new_entry) {
+        fprintf(stderr, "Can't create new entry: %s", strerror(errno));
+    }
+    */
     return new_entry;
 }
 
@@ -195,7 +193,6 @@ static inline void destroy_entry(list_entry_t *entry)
             if(pos >= 0)
                 remove_entry(entry->list, pos);
         }
-        DEBUG5("Destroyed Entry at address 0x%p \n", entry);
         free(entry);
     }
 }
@@ -462,7 +459,7 @@ static inline int move_entry(linked_list_t *list, uint32_t srcPos, uint32_t dstP
         {
             if(insert_entry(list, e, srcPos) != 0)
             {
-                WARN("Can't restore entry at index %lu while moving to %lu\n", srcPos, dstPos);
+                //fprintf(stderr, "Can't restore entry at index %lu while moving to %lu\n", srcPos, dstPos);
             }
         }
     }
@@ -709,13 +706,16 @@ void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uin
 tagged_value_t *create_tagged_value_nocopy(char *tag, void *val) 
 {
     tagged_value_t *newval = (tagged_value_t *)calloc(1, sizeof(tagged_value_t));
-    if(!newval)
-        DIE("Can't create new tagged value: %s", strerror(errno));
+    if(!newval) {
+        //fprintf(stderr, "Can't create new tagged value: %s", strerror(errno));
+        return NULL;
+    }
+
     if(tag)
         newval->tag = strdup(tag);
     if (val)
         newval->value = val;
-    DEBUG5("Created tagged_value_t (nocopy) at address 0x%p \n", newval);
+
     return newval;
 }
 
@@ -729,8 +729,10 @@ tagged_value_t *create_tagged_value_nocopy(char *tag, void *val)
 tagged_value_t *create_tagged_value(char *tag, void *val, uint32_t vlen) 
 {
     tagged_value_t *newval = (tagged_value_t *)calloc(1, sizeof(tagged_value_t));
-    if(!newval)
-        DIE("Can't create new tagged value: %s", strerror(errno));
+    if(!newval) {
+        //fprintf(stderr, "Can't create new tagged value: %s", strerror(errno));
+        return NULL;
+    }
 
     if(tag)
         newval->tag = strdup(tag);
@@ -745,7 +747,10 @@ tagged_value_t *create_tagged_value(char *tag, void *val, uint32_t vlen)
                 memset((char *)newval->value+vlen, 0, 1);
                 newval->vlen = vlen;
             } else {
-                DIE("Can't copy value: %s", strerror(errno));
+                //fprintf(stderr, "Can't copy value: %s", strerror(errno));
+                free(newval->tag);
+                free(newval);
+                return NULL;
             }
             newval->type = TV_TYPE_BINARY;
         } 
@@ -756,7 +761,6 @@ tagged_value_t *create_tagged_value(char *tag, void *val, uint32_t vlen)
             newval->type = TV_TYPE_STRING;
         }
     }
-    DEBUG5("Created tagged_value_t at address 0x%p \n", newval);
     return newval;
 }
 
@@ -769,8 +773,11 @@ tagged_value_t *create_tagged_value(char *tag, void *val, uint32_t vlen)
 tagged_value_t *create_tagged_sublist(char *tag, linked_list_t *sublist)  
 {
     tagged_value_t *newval = (tagged_value_t *)calloc(1, sizeof(tagged_value_t));
-    if(!newval)
-        DIE("Can't create new tagged value: %s", strerror(errno));
+    if(!newval) {
+        //fprintf(stderr, "Can't create new tagged value: %s", strerror(errno));
+        return NULL;
+    }
+
     if(tag)
         newval->tag = strdup(tag);
     newval->type = TV_TYPE_LIST;
@@ -793,7 +800,6 @@ void destroy_tagged_value(tagged_value_t *tval)
         }
         free(tval);
     }
-    DEBUG5("Destroyed tagged_value_t at address 0x%p \n", tval);
 }
 
 /* Pops a tagged_value_t from the list pointed by list */

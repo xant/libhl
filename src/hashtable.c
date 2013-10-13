@@ -2,11 +2,9 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <log.h>
 #include <pthread.h>
 #include <limits.h>
 #include <strings.h>
-#include <errno.h>
 
 #define PERL_HASH_FUNC_ONE_AT_A_TIME
 #define PERL_STATIC_INLINE static inline
@@ -66,10 +64,9 @@ typedef struct __ht_collector_arg {
 hashtable_t *ht_create(uint32_t size) {
     hashtable_t *table = (hashtable_t *)calloc(1, sizeof(hashtable_t));
 
-    if (!table)
-        DIE("Can't create new table: %s", strerror(errno));
+    if (table)
+        ht_init(table, size);
 
-    ht_init(table, size);
     return table;
 }
 
@@ -78,12 +75,11 @@ void ht_init(hashtable_t *table, uint32_t size) {
     table->items = (linked_list_t **)calloc(table->size,
                                             sizeof(linked_list_t *));
 
-    if (!table->items)
-        DIE("Can't create new items array: %s", strerror(errno));
-    
+    if (table->items) {
 #ifdef THREAD_SAFE
-    pthread_mutex_init(&table->lock, NULL);
+        pthread_mutex_init(&table->lock, NULL);
 #endif
+    }
 }
 
 void ht_set_free_item_callback(hashtable_t *table,
@@ -133,7 +129,6 @@ static int _get_item(void *item, uint32_t idx, void *user) {
     if (ht_item->hash == arg->item.hash &&
         strcmp(ht_item->key, arg->item.key) == 0)
     {
-        DEBUG5("Got item for key %s at %lu\n", arg->item.key, idx);
         char *data = ht_item->data;
         if (arg->set)
             ht_item->data = arg->item.data;
@@ -161,6 +156,39 @@ static int _copyItems(void *item, uint32_t idx, void *user) {
     }
     push_value(list, ht_item); 
     return 1;
+}
+
+void ht_grow_table(hashtable_t *table) {
+    // if we need to extend the table, better locking it globally
+    // preventing any operation on the actual one
+    MUTEX_LOCK(&table->lock);
+    uint32_t i;
+    uint32_t newSize = table->size << 1;
+
+    linked_list_t **items_list =
+        (linked_list_t **)calloc(newSize, sizeof(linked_list_t *));
+
+    if (!items_list) {
+        //fprintf(stderr, "Can't create new items array list: %s", strerror(errno));
+        return;
+    }
+    ht_copy_helper helper = {
+        .items = items_list,
+        .size = newSize
+    };
+    for (i = 0; i < table->size; i++) {
+        linked_list_t *items = table->items[i];
+        if (items) {
+            foreach_list_value(items, _copyItems, (void *)&helper);
+            set_free_value_callback(items, NULL);
+            destroy_list(items);
+        }
+    }
+    free(table->items);
+    table->items = helper.items;
+
+    table->size = newSize;
+    MUTEX_UNLOCK(&table->lock);
 }
 
 void *ht_set(hashtable_t *table, char *key, void *data) {
@@ -206,53 +234,37 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
         prev_data = arg.item.data;
     } else {
         ht_item_t *item = (ht_item_t *)calloc(1, sizeof(ht_item_t));
-        if (!item)
-            DIE("Can't create new item: %s", strerror(errno));
+        if (!item) {
+            //fprintf(stderr, "Can't create new item: %s", strerror(errno));
+            list_unlock(list); 
+            return NULL;
+        }
         item->hash = hash;
         item->key = strdup(key);
-        if (!item->key)
-            DIE("Can't copy key: %s", strerror(errno));
+        if (!item->key) {
+            //fprintf(stderr, "Can't copy key: %s", strerror(errno));
+            list_unlock(list);
+            free(item);
+            return NULL;
+        }
         item->data = data;
-        push_value(list, item);
-        count = __sync_add_and_fetch(&table->count, 1);
-        DEBUG5("HT 0x%p count++: %lu", table, count);
+        if (push_value(list, item) == 0) {
+            count = __sync_add_and_fetch(&table->count, 1);
+        } else {
+            //fprintf(stderr, "Can't push new value for key: %s", strerror(errno));
+            list_unlock(list);
+            free(item->key);
+            free(item);
+            return NULL;
+        }
     }
 
     list_unlock(list);
 
     if (count > table->size + HT_GROW_THRESHOLD) {
-        // if we need to extend the table, better locking it globally
-        // preventing any operation on the actual one
-        MUTEX_LOCK(&table->lock);
-        uint32_t i;
-        uint32_t newSize = table->size << 1;
-
-        linked_list_t **items_list =
-            (linked_list_t **)calloc(newSize, sizeof(linked_list_t *));
-
-        if (!items_list)
-            DIE("Can't create new items array list: %s", strerror(errno));
-        ht_copy_helper helper = {
-            .items = items_list,
-            .size = newSize
-        };
-        for (i = 0; i < table->size; i++) {
-            linked_list_t *items = table->items[i];
-            if (items) {
-                foreach_list_value(items, _copyItems, (void *)&helper);
-                set_free_value_callback(items, NULL);
-                destroy_list(items);
-            }
-        }
-        free(table->items);
-        table->items = helper.items;
-
-        DEBUG4("Table size extended from : %d  to : %d (total items count: %d)\n",
-                table->size, newSize, table->count);
-
-        table->size = newSize;
-        MUTEX_UNLOCK(&table->lock);
+        ht_grow_table(table);
     }
+
     if (prev_item) {
         if (table->free_item_cb)
             table->free_item_cb(prev_item->data);
@@ -327,7 +339,6 @@ void *ht_pop(hashtable_t *table, char *key) {
             free(item->key);
             free(item);
             uint32_t count = __sync_sub_and_fetch(&table->count, 1);
-            DEBUG5("HT 0x%p count--: %lu", table, count);
         }
     }
 
@@ -368,7 +379,6 @@ void ht_delete(hashtable_t *table, char *key) {
             free(item->key);
             free(item);
             uint32_t count = __sync_sub_and_fetch(&table->count, 1);
-            DEBUG5("HT 0x%p count--: %lu", table, count);
         }
     }
 
