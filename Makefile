@@ -46,7 +46,7 @@ tests: CFLAGS += -Isrc -Isupport -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAF
 
 tests: static support/testing.o 
 	@for i in $(TESTS); do\
-	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS)";\
-	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS);\
+	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS) -lm";\
+	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS) -lm;\
 	done;\
 	for i in $(TEST_EXEC_ORDER); do echo; test/$$i; echo; done
