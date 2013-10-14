@@ -21,27 +21,6 @@ extern "C" {
 typedef struct __hashtable hashtable_t;
 
 /**
- * @brief Callback that, if provided, will be called to release the value resources
- *        when an item is being removed from the table
- */
-typedef void (*ht_free_item_callback_t)(void *);
-
-/**
- * @brief Callback for the key iterator
- */
-typedef void (*ht_key_iterator_callback_t)(hashtable_t *table, char *key, void *user);
-
-/**
- * @brief Callback for the value iterator
- */
-
-typedef void (*ht_value_iterator_callback_t)(hashtable_t *table, void *value, void *user);
-/**
- * @brief Callback for the pair iterator
- */
-typedef void (*ht_pair_iterator_callback_t)(hashtable_t *table, char *key, void *value, void *user);
-
-/**
  * @brief Create a new table descriptor
  * @arg initial size of the table
  * @return a newly allocated and initialized table
@@ -56,6 +35,12 @@ hashtable_t *ht_create(uint32_t size);
  * This function can be used to initialize a statically defined table
  */
 void ht_init(hashtable_t *table, uint32_t size);
+
+/**
+ * @brief Callback that, if provided, will be called to release the value resources
+ *        when an item is being removed from the table
+ */
+typedef void (*ht_free_item_callback_t)(void *);
 
 /**
  * @brief Set the callback which must be called to release values stored in the table
@@ -124,7 +109,7 @@ void ht_delete(hashtable_t *table, char *key);
 void *ht_pop(hashtable_t *table, char *key);
 
 /**
- * @brief Return the count the items actually stored in the table
+ * @brief Return the count of items actually stored in the table
  * @arg table : A valid pointer to an hashtable_t structure
  * @return The actual item count
  */
@@ -148,6 +133,11 @@ linked_list_t *ht_get_all_keys(hashtable_t *table);
 linked_list_t *ht_get_all_values(hashtable_t *table);
 
 /**
+ * @brief Callback for the key iterator
+ */
+typedef void (*ht_key_iterator_callback_t)(hashtable_t *table, char *key, void *user);
+
+/**
  * @brief Key iterator
  * @arg table : A valid pointer to an hashtable_t structure
  * @arg cb : an ht_key_iterator_callback_t function
@@ -156,12 +146,22 @@ linked_list_t *ht_get_all_values(hashtable_t *table);
 void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user);
 
 /**
+ * @brief Callback for the value iterator
+ */
+typedef void (*ht_value_iterator_callback_t)(hashtable_t *table, void *value, void *user);
+
+/**
  * @brief Value iterator
  * @arg table : A valid pointer to an hashtable_t structure
  * @arg cb : an ht_value_iterator_callback_t function
  * @arg user : A pointer which will be passed to the iterator callback at each call
  */
 void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user);
+
+/**
+ * @brief Callback for the pair iterator
+ */
+typedef void (*ht_pair_iterator_callback_t)(hashtable_t *table, char *key, void *value, void *user);
 
 /**
  * @brief Pair iterator
