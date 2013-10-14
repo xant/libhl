@@ -223,6 +223,7 @@ int main(int argc, char **argv) {
     int num_queued_items = 10000;
     t_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
               num_parallel_threads, num_queued_items);
+
     for (i = 0; i < num_parallel_threads; i++) {
         pthread_create(&threads[i], NULL, queue_worker, &arg);
     }

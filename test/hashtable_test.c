@@ -24,6 +24,15 @@ static void *parallel_insert(void *user) {
     return NULL;
 }
 
+void check_item(hashtable_t *table, char *key, void *value, void *user) {
+    int *check_item_count = (int *)user;
+    char test[25];
+    int num = atoi(key);
+    sprintf(test, "test%d", num+1);
+    if (strcmp(test, value) == 0)
+        (*check_item_count)++;
+}
+
 static int free_count = 0;
 
 void free_item(void *item) {
@@ -97,13 +106,34 @@ int main(int argc, char **argv) {
     for (i = 0; i < num_parallel_threads; i++) {
         pthread_join(threads[i], NULL);
     }
+
     t_testing("Parallel insert (%d items)", num_parallel_items);
-    t_result(ht_count(table) == num_parallel_items, "Count is not %d after parallel insert (%d)", num_parallel_items, ht_count(table));
+    t_result(ht_count(table) == num_parallel_items,
+            "Count is not %d after parallel insert (%d)",
+            num_parallel_items, ht_count(table));
+
+    t_testing("ht_foreach_pair() iterator");
+    int check_item_count = 0;
+    ht_foreach_pair(table, check_item, &check_item_count);
+    t_result(check_item_count == num_parallel_items,
+            "not all items were valid (%d were valid, should have been %d)",
+            check_item_count,
+            num_parallel_items);
+
+    t_testing("ht_get_all_values()");
+    linked_list_t *values = ht_get_all_values(table);
+    t_result(list_count(values) == ht_count(table),
+            "returned list doesn't match the table count (%u != %u)",
+            list_count(values),
+            ht_count(table));
+    destroy_list(values);
 
     ht_set_free_item_callback(table, free_item);
     t_testing("ht_clear() and free_item_callback");
     ht_clear(table);
-    t_result(free_count == num_parallel_items, "free_count is not equal to %d after clearing the table", num_parallel_items);
+    t_result(free_count == num_parallel_items,
+            "free_count is not equal to %d after clearing the table",
+            num_parallel_items);
 
     ht_destroy(table);
 
