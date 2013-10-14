@@ -39,6 +39,8 @@ int main(int argc, char **argv) {
     hashtable_t *table = ht_create(256);
     t_result(table != NULL, "Can't create a new hash table");
 
+    ht_set_free_item_callback(table, NULL);
+
     t_testing("ht_set()");
     ht_set(table, "key1", "value1");
     t_result(ht_count(table) == 1, "Count is not 1 after setting an item in the table");
@@ -58,8 +60,27 @@ int main(int argc, char **argv) {
         t_success();
     }
 
-
     ht_clear(table);
+
+    ht_set(table, "test_key", "test_value");
+
+    t_testing("ht_unset()");
+    old_value = ht_unset(table, "test_key");
+    t_result(ht_get(table, "test_key") == NULL && ht_count(table) == 1, "ht_unset() failed");
+
+    t_testing("ht_unset() returns old value");
+    t_result(strcmp(old_value, "test_value") == 0, "ht_unset() didn't return the correct old value (was: %s)", old_value);
+
+    t_testing("ht_delete()");
+    ht_delete(table, "test_key");
+    t_result(ht_get(table, "test_key") == NULL && ht_count(table) == 0, "ht_delete() failed");
+
+    ht_set(table, "test_key", "test_value");
+    t_testing("ht_pop()");
+    old_value = ht_pop(table, "test_key");
+    t_result(ht_get(table, "test_key") == NULL && ht_count(table) == 0, "ht_pop() failed");
+    t_testing("ht_pop() returns old value");
+    t_result(strcmp(old_value, "test_value") == 0, "ht_pop() didn't return the correct old value (was: %s)", old_value);
 
     int num_parallel_threads = 4;
     int num_parallel_items = 10000;
@@ -83,27 +104,6 @@ int main(int argc, char **argv) {
     t_testing("ht_clear() and free_item_callback");
     ht_clear(table);
     t_result(free_count == num_parallel_items, "free_count is not equal to %d after clearing the table", num_parallel_items);
-
-    ht_set_free_item_callback(table, NULL);
-    ht_set(table, "test_key", "test_value");
-
-    t_testing("ht_unset()");
-    old_value = ht_unset(table, "test_key");
-    t_result(ht_get(table, "test_key") == NULL && ht_count(table) == 1, "ht_unset() failed");
-
-    t_testing("ht_unset() returns old value");
-    t_result(strcmp(old_value, "test_value") == 0, "ht_unset() didn't return the correct old value (was: %s)", old_value);
-
-    t_testing("ht_delete()");
-    ht_delete(table, "test_key");
-    t_result(ht_get(table, "test_key") == NULL && ht_count(table) == 0, "ht_delete() failed");
-
-    ht_set(table, "test_key", "test_value");
-    t_testing("ht_pop()");
-    old_value = ht_pop(table, "test_key");
-    t_result(ht_get(table, "test_key") == NULL && ht_count(table) == 0, "ht_pop() failed");
-    t_testing("ht_pop() returns old value");
-    t_result(strcmp(old_value, "test_value") == 0, "ht_pop() didn't return the correct old value (was: %s)", old_value);
 
     ht_destroy(table);
 
