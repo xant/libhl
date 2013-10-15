@@ -211,6 +211,7 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
     // Note that inserting/removing values from the list is thread-safe. 
     // The problem would exist if the list is destroyed while we are 
     // still accessing it so we need to lock it for this purpose
+
     list_lock(list);
 
     // we can anyway unlock the table to allow operations which 
@@ -261,7 +262,7 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
 
     list_unlock(list);
 
-    if (count > table->size + HT_GROW_THRESHOLD) {
+    if (count > ht_count(table) + HT_GROW_THRESHOLD) {
         ht_grow_table(table);
     }
 
@@ -592,6 +593,6 @@ void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *u
 }
 
 uint32_t ht_count(hashtable_t *table) {
-    return table->count;
+    return __sync_add_and_fetch(&table->count, 0);
 }
 
