@@ -265,7 +265,6 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
             free(item);
             return NULL;
         }
-        actual_size++;
     }
 
     list_unlock(list);
