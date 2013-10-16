@@ -339,6 +339,7 @@ void *ht_pop(hashtable_t *table, char *key) {
         if (item) {
             free(item->key);
             free(item);
+            __sync_sub_and_fetch(&table->count, 1);
         }
     }
 
@@ -378,6 +379,7 @@ void ht_delete(hashtable_t *table, char *key) {
                 table->free_item_cb(item->data);
             free(item->key);
             free(item);
+            __sync_sub_and_fetch(&table->count, 1);
         }
     }
 
