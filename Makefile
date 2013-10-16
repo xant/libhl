@@ -21,7 +21,7 @@ TESTS = $(patsubst %.c, %, $(wildcard test/*.c))
 
 TEST_EXEC_ORDER = linklist_test hashtable_test
 
-all: objects static shared tests
+all: objects static shared support/testing.o tests
 
 static: objects
 	ar -r libhl.a src/*.o
@@ -40,7 +40,8 @@ clean:
 	rm -f support/testing.o
 
 support/testing.o:
-	$(CC) -Isrc -c support/testing.c -o support/testing.o
+	@echo "$(CC) $(CFLAGS) -Isrc -c support/testing.c -o support/testing.o"
+	$(CC) $(CFLAGS) -Isrc -c support/testing.c -o support/testing.o
 
 tests: CFLAGS += -Isrc -Isupport -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -O3 -L. support/testing.o
 
