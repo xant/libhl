@@ -126,7 +126,8 @@ void ht_destroy(hashtable_t *table) {
 static int _get_item(void *item, uint32_t idx, void *user) {
     ht_iterator_arg_t *arg = (ht_iterator_arg_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
-    if (ht_item->hash == arg->item.hash &&
+    if (/*ht_item->hash == arg->item.hash && */
+        ht_item->key[0] == arg->item.key[0] &&
         strcmp(ht_item->key, arg->item.key) == 0)
     {
         char *data = ht_item->data;
@@ -165,11 +166,13 @@ void ht_grow_table(hashtable_t *table) {
     uint32_t i;
     uint32_t newSize = table->size << 1;
 
+    //fprintf(stderr, "Growing table from %u to %u\n", table->size, newSize);
+
     linked_list_t **items_list =
         (linked_list_t **)calloc(newSize, sizeof(linked_list_t *));
 
     if (!items_list) {
-        //fprintf(stderr, "Can't create new items array list: %s", strerror(errno));
+        //fprintf(stderr, "Can't create new items array list: %s\n", strerror(errno));
         return;
     }
     ht_copy_helper helper = {
@@ -193,7 +196,6 @@ void ht_grow_table(hashtable_t *table) {
 
 void *ht_set(hashtable_t *table, char *key, void *data) {
     uint32_t hash;
-    uint32_t count = 0;
     void *prev_data = NULL;
     ht_item_t *prev_item = NULL;
 
@@ -236,23 +238,23 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
     } else {
         ht_item_t *item = (ht_item_t *)calloc(1, sizeof(ht_item_t));
         if (!item) {
-            //fprintf(stderr, "Can't create new item: %s", strerror(errno));
+            //fprintf(stderr, "Can't create new item: %s\n", strerror(errno));
             list_unlock(list); 
             return NULL;
         }
         item->hash = hash;
         item->key = strdup(key);
         if (!item->key) {
-            //fprintf(stderr, "Can't copy key: %s", strerror(errno));
+            //fprintf(stderr, "Can't copy key: %s\n", strerror(errno));
             list_unlock(list);
             free(item);
             return NULL;
         }
         item->data = data;
         if (push_value(list, item) == 0) {
-            count = __sync_add_and_fetch(&table->count, 1);
+            __sync_add_and_fetch(&table->count, 1);
         } else {
-            //fprintf(stderr, "Can't push new value for key: %s", strerror(errno));
+            //fprintf(stderr, "Can't push new value for key: %s\n", strerror(errno));
             list_unlock(list);
             free(item->key);
             free(item);
@@ -262,7 +264,7 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
 
     list_unlock(list);
 
-    if (count > ht_count(table) + HT_GROW_THRESHOLD) {
+    if (ht_count(table) > table->size + HT_GROW_THRESHOLD) {
         ht_grow_table(table);
     }
 

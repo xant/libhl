@@ -38,8 +38,6 @@ struct __linked_list {
 /* Entry creation and destruction routines */
 static inline list_entry_t *create_entry();
 static inline void destroy_entry(list_entry_t *entry);
-static inline void *get_entry_value(list_entry_t *entry);
-static inline void set_entry_value(list_entry_t *entry, void *val);
 
 /* List and list_entry_t manipulation routines */
 static inline list_entry_t *pop_entry(linked_list_t *list);
@@ -195,23 +193,6 @@ static inline void destroy_entry(list_entry_t *entry)
         }
         free(entry);
     }
-}
-
-/*
- * Get a pointer to the value associated to entry. 
- */
-void *get_entry_value(list_entry_t *entry) 
-{
-    return entry->value;
-}
-
-/* 
- * Associate a value to the list_entry_t pointed by entry.
- * 
- */
-void set_entry_value(list_entry_t *entry, void *val) 
-{
-    entry->value = val;
 }
 
 /*
@@ -574,7 +555,7 @@ void *pop_value(linked_list_t *list)
     list_entry_t *entry = pop_entry(list);
     if(entry) 
     {
-        val = get_entry_value(entry);
+        val = entry->value;
         destroy_entry(entry);
     }
     return val;
@@ -586,7 +567,7 @@ int push_value(linked_list_t *list, void *val)
     list_entry_t *new_entry = create_entry();
     if(!new_entry)
         return -1;
-    set_entry_value(new_entry, val);
+    new_entry->value = val;
     res = push_entry(list, new_entry);
     if(res != 0)
         destroy_entry(new_entry);
@@ -599,7 +580,7 @@ int unshift_value(linked_list_t *list, void *val)
     list_entry_t *new_entry = create_entry();
     if(!new_entry)
         return -1;
-    set_entry_value(new_entry, val);
+    new_entry->value = val;
     res = unshift_entry(list, new_entry);
     if(res != 0)
         destroy_entry(new_entry);
@@ -612,7 +593,7 @@ void *shift_value(linked_list_t *list)
     list_entry_t *entry = shift_entry(list);
     if(entry) 
     {
-        val = get_entry_value(entry);
+        val = entry->value;
         destroy_entry(entry);
     }
     return val;
@@ -624,7 +605,7 @@ int insert_value(linked_list_t *list, void *val, uint32_t pos)
     list_entry_t *new_entry = create_entry();
     if(!new_entry)
         return -1;
-    set_entry_value(new_entry, val);
+    new_entry->value = val;
     res=insert_entry(list, new_entry, pos);
     if(res != 0)
         destroy_entry(new_entry);
@@ -635,7 +616,7 @@ void *pick_value(linked_list_t *list, uint32_t pos)
 {
     list_entry_t *entry = pick_entry(list, pos);
     if(entry)
-        return get_entry_value(entry);
+        return entry->value;
     return NULL;
 }
 
@@ -645,7 +626,7 @@ void *fetch_value(linked_list_t *list, uint32_t pos)
     list_entry_t *entry = fetch_entry(list, pos);
     if(entry) 
     {
-        val = get_entry_value(entry);
+        val = entry->value;
         destroy_entry(entry);
     }
     return val;
@@ -663,8 +644,8 @@ void *set_value(linked_list_t *list, uint32_t pos, void *newval)
     MUTEX_LOCK(&list->lock);
     list_entry_t *entry = pick_entry(list, pos);
     if (entry) {
-        old_value = get_entry_value(entry);
-        set_entry_value(entry, newval);
+        old_value = entry->value;
+        entry->value = newval;
     } else {
         insert_value(list, newval, pos);
     }
@@ -679,8 +660,8 @@ void *subst_value(linked_list_t *list, uint32_t pos, void *newval)
     MUTEX_LOCK(&list->lock);
     list_entry_t *entry = pick_entry(list, pos);
     if (entry) {
-        old_value = get_entry_value(entry);
-        set_entry_value(entry, newval);
+        old_value = entry->value;
+        entry->value = newval;
     }
     MUTEX_UNLOCK(&list->lock);
     return old_value;
@@ -694,9 +675,8 @@ int swap_values(linked_list_t *list,  uint32_t pos1, uint32_t pos2)
 void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uint32_t idx, void *user), void *user)
 {
     uint32_t i;
-    /* TODO - maybe should lock list while iterating? */
     MUTEX_LOCK(&list->lock);
-    for(i=0;i<list_count(list);i++) {
+    for(i=0;i<list->length;i++) {
         if (item_handler(pick_value(list, i), i, user) == 0)
             break;
     }
