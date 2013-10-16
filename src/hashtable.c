@@ -196,11 +196,15 @@ void ht_grow_table(hashtable_t *table) {
 
 void *ht_set(hashtable_t *table, char *key, void *data) {
     uint32_t hash;
+    uint32_t actual_size;
     void *prev_data = NULL;
     ht_item_t *prev_item = NULL;
 
     PERL_HASH(hash, key, strlen(key));
     MUTEX_LOCK(&table->lock);
+
+    actual_size = table->size;
+
     linked_list_t *list = table->items[hash%table->size];
     if (!list) {
         list = create_list();
@@ -218,6 +222,7 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
 
     // we can anyway unlock the table to allow operations which 
     // don't involve the actual linklist
+
     MUTEX_UNLOCK(&table->lock);
 
     ht_iterator_arg_t arg = {
@@ -260,11 +265,12 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
             free(item);
             return NULL;
         }
+        actual_size++;
     }
 
     list_unlock(list);
 
-    if (ht_count(table) > table->size + HT_GROW_THRESHOLD) {
+    if (ht_count(table) > actual_size + HT_GROW_THRESHOLD) {
         ht_grow_table(table);
     }
 
