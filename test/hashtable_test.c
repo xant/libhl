@@ -91,8 +91,8 @@ int main(int argc, char **argv) {
     t_testing("ht_pop() returns old value");
     t_result(strcmp(old_value, "test_value") == 0, "ht_pop() didn't return the correct old value (was: %s)", old_value);
 
-    int num_parallel_threads = 4;
-    int num_parallel_items = 10000;
+    int num_parallel_threads = 5;
+    int num_parallel_items = 100000;
 
     parallel_insert_arg args[num_parallel_threads];
     pthread_t threads[num_parallel_threads];
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
         pthread_join(threads[i], NULL);
     }
 
-    t_testing("Parallel insert (%d items)", num_parallel_items);
+    t_testing("Parallel insert (%d items, %d threads)", num_parallel_items, num_parallel_threads);
     t_result(ht_count(table) == num_parallel_items,
             "Count is not %d after parallel insert (%d)",
             num_parallel_items, ht_count(table));
