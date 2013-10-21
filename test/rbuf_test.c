@@ -86,10 +86,7 @@ int main(int argc, char **argv) {
     t_result(rb_write_count(rb) == reads_count && reads_count == rbuf_size, "Number of reads and/or writes doesn't match the ringbuffer size "
              "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
 
-
     reads_count = 0;
-
-    t_testing("Multi-threaded producer/consumer (%d items, parallel writes followed by %d parallel reads)", rbuf_size, rbuf_size);
 
     for (i = 0 ; i < num_fillers; i++) {
         pthread_create(&filler_th[i], NULL, filler, rb);
@@ -98,6 +95,9 @@ int main(int argc, char **argv) {
     for (i = 0 ; i < num_fillers; i++) {
         pthread_join(filler_th[i], NULL);
     }
+
+    t_testing("Write fails if ringbuffer is full");
+    t_result(rb_write(rb, "must_fail") == -2, "Write didn't fail with return-code -2");
 
     for (i = 0; i < num_threads; i++) {
         pthread_create(&th[i], NULL, worker, rb);
@@ -109,9 +109,9 @@ int main(int argc, char **argv) {
         pthread_join(th[i], NULL);
     }
 
-
+    t_testing("Multi-threaded producer/consumer (%d items, buffer prefilled before starting readers)", rbuf_size);
     t_result(rb_write_count(rb) / 2 == reads_count && reads_count == rbuf_size, "Number of reads and/or writes doesn't match the ringbuffer size "
-             "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
 
+             "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
 
 }

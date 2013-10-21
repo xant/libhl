@@ -23,7 +23,7 @@ struct __rbuf_page {
     void               *value;
     struct __rbuf_page *next;
     struct __rbuf_page *prev;
-}
+};
 
 struct __rbuf {
     rbuf_page_t             *head;
@@ -148,13 +148,13 @@ int rb_write(rbuf_t *rb, void *value) {
     do {
         temp_page = ATOMIC_READ(rb->tail);
         commit = ATOMIC_READ(rb->commit);
-        if (temp_page == commit) {
+        next_page = RBUF_FLAG_OFF(ATOMIC_READ(temp_page->next), 0x03);
+
+        if (temp_page == commit && next_page == head) {
             //fprintf(stderr, "No buffer space\n");
             ATOMIC_DECREMENT(num_writers, 1);
             return -2;
-        }
-        next_page = RBUF_FLAG_OFF(ATOMIC_READ(temp_page->next), 0x03);
-        if (next_page == head) {
+        } else if (next_page == head) {
             if (ATOMIC_READ(num_writers) == 1) {
                 tail = temp_page;
                 break;
