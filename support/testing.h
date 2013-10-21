@@ -1,3 +1,5 @@
+#include <stdarg.h>
+
 extern int t_tests;
 extern int t_skipped;
 extern int t_tobeimplemented;
