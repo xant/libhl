@@ -16,7 +16,6 @@ static void free_item(void *v) {
 
 void *worker(void *user) {
     rbuf_t *rb = (rbuf_t *)user;
-    int cnt = 0;
     int retries = 0;
     for (;;) {
         if (retries >= 1000) {

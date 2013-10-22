@@ -29,7 +29,7 @@ static: objects
 shared: objects
 	$(CC) $(LDFLAGS) $(SHAREDFLAGS) src/*.o -o libhl.$(SHAREDEXT)
 
-objects: CFLAGS += -fPIC -Isrc -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -O3
+objects: CFLAGS += -fPIC -Isrc -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -O3
 objects: $(TARGETS)
 
 clean:
@@ -43,7 +43,7 @@ support/testing.o:
 	@echo "$(CC) $(CFLAGS) -Isrc -c support/testing.c -o support/testing.o"
 	$(CC) $(CFLAGS) -Isrc -c support/testing.c -o support/testing.o
 
-tests: CFLAGS += -Isrc -Isupport -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -O3 -L. support/testing.o
+tests: CFLAGS += -Isrc -Isupport -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -O3 -L. support/testing.o
 
 tests: static support/testing.o 
 	@for i in $(TESTS); do\

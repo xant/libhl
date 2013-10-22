@@ -91,7 +91,6 @@ void rb_set_free_value_callback(rbuf_t *rb, rbuf_free_value_callback_t cb) {
 }
 
 void rb_destroy(rbuf_t *rb) {
-    int i;
     rbuf_page_t *page = rb->head;
     do {
         rbuf_page_t *p = page;
