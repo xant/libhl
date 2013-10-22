@@ -34,20 +34,20 @@ void rb_set_free_value_callback(rbuf_t *rb, rbuf_free_value_callback_t cb);
 /**
  * @brief The ringbuffer mode
  *
- * RB_MODE_BLOCKING
+ * RBUF_MODE_BLOCKING
  *      writers will stop if the ringbuffer is full
- * RB_MODE_OVERWRITE
+ * RBUF_MODE_OVERWRITE
  *      writers will overwrite values when the ringbuffer is full
  */
 typedef enum {
-    RB_MODE_BLOCKING = 0,
-    RB_MODE_OVERWRITE
+    RBUF_MODE_BLOCKING = 0,
+    RBUF_MODE_OVERWRITE
 } rbuf_mode_t;
 
 /**
  * @brief Create a new ringbuffer descriptor
  * @arg size : the size of the ringbuffer
- * @arg mode : the mode of the ringbuffer (RB_MODE_BLOCKING or RB_MODE_OVERWRITE)
+ * @arg mode : the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
  * @return a newly allocated and initialized ringbuffer
  *
  */
@@ -57,7 +57,7 @@ rbuf_t *rb_create(uint32_t size, rbuf_mode_t mode);
 /**
  * @brief Change the mode of an existing ringbuffer
  * @arg rb : A valid pointer to a rbuf_t structure
- * @arg mode : the mode of the ringbuffer (RB_MODE_BLOCKING or RB_MODE_OVERWRITE)
+ * @arg mode : the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
  *
  */
 void rb_set_mode(rbuf_t *rb, rbuf_mode_t mode);
@@ -65,7 +65,7 @@ void rb_set_mode(rbuf_t *rb, rbuf_mode_t mode);
 /**
  * @brief Get the current mode of an existing ringbuffer
  * @arg rb : A valid pointer to a rbuf_t structure
- * @return the mode of the ringbuffer (RB_MODE_BLOCKING or RB_MODE_OVERWRITE)
+ * @return the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
  */
 rbuf_mode_t rb_mode(rbuf_t *rb);
 

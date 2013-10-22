@@ -85,7 +85,6 @@ rbuf_t *rb_create(uint32_t size, rbuf_mode_t mode) {
     rb->reader = calloc(1, sizeof(rbuf_page_t));
     rb->reader->prev = rb->head->prev;
     rb->reader->next = rb->head;
-    rb->mode = RB_MODE_BLOCKING;;
     return rb;
 }
 
@@ -172,7 +171,7 @@ int rb_write(rbuf_t *rb, void *value) {
         commit = ATOMIC_READ(rb->commit);
         next_page = RBUF_FLAG_OFF(ATOMIC_READ(temp_page->next), RBUF_FLAG_ALL);
         head = ATOMIC_READ(rb->head);
-        if (rb->mode == RB_MODE_BLOCKING) {
+        if (rb->mode == RBUF_MODE_BLOCKING) {
             if (temp_page == commit && next_page == head) {
                 if (ATOMIC_READ(rb->writes) - ATOMIC_READ(rb->reads) != 0) {
                     //fprintf(stderr, "No buffer space\n");
@@ -202,7 +201,7 @@ int rb_write(rbuf_t *rb, void *value) {
     if (ATOMIC_CMPXCHG(tail->next, RBUF_FLAG_ON(nextp, RBUF_FLAG_HEAD), RBUF_FLAG_ON(nextp, RBUF_FLAG_UPDATE))) {
         did_update = 1;
         //fprintf(stderr, "Did update head pointer\n");
-        if (rb->mode == RB_MODE_OVERWRITE) {
+        if (rb->mode == RBUF_MODE_OVERWRITE) {
             // we need to advance the head if in overwrite mode ...otherwise we must stop
             //fprintf(stderr, "Will advance head and overwrite old data\n");
             rbuf_page_t *nextpp = RBUF_FLAG_OFF(ATOMIC_READ(nextp->next), RBUF_FLAG_ALL);
@@ -263,6 +262,7 @@ rbuf_mode_t rb_mode(rbuf_t *rb) {
 
 char *rb_stats(rbuf_t *rb) {
     char *buf = malloc(1024);
+
     snprintf(buf, 1024,
            "reader:      %p \n"
            "head:        %p \n"
@@ -270,13 +270,16 @@ char *rb_stats(rbuf_t *rb) {
            "commit:      %p \n"
            "commit_next: %p \n"
            "reads:       %u \n"
-           "writes:      %u \n",
+           "writes:      %u \n"
+           "mode:        %s \n",
            ATOMIC_READ(rb->reader),
            ATOMIC_READ(rb->head),
            ATOMIC_READ(rb->tail),
            ATOMIC_READ(rb->commit),
            ATOMIC_READ(ATOMIC_READ(rb->commit)->next),
            ATOMIC_READ(rb->reads),
-           ATOMIC_READ(rb->writes));
+           ATOMIC_READ(rb->writes),
+           rb->mode == RBUF_MODE_BLOCKING ? "blocking" : "overwrite");
+
     return buf;
 }
