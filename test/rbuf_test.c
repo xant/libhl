@@ -140,13 +140,14 @@ int main(int argc, char **argv) {
 
     do_free = 0;
 
-    rb = rb_create(2, RB_MODE_OVERWRITE);
+    rb = rb_create(2, RBUF_MODE_BLOCKING);
     rb_write(rb, "1");
     rb_write(rb, "2");
-    t_testing("Write fails if ringbuffer is full (RB_MODE_BLOCKING)");
+    t_testing("Write fails if ringbuffer is full (RBUF_MODE_BLOCKING)");
     t_result(rb_write(rb, "must_fail") == -2, "Write didn't fail with return-code -2");
 
-    t_testing("Write overwrites if ringbuffer is full (RB_MODE_OVERWRITE)");
+    rb_set_mode(rb, RBUF_MODE_OVERWRITE);
+    t_testing("Write overwrites if ringbuffer is full (RBUF_MODE_OVERWRITE)");
     
     int rc = rb_write(rb, "3");
     t_result(rc == 0, "Write failed with return-code %d", rc);
