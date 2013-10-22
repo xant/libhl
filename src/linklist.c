@@ -30,6 +30,12 @@ struct __linked_list {
     free_value_callback_t free_value_cb;
 };
 
+#ifndef PTHREAD_MUTEX_RECURSIVE
+#ifdef PTHREAD_MUTEX_RECURSIVE_NP
+#define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
+#endif
+#endif
+
 /********************************************************************
  * Entry-based API   
  * - Internal use only
