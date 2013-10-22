@@ -263,4 +263,6 @@ int main(int argc, char **argv) {
     destroy_list(tagged_list);
 
     t_summary();
+
+    exit(0);
 }

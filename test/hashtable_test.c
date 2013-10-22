@@ -138,4 +138,6 @@ int main(int argc, char **argv) {
     ht_destroy(table);
 
     t_summary();
+
+    exit(0);
 } 

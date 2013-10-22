@@ -167,4 +167,6 @@ int main(int argc, char **argv) {
     t_validate_string(rb_read(rb), "3");
 
     rb_destroy(rb);
+
+    exit(0);
 }
