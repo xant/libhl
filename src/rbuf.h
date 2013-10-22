@@ -73,6 +73,7 @@ rbuf_mode_t rb_mode(rbuf_t *rb);
  * @brief Push a new value into the ringbuffer
  * @arg rb : A valid pointer to a rbuf_t structure
  * @return 0 on success, -1 on failure, -2 if the buffer is full
+ *         and the mode is RBUF_MODE_BLOCKING
  */
 int rb_write(rbuf_t *rb, void *value);
 /**
