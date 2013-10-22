@@ -31,7 +31,7 @@ void *worker(void *user) {
         } else {
             pthread_testcancel();
             retries++;
-            usleep(100);
+            usleep(250);
         }
     }
     //printf("Worker 0x%04x leaving\n", (int)pthread_self());
@@ -41,11 +41,11 @@ void *worker(void *user) {
 void *filler (void *user) {
     int i;
     rbuf_t *rb = (rbuf_t *)user;
-    for (i = 0; i < 5000; i++) {
+    for (i = 0; i < 50000; i++) {
         char *v = malloc(40);
         sprintf(v, "test%d", i);
-        rb_write(rb, v);
-        //usleep(250);
+        while (rb_write(rb, v) != 0)
+            usleep(250);
     }
     //printf("Filler 0x%04x leaving\n", (int)pthread_self());
     return NULL;
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 
     t_init();
 
-    int rbuf_size = 10000;
+    int rbuf_size = 100000;
 
     t_testing("Create a new ringbuffer (size: %d)", rbuf_size);
     rbuf_t *rb = rb_create(rbuf_size);
@@ -92,6 +92,11 @@ int main(int argc, char **argv) {
     t_result(rb_write_count(rb) == reads_count && reads_count == rbuf_size, "Number of reads and/or writes doesn't match the ringbuffer size "
              "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
 
+    if (reads_count < rbuf_size) {
+        printf("%s\n", rb_stats(rb));
+        sleep(10);
+    }
+
     reads_count = 0;
 
     for (i = 0 ; i < num_fillers; i++) {
@@ -101,9 +106,6 @@ int main(int argc, char **argv) {
     for (i = 0 ; i < num_fillers; i++) {
         pthread_join(filler_th[i], NULL);
     }
-
-    t_testing("Write fails if ringbuffer is full");
-    t_result(rb_write(rb, "must_fail") == -2, "Write didn't fail with return-code -2");
 
     for (i = 0; i < num_threads; i++) {
         pthread_create(&th[i], NULL, worker, rb);
@@ -119,11 +121,30 @@ int main(int argc, char **argv) {
     t_result(rb_write_count(rb) / 2 == reads_count && reads_count == rbuf_size, "Number of reads and/or writes doesn't match the ringbuffer size "
              "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
 
+    if (reads_count < rbuf_size) {
+        printf("%s\n", rb_stats(rb));
+        sleep(10);
+    }
+
     rb_set_free_value_callback(rb, free_item);
 
     t_testing("free_value_callback()");
     rb_destroy(rb);
     t_result(free_count == rbuf_size + 1, "free_count (%d) doesn't match rbuf_size + 1 (%d)", free_count, rbuf_size + 1);
 
+    rb = rb_create(2);
+    rb_write(rb, "1");
+    rb_write(rb, "2");
+    t_testing("Write fails if ringbuffer is full (RB_MODE_BLOCKING)");
+    t_result(rb_write(rb, "must_fail") == -2, "Write didn't fail with return-code -2");
 
+    rb_set_mode(rb, RB_MODE_OVERWRITE);
+    t_testing("Write overwrites if ringbuffer is full (RB_MODE_OVERWRITE)");
+    
+    int rc = rb_write(rb, "3");
+    t_result(rc == 0, "Write failed with return-code %d", rc);
+    t_testing("First value is the overridden one");
+    t_validate_string(rb_read(rb), "3");
+
+    rb_destroy(rb);
 }

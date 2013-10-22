@@ -2,8 +2,9 @@
 #include <rbuf.h>
 #include <stdio.h>
 
-#define RBUF_FLAG_HEAD (1)
-#define RBUF_FLAG_UPDATE (1<<1)
+#define RBUF_FLAG_HEAD   (0x01)
+#define RBUF_FLAG_UPDATE (0x02)
+#define RBUF_FLAG_ALL    (0x03)
 
 #define RBUF_FLAG_ON(__addr, __flag) (rbuf_page_t *)(((intptr_t)__addr & -4) | __flag)
 #define RBUF_FLAG_OFF(__addr, __flag) (rbuf_page_t *)((intptr_t)__addr & ~__flag)
@@ -32,8 +33,9 @@ struct __rbuf {
     rbuf_page_t             *reader;
     rbuf_free_value_callback_t free_value_cb;
     uint32_t                size;
-    int                     overwrite_mode;
+    int                     mode;
     uint32_t                writes;
+    uint32_t                reads;
 };
 #pragma pack(pop)
 
@@ -71,18 +73,20 @@ rbuf_t *rb_create(uint32_t size) {
     rb->head->prev = rb->tail;
     rb->tail->next = rb->head;
     rb->tail->next = RBUF_FLAG_ON(rb->tail->next, RBUF_FLAG_HEAD);
+
     rb->tail = rb->head;
 
-    rb->commit = rb->tail->prev;
+    rb->commit = rb->tail;
+
     // the reader page is out of the ringbuffer
     rb->reader = calloc(1, sizeof(rbuf_page_t));
     rb->reader->prev = rb->head->prev;
     rb->reader->next = rb->head;
-    rb->overwrite_mode = 0;
+    rb->mode = RB_MODE_BLOCKING;;
     return rb;
 }
 
-rb_set_free_value_callback(rbuf_t *rb, rbuf_free_value_callback_t cb) {
+void rb_set_free_value_callback(rbuf_t *rb, rbuf_free_value_callback_t cb) {
     rb->free_value_cb = cb;
 }
 
@@ -91,7 +95,7 @@ void rb_destroy(rbuf_t *rb) {
     rbuf_page_t *page = rb->head;
     do {
         rbuf_page_t *p = page;
-        page = RBUF_FLAG_OFF(p->next, 0x03);
+        page = RBUF_FLAG_OFF(p->next, RBUF_FLAG_ALL);
         rb_destroy_page(p, rb->free_value_cb);
     } while (page != rb->head);
 
@@ -117,16 +121,17 @@ void *rb_read(rbuf_t *rb) {
             rbuf_page_t *next = ATOMIC_READ(head->next);
             rbuf_page_t *old_next = ATOMIC_READ(rb->reader->next);
 
-            if (rb->reader == commit || (head == tail && commit != tail)) // || RBUF_FLAG_OFF(ATOMIC_READ(commit->next), 0x03) == head || head == tail)
+            if (rb->reader == commit || (head == tail && commit != tail) || ATOMIC_READ(rb->writes) == 0)
             { // nothing to read
                 ATOMIC_CMPXCHG(read_sync, 1, 0);
                 continue;
             }
 
+            ATOMIC_CMPXCHG(rb->reader->next, old_next, RBUF_FLAG_ON(next, RBUF_FLAG_HEAD));
+            rb->reader->prev = head->prev;
+
             if (ATOMIC_CMPXCHG(head->prev->next, RBUF_FLAG_ON(head, RBUF_FLAG_HEAD), rb->reader)) {
                 ATOMIC_CMPXCHG(rb->head, head, next);
-                rb->reader->prev = head->prev;
-                ATOMIC_CMPXCHG(rb->reader->next, old_next, RBUF_FLAG_ON(next, RBUF_FLAG_HEAD));
                 next->prev = rb->reader;
                 rb->reader = head;
                 /*
@@ -135,10 +140,12 @@ void *rb_read(rbuf_t *rb) {
                 */
                 v = ATOMIC_READ(rb->reader->value); 
                 ATOMIC_CMPXCHG(read_sync, 1, 0);
+                ATOMIC_INCREMENT(rb->reads, 1);
                 break;
             } else {
                 fprintf(stderr, "head swap failed\n");
             }
+
             ATOMIC_CMPXCHG(read_sync, 1, 0);
         }
     }
@@ -148,7 +155,9 @@ void *rb_read(rbuf_t *rb) {
 int rb_write(rbuf_t *rb, void *value) {
     int retries = 0;
     static int num_writers = 0;
-    static int updating_commit = 0;
+    int did_update = 0;
+    int did_move_head = 0;
+
     rbuf_page_t *temp_page = NULL;
     rbuf_page_t *next_page = NULL;
     rbuf_page_t *tail = NULL;
@@ -158,19 +167,21 @@ int rb_write(rbuf_t *rb, void *value) {
     do {
         temp_page = ATOMIC_READ(rb->tail);
         commit = ATOMIC_READ(rb->commit);
-        next_page = RBUF_FLAG_OFF(ATOMIC_READ(temp_page->next), 0x03);
+        next_page = RBUF_FLAG_OFF(ATOMIC_READ(temp_page->next), RBUF_FLAG_ALL);
         head = ATOMIC_READ(rb->head);
-        if (temp_page == commit && next_page == head) {
-            //fprintf(stderr, "No buffer space\n");
-            ATOMIC_DECREMENT(num_writers, 1);
-            return -2;
-        } else if (next_page == head) {
-            if (ATOMIC_READ(num_writers) == 1) {
-                tail = temp_page;
-                break;
-            } else {
+        if (rb->mode == RB_MODE_BLOCKING) {
+            if (temp_page == commit && next_page == head) {
+                //fprintf(stderr, "No buffer space\n");
                 ATOMIC_DECREMENT(num_writers, 1);
                 return -2;
+            } else if (next_page == head) {
+                if (ATOMIC_READ(num_writers) == 1) {
+                    tail = temp_page;
+                    break;
+                } else {
+                    ATOMIC_DECREMENT(num_writers, 1);
+                    return -2;
+                }
             }
         }
         tail = ATOMIC_CMPXCHG_RETURN(rb->tail, temp_page, next_page);
@@ -181,21 +192,22 @@ int rb_write(rbuf_t *rb, void *value) {
         return -1;
     } 
 
-    rbuf_page_t *nextp = RBUF_FLAG_OFF(ATOMIC_READ(tail->next), 0x03);
-    int did_update = 0;
+    rbuf_page_t *nextp = RBUF_FLAG_OFF(ATOMIC_READ(tail->next), RBUF_FLAG_ALL);
+
     if (ATOMIC_CMPXCHG(tail->next, RBUF_FLAG_ON(nextp, RBUF_FLAG_HEAD), RBUF_FLAG_ON(nextp, RBUF_FLAG_UPDATE))) {
         did_update = 1;
         //fprintf(stderr, "Did update head pointer\n");
-        if (rb->overwrite_mode) {
+        if (rb->mode == RB_MODE_OVERWRITE) {
             // we need to advance the head if in overwrite mode ...otherwise we must stop
-            //fprintf(stderr, "Will advance head\n");
-            //fprintf(stderr, "No buffer space. overwriting old data\n");
-            rbuf_page_t *nextpp = RBUF_FLAG_OFF(ATOMIC_READ(nextp->next), 0x03);
+            //fprintf(stderr, "Will advance head and overwrite old data\n");
+            rbuf_page_t *nextpp = RBUF_FLAG_OFF(ATOMIC_READ(nextp->next), RBUF_FLAG_ALL);
             if (ATOMIC_CMPXCHG(nextp->next, nextpp, RBUF_FLAG_ON(nextpp, RBUF_FLAG_HEAD))) {
-                if (ATOMIC_READ(rb->tail) != next_page)
+                if (ATOMIC_READ(rb->tail) != next_page) {
                     ATOMIC_CMPXCHG(nextp->next, RBUF_FLAG_ON(nextpp, RBUF_FLAG_HEAD), nextpp);
-                else
+                } else {
                     ATOMIC_CMPXCHG(rb->head, head, nextpp);
+                    did_move_head = 1;
+                }
             }
         }
     }
@@ -207,12 +219,19 @@ int rb_write(rbuf_t *rb, void *value) {
 
 
     if (ATOMIC_READ(num_writers) == 1) {
-        ATOMIC_CMPXCHG(rb->commit, commit, tail);//ATOMIC_READ(rb->tail)->prev);
+        while (!ATOMIC_CMPXCHG(rb->commit, ATOMIC_READ(rb->commit), tail))
+            ;// do nothing
     }
 
     if (did_update) {
         //fprintf(stderr, "Try restoring head pointer\n");
-        ATOMIC_CMPXCHG(tail->next, RBUF_FLAG_ON(nextp, RBUF_FLAG_UPDATE), RBUF_FLAG_ON(nextp, RBUF_FLAG_HEAD) );
+
+        ATOMIC_CMPXCHG(tail->next,
+                       RBUF_FLAG_ON(nextp, RBUF_FLAG_UPDATE),
+                       did_move_head
+                       ? RBUF_FLAG_OFF(nextp, RBUF_FLAG_ALL)
+                       : RBUF_FLAG_ON(nextp, RBUF_FLAG_HEAD));
+
         //fprintf(stderr, "restored head pointer\n");
     }
 
@@ -223,4 +242,32 @@ int rb_write(rbuf_t *rb, void *value) {
 
 uint32_t rb_write_count(rbuf_t *rb) {
     return ATOMIC_READ(rb->writes);
+}
+
+void rb_set_mode(rbuf_t *rb, rbuf_mode_t mode) {
+    rb->mode = mode;
+}
+
+rbuf_mode_t rb_mode(rbuf_t *rb) {
+    return rb->mode;
+}
+
+char *rb_stats(rbuf_t *rb) {
+    static char buf[1024];
+    snprintf(buf, 1024,
+           "reader:      %p \n"
+           "head:        %p \n"
+           "tail:        %p \n"
+           "commit:      %p \n"
+           "commit_next: %p \n"
+           "reads:       %u \n"
+           "writes:      %u \n",
+           ATOMIC_READ(rb->reader),
+           ATOMIC_READ(rb->head),
+           ATOMIC_READ(rb->tail),
+           ATOMIC_READ(rb->commit),
+           ATOMIC_READ(ATOMIC_READ(rb->commit)->next),
+           ATOMIC_READ(rb->reads),
+           ATOMIC_READ(rb->writes));
+    return buf;
 }
