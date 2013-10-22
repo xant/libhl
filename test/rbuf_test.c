@@ -53,9 +53,36 @@ void *filler (void *user) {
     return NULL;
 }
 
+static void start_writers(int num_writers, pthread_t *th, rbuf_t *rb) {
+    int i;
+    for (i = 0 ; i < num_writers; i++) {
+        pthread_create(&th[i], NULL, filler, rb);
+    }
+}
+
+static void wait_for_writers(int num_writers, pthread_t *th) {
+    int i;
+    for (i = 0 ; i < num_writers; i++) {
+        pthread_join(th[i], NULL);
+    }
+}
+
+static void start_readers(int num_readers, pthread_t *th, rbuf_t *rb) {
+    int i;
+    for (i = 0; i < num_readers; i++) {
+        pthread_create(&th[i], NULL, worker, rb);
+    }
+}
+
+static void wait_for_readers(int num_readers, pthread_t *th) {
+    int i;
+    for (i = 0 ; i < num_readers; i++) {
+     //   pthread_cancel(th[i]);
+        pthread_join(th[i], NULL);
+    }
+}
 
 int main(int argc, char **argv) {
-    int i;
 
     do_free = 1;
     t_init();
@@ -68,28 +95,17 @@ int main(int argc, char **argv) {
 
 
     t_testing("Multi-threaded producer/consumer (%d items, parallel reads/writes)", rbuf_size);
-    int num_threads = 4;
-    pthread_t th[num_threads];
-    
-    for (i = 0; i < num_threads; i++) {
-        pthread_create(&th[i], NULL, worker, rb);
-    }
 
-    int num_fillers = 2;
-    pthread_t filler_th[num_fillers];
-    for (i = 0 ; i < num_fillers; i++) {
-        pthread_create(&filler_th[i], NULL, filler, rb);
-    }
+    int num_readers = 4;
+    pthread_t reader_th[num_readers];
+    start_readers(num_readers, reader_th, rb);
 
+    int num_writers = 2;
+    pthread_t writer_th[num_writers];
+    start_writers(num_writers, writer_th,rb);
 
-    for (i = 0 ; i < num_fillers; i++) {
-        pthread_join(filler_th[i], NULL);
-    }
-
-    for (i = 0 ; i < num_threads; i++) {
-     //   pthread_cancel(th[i]);
-        pthread_join(th[i], NULL);
-    }
+    wait_for_writers(num_writers, writer_th);
+    wait_for_readers(num_readers, reader_th);
 
     t_result(rb_write_count(rb) == reads_count && reads_count == rbuf_size, "Number of reads and/or writes doesn't match the ringbuffer size "
              "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
@@ -103,22 +119,11 @@ int main(int argc, char **argv) {
     reads_count = 0;
     do_free = 0;
 
-    for (i = 0 ; i < num_fillers; i++) {
-        pthread_create(&filler_th[i], NULL, filler, rb);
-    }
+    start_writers(num_writers, writer_th, rb);
+    wait_for_writers(num_writers, writer_th);
 
-    for (i = 0 ; i < num_fillers; i++) {
-        pthread_join(filler_th[i], NULL);
-    }
-
-    for (i = 0; i < num_threads; i++) {
-        pthread_create(&th[i], NULL, worker, rb);
-    }
-
-     for (i = 0 ; i < num_threads; i++) {
-     //   pthread_cancel(th[i]);
-        pthread_join(th[i], NULL);
-    }
+    start_readers(num_readers, reader_th, rb);
+    wait_for_readers(num_readers, reader_th);
 
     t_testing("Multi-threaded producer/consumer (%d items, buffer prefilled before starting readers)", rbuf_size);
     t_result(rb_write_count(rb) / 2 == reads_count && reads_count == rbuf_size, "Number of reads and/or writes doesn't match the ringbuffer size "
@@ -136,7 +141,7 @@ int main(int argc, char **argv) {
 
     filler(rb);
     rb_destroy(rb);
-    t_result(free_count == rbuf_size/num_fillers, "free_count (%d) doesn't match %d", free_count, rbuf_size/num_fillers);
+    t_result(free_count == rbuf_size/num_writers, "free_count (%d) doesn't match %d", free_count, rbuf_size/num_writers);
 
     do_free = 0;
 
@@ -151,7 +156,7 @@ int main(int argc, char **argv) {
     
     int rc = rb_write(rb, "3");
     t_result(rc == 0, "Write failed with return-code %d", rc);
-    t_testing("First value is the overridden one");
+    t_testing("First value is the overwritten one");
     t_validate_string(rb_read(rb), "3");
 
     rb_destroy(rb);
