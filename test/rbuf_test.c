@@ -8,6 +8,12 @@
 
 static int reads_count = 0;
 
+static int free_count = 0;
+static void free_item(void *v) {
+    free_count++;
+    free(v);
+}
+
 void *worker(void *user) {
     rbuf_t *rb = (rbuf_t *)user;
     int cnt = 0;
@@ -72,7 +78,7 @@ int main(int argc, char **argv) {
         pthread_create(&filler_th[i], NULL, filler, rb);
     }
 
-    sleep(1);
+    //sleep(1);
 
     for (i = 0 ; i < num_fillers; i++) {
         pthread_join(filler_th[i], NULL);
@@ -111,7 +117,13 @@ int main(int argc, char **argv) {
 
     t_testing("Multi-threaded producer/consumer (%d items, buffer prefilled before starting readers)", rbuf_size);
     t_result(rb_write_count(rb) / 2 == reads_count && reads_count == rbuf_size, "Number of reads and/or writes doesn't match the ringbuffer size "
-
              "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
+
+    rb_set_free_value_callback(rb, free_item);
+
+    t_testing("free_value_callback()");
+    rb_destroy(rb);
+    t_result(free_count == rbuf_size + 1, "free_count (%d) doesn't match rbuf_size + 1 (%d)", free_count, rbuf_size + 1);
+
 
 }

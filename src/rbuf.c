@@ -82,14 +82,24 @@ rbuf_t *rb_create(uint32_t size) {
     return rb;
 }
 
+rb_set_free_value_callback(rbuf_t *rb, rbuf_free_value_callback_t cb) {
+    rb->free_value_cb = cb;
+}
+
 void rb_destroy(rbuf_t *rb) {
     int i;
     rbuf_page_t *page = rb->head;
-    while(page != rb->tail) {
+    do {
         rbuf_page_t *p = page;
-        page = p->next;
+        page = RBUF_FLAG_OFF(p->next, 0x03);
         rb_destroy_page(p, rb->free_value_cb);
-    }
+    } while (page != rb->head);
+
+    // release the reader page as well
+    rb_destroy_page(rb->reader, rb->free_value_cb);
+
+    // and finally release the ringbuffer descriptor
+    free(rb);
 }
 
 void *rb_read(rbuf_t *rb) {
@@ -142,14 +152,14 @@ int rb_write(rbuf_t *rb, void *value) {
     rbuf_page_t *temp_page = NULL;
     rbuf_page_t *next_page = NULL;
     rbuf_page_t *tail = NULL;
-    rbuf_page_t *head = ATOMIC_READ(rb->head);
+    rbuf_page_t *head = NULL;
     rbuf_page_t *commit;
     ATOMIC_INCREMENT(num_writers, 1);
     do {
         temp_page = ATOMIC_READ(rb->tail);
         commit = ATOMIC_READ(rb->commit);
         next_page = RBUF_FLAG_OFF(ATOMIC_READ(temp_page->next), 0x03);
-
+        head = ATOMIC_READ(rb->head);
         if (temp_page == commit && next_page == head) {
             //fprintf(stderr, "No buffer space\n");
             ATOMIC_DECREMENT(num_writers, 1);
