@@ -116,8 +116,9 @@ int main(int argc, char **argv) {
         free(stats);
     }
 
+    t_testing("Multi-threaded producer/consumer (%d items, buffer prefilled before starting readers)", rbuf_size);
+
     reads_count = 0;
-    do_free = 0;
 
     start_writers(num_writers, writer_th, rb);
     wait_for_writers(num_writers, writer_th);
@@ -125,7 +126,6 @@ int main(int argc, char **argv) {
     start_readers(num_readers, reader_th, rb);
     wait_for_readers(num_readers, reader_th);
 
-    t_testing("Multi-threaded producer/consumer (%d items, buffer prefilled before starting readers)", rbuf_size);
     t_result(rb_write_count(rb) / 2 == reads_count && reads_count == rbuf_size, "Number of reads and/or writes doesn't match the ringbuffer size "
              "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
 
@@ -135,24 +135,31 @@ int main(int argc, char **argv) {
         free(stats);
     }
 
-    rb_set_free_value_callback(rb, free_item);
+    t_testing("rb_set_free_value_callback()");
 
-    t_testing("free_value_callback()");
+    do_free = 0;
+
+    rb_set_free_value_callback(rb, free_item);
 
     filler(rb);
     rb_destroy(rb);
+
     t_result(free_count == rbuf_size/num_writers, "free_count (%d) doesn't match %d", free_count, rbuf_size/num_writers);
+
+
+    t_testing("Write fails if ringbuffer is full (RBUF_MODE_BLOCKING)");
 
     do_free = 0;
 
     rb = rb_create(2, RBUF_MODE_BLOCKING);
     rb_write(rb, "1");
     rb_write(rb, "2");
-    t_testing("Write fails if ringbuffer is full (RBUF_MODE_BLOCKING)");
+
     t_result(rb_write(rb, "must_fail") == -2, "Write didn't fail with return-code -2");
 
-    rb_set_mode(rb, RBUF_MODE_OVERWRITE);
     t_testing("Write overwrites if ringbuffer is full (RBUF_MODE_OVERWRITE)");
+
+    rb_set_mode(rb, RBUF_MODE_OVERWRITE);
     
     int rc = rb_write(rb, "3");
     t_result(rc == 0, "Write failed with return-code %d", rc);
