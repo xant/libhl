@@ -8,6 +8,7 @@
 
 static int reads_count = 0;
 
+static int do_free = 0;
 static int free_count = 0;
 static void free_item(void *v) {
     free_count++;
@@ -27,6 +28,8 @@ void *worker(void *user) {
             //printf("0x%04x - %s \n", (int)pthread_self(), v);
             __sync_fetch_and_add(&reads_count, 1);
             retries = 0;
+            if (do_free)
+                free(v);
         } else {
             pthread_testcancel();
             retries++;
@@ -54,6 +57,7 @@ void *filler (void *user) {
 int main(int argc, char **argv) {
     int i;
 
+    do_free = 1;
     t_init();
 
     int rbuf_size = 100000;
@@ -97,6 +101,7 @@ int main(int argc, char **argv) {
     }
 
     reads_count = 0;
+    do_free = 0;
 
     for (i = 0 ; i < num_fillers; i++) {
         pthread_create(&filler_th[i], NULL, filler, rb);
@@ -109,7 +114,6 @@ int main(int argc, char **argv) {
     for (i = 0; i < num_threads; i++) {
         pthread_create(&th[i], NULL, worker, rb);
     }
-
 
      for (i = 0 ; i < num_threads; i++) {
      //   pthread_cancel(th[i]);
@@ -128,8 +132,12 @@ int main(int argc, char **argv) {
     rb_set_free_value_callback(rb, free_item);
 
     t_testing("free_value_callback()");
+
+    filler(rb);
     rb_destroy(rb);
-    t_result(free_count == rbuf_size + 1, "free_count (%d) doesn't match rbuf_size + 1 (%d)", free_count, rbuf_size + 1);
+    t_result(free_count == rbuf_size/num_fillers, "free_count (%d) doesn't match %d", free_count, rbuf_size/num_fillers);
+
+    do_free = 0;
 
     rb = rb_create(2);
     rb_write(rb, "1");

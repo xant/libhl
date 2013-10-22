@@ -138,8 +138,9 @@ void *rb_read(rbuf_t *rb) {
                 rb->reader->prev = next->prev;
                 */
                 v = ATOMIC_READ(rb->reader->value); 
-                ATOMIC_CMPXCHG(read_sync, 1, 0);
+                ATOMIC_CMPXCHG(rb->reader->value, v, NULL);
                 ATOMIC_INCREMENT(rb->reads, 1);
+                ATOMIC_CMPXCHG(read_sync, 1, 0);
                 break;
             } else {
                 fprintf(stderr, "head swap failed\n");
@@ -170,9 +171,11 @@ int rb_write(rbuf_t *rb, void *value) {
         head = ATOMIC_READ(rb->head);
         if (rb->mode == RB_MODE_BLOCKING) {
             if (temp_page == commit && next_page == head) {
-                //fprintf(stderr, "No buffer space\n");
-                ATOMIC_DECREMENT(num_writers, 1);
-                return -2;
+                if (ATOMIC_READ(rb->writes) - ATOMIC_READ(rb->reads) != 0) {
+                    //fprintf(stderr, "No buffer space\n");
+                    ATOMIC_DECREMENT(num_writers, 1);
+                    return -2;
+                }
             } else if (next_page == head) {
                 if (ATOMIC_READ(num_writers) == 1) {
                     tail = temp_page;
