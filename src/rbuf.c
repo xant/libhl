@@ -20,11 +20,11 @@
 #define ATOMIC_CMPXCHG_RETURN(__p, __v1, __v2) __sync_val_compare_and_swap(&__p, __v1, __v2)
 
 #pragma pack(push, 4)
-struct __rbuf_page {
+typedef struct __rbuf_page {
     void               *value;
     struct __rbuf_page *next;
     struct __rbuf_page *prev;
-};
+} rbuf_page_t;
 
 struct __rbuf {
     rbuf_page_t             *head;
@@ -39,25 +39,28 @@ struct __rbuf {
 };
 #pragma pack(pop)
 
-void rb_destroy_page(rbuf_page_t *page, rbuf_free_value_callback_t free_value_cb) {
+static void rb_destroy_page(rbuf_page_t *page, rbuf_free_value_callback_t free_value_cb) {
     if (page->value && free_value_cb)
         free_value_cb(page->value);
     free(page);
 }
 
-rbuf_page_t *rbuf_create_page() {
+/*
+static rbuf_page_t *rbuf_create_page() {
     rbuf_page_t *page = calloc(1, sizeof(rbuf_page_t));
     return page;
 }
 
-void *rb_page_value(rbuf_page_t *page) {
+static void *rb_page_value(rbuf_page_t *page) {
     return page->value;
 }
+*/
 
-rbuf_t *rb_create(uint32_t size) {
+rbuf_t *rb_create(uint32_t size, rbuf_mode_t mode) {
     uint32_t i;
     rbuf_t *rb = calloc(1, sizeof(rbuf_t));
     rb->size = size;
+    rb->mode = mode;
     for (i = 0; i < size; i++) {
         rbuf_page_t *page = calloc(1, sizeof(rbuf_page_t));
         if (!rb->head) {
@@ -246,6 +249,10 @@ uint32_t rb_write_count(rbuf_t *rb) {
     return ATOMIC_READ(rb->writes);
 }
 
+uint32_t rb_read_count(rbuf_t *rb) {
+    return ATOMIC_READ(rb->reads);
+}
+
 void rb_set_mode(rbuf_t *rb, rbuf_mode_t mode) {
     rb->mode = mode;
 }
@@ -255,7 +262,7 @@ rbuf_mode_t rb_mode(rbuf_t *rb) {
 }
 
 char *rb_stats(rbuf_t *rb) {
-    static char buf[1024];
+    char *buf = malloc(1024);
     snprintf(buf, 1024,
            "reader:      %p \n"
            "head:        %p \n"

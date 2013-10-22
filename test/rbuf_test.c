@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     int rbuf_size = 100000;
 
     t_testing("Create a new ringbuffer (size: %d)", rbuf_size);
-    rbuf_t *rb = rb_create(rbuf_size);
+    rbuf_t *rb = rb_create(rbuf_size, RBUF_MODE_BLOCKING);
     t_result(rb != NULL, "Can't create a new ringbuffer");
 
 
@@ -81,7 +81,6 @@ int main(int argc, char **argv) {
         pthread_create(&filler_th[i], NULL, filler, rb);
     }
 
-    //sleep(1);
 
     for (i = 0 ; i < num_fillers; i++) {
         pthread_join(filler_th[i], NULL);
@@ -96,8 +95,9 @@ int main(int argc, char **argv) {
              "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
 
     if (reads_count < rbuf_size) {
-        printf("%s\n", rb_stats(rb));
-        sleep(10);
+        char *stats = rb_stats(rb);
+        printf("%s\n", stats);
+        free(stats);
     }
 
     reads_count = 0;
@@ -125,8 +125,9 @@ int main(int argc, char **argv) {
              "reads: %d, writes: %d, size: %d", reads_count, rb_write_count(rb), rbuf_size);
 
     if (reads_count < rbuf_size) {
-        printf("%s\n", rb_stats(rb));
-        sleep(10);
+        char *stats = rb_stats(rb);
+        printf("%s\n", stats);
+        free(stats);
     }
 
     rb_set_free_value_callback(rb, free_item);
@@ -139,13 +140,12 @@ int main(int argc, char **argv) {
 
     do_free = 0;
 
-    rb = rb_create(2);
+    rb = rb_create(2, RB_MODE_OVERWRITE);
     rb_write(rb, "1");
     rb_write(rb, "2");
     t_testing("Write fails if ringbuffer is full (RB_MODE_BLOCKING)");
     t_result(rb_write(rb, "must_fail") == -2, "Write didn't fail with return-code -2");
 
-    rb_set_mode(rb, RB_MODE_OVERWRITE);
     t_testing("Write overwrites if ringbuffer is full (RB_MODE_OVERWRITE)");
     
     int rc = rb_write(rb, "3");

@@ -22,11 +22,11 @@ typedef struct __hashtable hashtable_t;
 
 /**
  * @brief Create a new table descriptor
- * @arg initial size of the table
+ * @arg size : initial size of the table
  * @return a newly allocated and initialized table
  *
  * The table will be expanded if necessary
- * */
+ */
 hashtable_t *ht_create(uint32_t size);
 
 /**
