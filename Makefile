@@ -1,5 +1,7 @@
 UNAME := $(shell uname)
 
+LDFLAGS += -L.
+
 ifeq ($(UNAME), Linux)
 LDFLAGS += -pthread
 else
@@ -42,7 +44,7 @@ clean:
 support/testing.o:
 	$(CC) $(CFLAGS) -Isrc -c support/testing.c -o support/testing.o
 
-tests: CFLAGS += -Isrc -Isupport -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -O3 -L.
+tests: CFLAGS += -Isrc -Isupport -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -O3
 
 tests: support/testing.o static
 	@for i in $(TESTS); do\
