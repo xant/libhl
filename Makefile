@@ -21,7 +21,7 @@ TESTS = $(patsubst %.c, %, $(wildcard test/*.c))
 
 TEST_EXEC_ORDER = linklist_test hashtable_test rbuf_test
 
-all: objects static shared support/testing.o tests
+all: objects static shared
 
 static: objects
 	ar -r libhl.a src/*.o
@@ -40,14 +40,13 @@ clean:
 	rm -f support/testing.o
 
 support/testing.o:
-	@echo "$(CC) $(CFLAGS) -Isrc -c support/testing.c -o support/testing.o"
 	$(CC) $(CFLAGS) -Isrc -c support/testing.c -o support/testing.o
 
-tests: CFLAGS += -Isrc -Isupport -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -O3 -L. support/testing.o
+tests: CFLAGS += -Isrc -Isupport -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -O3 -L.
 
-tests: static support/testing.o 
+tests: support/testing.o static
 	@for i in $(TESTS); do\
 	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS) -lm";\
-	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS) -lm;\
+	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a support/testing.o $(LDFLAGS) -lm;\
 	done;\
 	for i in $(TEST_EXEC_ORDER); do echo; test/$$i; echo; done
