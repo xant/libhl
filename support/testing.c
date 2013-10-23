@@ -107,7 +107,6 @@ t_windowsize(void)
         cols = ws.ws_col;
         rows = ws.ws_row;
     } else {
-        char co[] = "co", li[] = "li";
         char *s;
         if ((s = getenv("COLUMNS")) == NULL || (cols = strtol(s, NULL, 0)) == 0
              || (s = getenv("LINES")) == NULL || (rows = strtol(s, NULL, 0)) == 0)
