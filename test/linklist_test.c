@@ -187,6 +187,8 @@ int main(int argc, char **argv) {
     int num_parallel_threads = 5;
     int num_parallel_items = 100000;
 
+    t_testing("Parallel insert (%d items)", num_parallel_items);
+
     parallel_insert_arg args[num_parallel_threads];
     pthread_t threads[num_parallel_threads];
     for (i = 0; i < num_parallel_threads; i++) {
@@ -199,7 +201,6 @@ int main(int argc, char **argv) {
     for (i = 0; i < num_parallel_threads; i++) {
         pthread_join(threads[i], NULL);
     }
-    t_testing("Parallel insert (%d items)", num_parallel_items);
     t_result(list_count(list) == num_parallel_items, "Count is not %d after parallel insert (%d)", num_parallel_items, list_count(list));
 
     t_testing("Order after parallel insertion");
