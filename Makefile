@@ -21,7 +21,7 @@ endif
 TARGETS = $(patsubst %.c, %.o, $(wildcard src/*.c))
 TESTS = $(patsubst %.c, %, $(wildcard test/*.c))
 
-TEST_EXEC_ORDER = linklist_test hashtable_test rbuf_test
+TEST_EXEC_ORDER = linklist_test hashtable_test rbuf_test queue_test
 
 all: objects static shared
 
