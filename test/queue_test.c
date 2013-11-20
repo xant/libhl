@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 
    // exit(0);
     int num_parallel_threads = 5;
-    int num_parallel_items = 100000;
+    int num_parallel_items = 10000;
 
     parallel_insert_arg args[num_parallel_threads];
     pthread_t threads[num_parallel_threads];
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
         .count = 0
     };
 
-    int num_queued_items = 100000;
+    int num_queued_items = 10000;
     t_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
               num_parallel_threads, num_queued_items);
 

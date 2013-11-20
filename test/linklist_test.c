@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
     t_result(free_count == 100, "Free count is not 100 after clear_list() (%d)", free_count);
 
     int num_parallel_threads = 5;
-    int num_parallel_items = 100000;
+    int num_parallel_items = 10000;
 
     t_testing("Parallel insert (%d items)", num_parallel_items);
 
@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
         .count = 0
     };
 
-    int num_queued_items = 100000;
+    int num_queued_items = 10000;
     t_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
               num_parallel_threads, num_queued_items);
 
