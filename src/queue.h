@@ -33,10 +33,6 @@ typedef void (*queue_free_value_callback_t)(void *v);
 typedef struct __queue queue_t;
 
 
-/********************************************************************
- * Common API 
- ********************************************************************/
-
 /* Queue creation and destruction routines */
 
 /**
@@ -104,14 +100,28 @@ int queue_push_right(queue_t *q, void *val);
 int queue_push_left(queue_t *q, void *val);
 
 /**
- * @brief Remove the first value from the list
- * @arg list : A valid pointer to a linked_list_t structure
- * @return The previous value stored in the tail of the list
+ * @brief Remove the first value from the queue
+ * @arg q : A valid pointer to a queue_t structure
+ * @return The previous value stored in the tail of the queue
  */
-
 void *queue_pop_left(queue_t *q);
 
+/**
+ * @brief Remove the value at the specified position
+ * @arg q : A valid pointer to a queue_t structure
+ * @arg pos : The position of the value to extract
+ * @return The value stored at pos or NULL if nothing is found
+ */
 void *queue_pop_position(queue_t *q, uint32_t pos);
+
+/**
+ * @brief Push a new value at a specific position
+ * @arg q : A valid pointer to a queue_t structure
+ * @arg pos : The position where to insert the new item
+ * @arg val : The value to store in the tail of the queue
+ * @return : 0 if success, -1 otherwise
+ */
+int queue_push_position(queue_t *q, uint32_t pos, void *value);
 
 #ifdef __cplusplus
 }
