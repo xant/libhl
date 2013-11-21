@@ -29,7 +29,8 @@
 
 typedef struct __ht_item {
     uint32_t hash;
-    char    *key;
+    void    *key;
+    size_t   klen;
     void    *data;
 } ht_item_t;
 
@@ -88,7 +89,7 @@ void ht_set_free_item_callback(hashtable_t *table,
     table->free_item_cb = cb;
 }
 
-static int _destroyItem(void *item, uint32_t idx, void *user) {
+static int _destroy_item(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_free_item_callback_t cb = (ht_free_item_callback_t)user;
     ht_item_t *ht_item = (ht_item_t *)item;
@@ -105,7 +106,7 @@ void ht_clear(hashtable_t *table) {
         linked_list_t *list = table->items[i];
         if (list) {
             uint32_t count = list_count(list);
-            foreach_list_value(list, _destroyItem, (void *)table->free_item_cb);
+            foreach_list_value(list, _destroy_item, (void *)table->free_item_cb);
             destroy_list(list);
             table->items[i] = NULL;
             table->count -= count;
@@ -127,8 +128,9 @@ static int _get_item(void *item, uint32_t idx, void *user) {
     ht_iterator_arg_t *arg = (ht_iterator_arg_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
     if (/*ht_item->hash == arg->item.hash && */
-        ht_item->key[0] == arg->item.key[0] &&
-        strcmp(ht_item->key, arg->item.key) == 0)
+        ((char *)ht_item->key)[0] == ((char *)arg->item.key)[0] &&
+        ht_item->klen == arg->item.klen &&
+        memcmp(ht_item->key, arg->item.key, ht_item->klen) == 0)
     {
         char *data = ht_item->data;
         if (arg->set)
@@ -194,13 +196,13 @@ void ht_grow_table(hashtable_t *table) {
     MUTEX_UNLOCK(&table->lock);
 }
 
-void *ht_set(hashtable_t *table, char *key, void *data) {
+void *ht_set(hashtable_t *table, void *key, size_t len, void *data) {
     uint32_t hash;
     uint32_t actual_size;
     void *prev_data = NULL;
     ht_item_t *prev_item = NULL;
 
-    PERL_HASH(hash, key, strlen(key));
+    PERL_HASH(hash, key, len);
     MUTEX_LOCK(&table->lock);
 
     actual_size = table->size;
@@ -231,6 +233,7 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
         .item  = {
             .hash  = hash,
             .key   = key,
+            .klen  = len,
             .data  = data,
         }
     };
@@ -248,7 +251,9 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
             return NULL;
         }
         item->hash = hash;
-        item->key = strdup(key);
+        item->klen = len;
+        item->key = malloc(len);
+        memcpy(item->key, key, len);
         if (!item->key) {
             //fprintf(stderr, "Can't copy key: %s\n", strerror(errno));
             list_unlock(list);
@@ -282,11 +287,11 @@ void *ht_set(hashtable_t *table, char *key, void *data) {
     return prev_data;
 }
 
-void *ht_unset(hashtable_t *table, char *key) {
+void *ht_unset(hashtable_t *table, void *key, size_t len) {
     uint32_t hash;
     void *data = NULL;
 
-    PERL_HASH(hash, key, strlen(key));
+    PERL_HASH(hash, key, len);
 
     MUTEX_LOCK(&table->lock);
     linked_list_t *list = table->items[hash%table->size];
@@ -303,6 +308,7 @@ void *ht_unset(hashtable_t *table, char *key) {
         .item = {
             .hash = hash,
             .key = key,
+            .klen = len,
             .data = NULL,
         },
         .set = true
@@ -315,10 +321,10 @@ void *ht_unset(hashtable_t *table, char *key) {
     return data;
 }
 
-void *ht_pop(hashtable_t *table, char *key) {
+void *ht_pop(hashtable_t *table, void *key, size_t len) {
     uint32_t hash;
     char *prev_data = NULL;
-    PERL_HASH(hash, key, strlen(key));
+    PERL_HASH(hash, key, len);
     MUTEX_LOCK(&table->lock);
     linked_list_t *list = table->items[hash%table->size];
 
@@ -336,7 +342,8 @@ void *ht_pop(hashtable_t *table, char *key) {
         .item = {
             .hash = hash,
             .key = key,
-            .data = NULL
+            .klen = len,
+            .data = NULL,
         }
     };
     foreach_list_value(list, _get_item, &arg);
@@ -356,9 +363,9 @@ void *ht_pop(hashtable_t *table, char *key) {
 }
 
 
-void ht_delete(hashtable_t *table, char *key) {
+void ht_delete(hashtable_t *table, void *key, size_t len) {
     uint32_t hash;
-    PERL_HASH(hash, key, strlen(key));
+    PERL_HASH(hash, key, len);
     MUTEX_LOCK(&table->lock);
     linked_list_t *list = table->items[hash%table->size];
 
@@ -374,6 +381,7 @@ void ht_delete(hashtable_t *table, char *key) {
         .item = {
             .hash = hash,
             .key = key,
+            .klen = len,
         },
         .index = UINT_MAX,
         .set   = false
@@ -393,10 +401,10 @@ void ht_delete(hashtable_t *table, char *key) {
     list_unlock(list);
 }
 
-void *ht_get(hashtable_t *table, char *key) {
+void *ht_get(hashtable_t *table, void *key, size_t len) {
     uint32_t hash = 0;
     void *data = NULL; 
-    PERL_HASH(hash, key, strlen(key));
+    PERL_HASH(hash, key, len);
     MUTEX_LOCK(&table->lock);
     linked_list_t *list = table->items[hash%table->size];
     if (!list) {
@@ -410,7 +418,8 @@ void *ht_get(hashtable_t *table, char *key) {
     ht_iterator_arg_t arg = {
         .item = {
             .hash = hash,
-            .key = key
+            .key = key,
+            .klen = len,
         },
         .index = UINT_MAX,
         .set   = false
@@ -490,7 +499,7 @@ static int _keyIterator(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
-    arg->cb(arg->table, ht_item->key, arg->user);
+    arg->cb(arg->table, ht_item->key, ht_item->klen, arg->user);
     return 1;
 }
 
@@ -567,7 +576,7 @@ static int _pair_iterator(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
-    arg->cb(arg->table, ht_item->key, ht_item->data, arg->user);
+    arg->cb(arg->table, ht_item->key, ht_item->klen, ht_item->data, arg->user);
     return 1;
 }
 

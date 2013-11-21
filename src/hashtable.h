@@ -69,44 +69,49 @@ void ht_destroy(hashtable_t *table);
  * @brief Get the value stored at a specific key
  * @arg table : A valid pointer to an hashtable_t structure
  * @arg key : The key to use
+ * @arg len : The length of the key
  * @return The stored value if any, NULL otherwise
  */
-void *ht_get(hashtable_t *table, char *key);
+void *ht_get(hashtable_t *table, void *key, size_t len);
 
 /**
  * @brief Set the value for a specific key
  * @arg table : A valid pointer to an hashtable_t structure
  * @arg key: The key to use
+ * @arg len : The length of the key
  * @return The previous value if any, NULL otherwise
  */
-void *ht_set(hashtable_t *table, char *key, void *data);
+void *ht_set(hashtable_t *table, void *key, size_t len, void *data);
 
 /**
  * @brief Unset the value stored at a specific key
  * @arg table : A valid pointer to an hashtable_t structure
  * @arg key : The key to use
+ * @arg len : The length of the key
  * @return The previous value if any, NULL otherwise
  */
-void *ht_unset(hashtable_t *table, char *key);
+void *ht_unset(hashtable_t *table, void *key, size_t len);
 
 /**
  * @brief Delete the value stored at a specific key
  * @arg table : A valid pointer to an hashtable_t structure
  * @arg key : The key to use
+ * @arg len : The length of the key
  */
-void ht_delete(hashtable_t *table, char *key);
+void ht_delete(hashtable_t *table, void *key, size_t len);
 
 /**
  * @brief Pop an element from the table
  * @arg table : A valid pointer to an hashtable_t structure
  * @arg key : The key to use
+ * @arg len : The length of the key
  * @return The value previously stored at key
  *
  * The item will be removed from the table and the key released
  * (equivalent to an ht_delete() call with the difference that
  * the previous value will be returned and the free callback won't be called)
  */
-void *ht_pop(hashtable_t *table, char *key);
+void *ht_pop(hashtable_t *table, void *key, size_t len);
 
 /**
  * @brief Return the count of items actually stored in the table
@@ -135,7 +140,7 @@ linked_list_t *ht_get_all_values(hashtable_t *table);
 /**
  * @brief Callback for the key iterator
  */
-typedef void (*ht_key_iterator_callback_t)(hashtable_t *table, char *key, void *user);
+typedef void (*ht_key_iterator_callback_t)(hashtable_t *table, void *key, size_t len, void *user);
 
 /**
  * @brief Key iterator
@@ -161,7 +166,7 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
 /**
  * @brief Callback for the pair iterator
  */
-typedef void (*ht_pair_iterator_callback_t)(hashtable_t *table, char *key, void *value, void *user);
+typedef void (*ht_pair_iterator_callback_t)(hashtable_t *table, void *key, size_t len, void *value, void *user);
 
 /**
  * @brief Pair iterator
