@@ -16,6 +16,13 @@ SHAREDFLAGS = -shared
 SHAREDEXT = so
 endif
 
+ifndef $(LIBDIR)
+LIBDIR=/usr/local/lib
+endif
+
+ifndef $(INCDIR)
+INCDIR=/usr/local/include
+endif
 
 #CC = gcc
 TARGETS = $(patsubst %.c, %.o, $(wildcard src/*.c))
@@ -54,10 +61,8 @@ tests: support/testing.o static
 	for i in $(TEST_EXEC_ORDER); do echo; test/$$i; echo; done
 
 install:
-	@if [ "X$$LIBDIR" == "X" ]; then LIBDIR="/usr/local/lib"; fi; \
-	 if [ "X$$INCDIR" == "X" ]; then INCDIR="/usr/local/include"; fi; \
-	 echo "Installing libraries in $$LIBDIR"; \
-	 cp -v libhl.a $$LIBDIR/;\
-	 cp -v libhl.$(SHAREDEXT) $$LIBDIR/;\
-	 echo "Installing headers in $$INCDIR"; \
-	 cp -v src/*.h $$INCDIR/;
+	 @echo "Installing libraries in $(LIBDIR)"; \
+	 cp -v libhl.a $(LIBDIR)/;\
+	 cp -v libhl.$(SHAREDEXT) $(LIBDIR)/;\
+	 echo "Installing headers in $(INCDIR)"; \
+	 cp -v src/*.h $(INCDIR)/;
