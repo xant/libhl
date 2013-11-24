@@ -16,11 +16,11 @@ SHAREDFLAGS = -shared
 SHAREDEXT = so
 endif
 
-ifeq ($(LIBDIR), "")
+ifeq ("$(LIBDIR)", "")
 LIBDIR=/usr/local/lib
 endif
 
-ifeq ($(INCDIR), "")
+ifeq ("$(INCDIR)", "")
 INCDIR=/usr/local/include
 endif
 
