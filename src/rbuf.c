@@ -19,6 +19,8 @@
 #define ATOMIC_CMPXCHG(__p, __v1, __v2) __sync_bool_compare_and_swap(&__p, __v1, __v2)
 #define ATOMIC_CMPXCHG_RETURN(__p, __v1, __v2) __sync_val_compare_and_swap(&__p, __v1, __v2)
 
+#define RBUF_MIN_SIZE 3
+
 #pragma pack(push, 4)
 typedef struct __rbuf_page {
     void               *value;
@@ -59,7 +61,7 @@ static void *rb_page_value(rbuf_page_t *page) {
 rbuf_t *rb_create(uint32_t size, rbuf_mode_t mode) {
     uint32_t i;
     rbuf_t *rb = calloc(1, sizeof(rbuf_t));
-    rb->size = size;
+    rb->size = (size > RBUF_MIN_SIZE) ? size : RBUF_MIN_SIZE;
     rb->mode = mode;
     for (i = 0; i < size; i++) {
         rbuf_page_t *page = calloc(1, sizeof(rbuf_page_t));

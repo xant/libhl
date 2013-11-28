@@ -48,6 +48,7 @@ typedef enum {
  * @brief Create a new ringbuffer descriptor
  * @arg size : the size of the ringbuffer
  * @arg mode : the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
+ *             default mode is BLOCKING
  * @return a newly allocated and initialized ringbuffer
  *
  */
