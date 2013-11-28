@@ -1,6 +1,8 @@
 #ifndef __REFCNT_H__
 #define __REFCNT_H__
 
+#include <stdint.h>
+
 #define ATOMIC_INCREMENT(__i, __cnt) __sync_fetch_and_add(&__i, __cnt);
 #define ATOMIC_DECREMENT(__i, __cnt) __sync_fetch_and_sub(&__i, __cnt);
 #define ATOMIC_READ(__p) __sync_fetch_and_add(&__p, 0)
@@ -20,8 +22,11 @@ typedef struct __refcnt_node refcnt_node_t;
     TerminateNode makes sure that none of the node’s contained links have any claim on any other node. TerminateNode is called on a deleted node when there are no claims from any other node or thread to the node.2 When the argument concurrent is false BEWARE&CLEANUP guarantees that there cannot be any concurrent updates of the node, thereby allowing TerminateNode to use the cheaper StoreRef instead of CompareAndSwapRef to update the node’s links.
 */
 typedef void (*refcnt_terminate_node_callback_t)(refcnt_node_t *node, int concurrent);
+typedef void (*refcnt_free_node_ptr_callback_t)(void *ptr);
 
-refcnt_t *refcnt_create(refcnt_terminate_node_callback_t terminate_node);
+refcnt_t *refcnt_create(uint32_t gc_threshold,
+                        refcnt_terminate_node_callback_t terminate_node_cb,
+                        refcnt_free_node_ptr_callback_t free_node_ptr_cb);
 void refcnt_destroy(refcnt_t *refcnt);
 
 refcnt_node_t *deref_link(refcnt_t *refcnt, refcnt_node_t **link);

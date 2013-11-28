@@ -5,7 +5,7 @@
 #include <rbuf.h>
 #include <stdio.h>
 
-#define REFCNT_GC_THRESHOLD 32767
+#define RBUF_MIN_SIZE 1<<8
 
 #pragma pack(push, 4)
 struct __refcnt_node {
@@ -16,7 +16,9 @@ struct __refcnt_node {
 
 struct __refcnt {
     refcnt_terminate_node_callback_t terminate_node_cb;
+    refcnt_free_node_ptr_callback_t free_node_ptr_cb;
     rbuf_t *free_list;
+    uint32_t gc_threshold;
 };
 #pragma pack(pop)
 
@@ -24,10 +26,18 @@ struct __refcnt {
 /* Global variables */
 
 
-refcnt_t *refcnt_create(refcnt_terminate_node_callback_t terminate_node) {
+refcnt_t *refcnt_create(uint32_t gc_threshold,
+                        refcnt_terminate_node_callback_t terminate_node_cb,
+                        refcnt_free_node_ptr_callback_t free_node_ptr_cb)
+{
     refcnt_t *refcnt = calloc(1, sizeof(refcnt_t));
-    refcnt->terminate_node_cb = terminate_node;
-    refcnt->free_list = rb_create(REFCNT_GC_THRESHOLD + REFCNT_GC_THRESHOLD/3, RBUF_MODE_BLOCKING);
+    refcnt->terminate_node_cb = terminate_node_cb;
+    refcnt->free_node_ptr_cb = free_node_ptr_cb;
+    refcnt->gc_threshold = gc_threshold;
+    int rbuf_size = gc_threshold + gc_threshold/3;
+    if (rbuf_size < RBUF_MIN_SIZE)
+        rbuf_size = RBUF_MIN_SIZE;
+    refcnt->free_list = rb_create(rbuf_size, RBUF_MODE_BLOCKING);
     return refcnt;
 }
 
@@ -38,7 +48,9 @@ static void gc(refcnt_t *refcnt) {
         if (!ref)
             break;
 
-        free(ATOMIC_READ(ref->ptr));
+        if (refcnt->free_node_ptr_cb) {
+            refcnt->free_node_ptr_cb(ATOMIC_READ(ref->ptr));
+        }
         free(ref);
     } while (1);
 }
@@ -79,13 +91,14 @@ void release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
     ATOMIC_DECREMENT(ref->count, 1);
     if (ATOMIC_CMPXCHG(ref->delete, 0, 1)) {
         if (ATOMIC_READ(ref->count) == 0) {
-            refcnt->terminate_node_cb(ref, 0);
+            if (refcnt->terminate_node_cb)
+                refcnt->terminate_node_cb(ref, 0);
             rb_write(refcnt->free_list, ref);
         } else {
             ATOMIC_CMPXCHG(ref->delete, 1, 0);
         }
     }
-    if (rb_write_count(refcnt->free_list) - rb_read_count(refcnt->free_list) > REFCNT_GC_THRESHOLD)
+    if (rb_write_count(refcnt->free_list) - rb_read_count(refcnt->free_list) > refcnt->gc_threshold)
         gc(refcnt);
 }
 
