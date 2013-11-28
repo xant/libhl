@@ -86,7 +86,7 @@ void queue_init(queue_t *q)
 {
     memset(q,  0, sizeof(queue_t));
     if (!q->refcnt)
-        q->refcnt = refcnt_create(terminate_node_callback);
+        q->refcnt = refcnt_create(1<15, terminate_node_callback, free);
     if (!q->head) {
         q->head = create_entry(q->refcnt);
     }
