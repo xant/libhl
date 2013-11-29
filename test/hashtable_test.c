@@ -19,12 +19,12 @@ static void *parallel_insert(void *user) {
         sprintf(k, "%d", i);
         char *v = malloc(100);
         sprintf(v, "test%d", i+1);
-        ht_set(arg->table, (void *)k, strlen(k), v);
+        ht_set(arg->table, (void *)k, strlen(k), v, strlen(v), NULL, NULL);
     }
     return NULL;
 }
 
-void check_item(hashtable_t *table, void *key, size_t klen, void *value, void *user) {
+void check_item(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user) {
     int *check_item_count = (int *)user;
     char test[25];
     int num = atoi((char *)key);
@@ -45,22 +45,22 @@ int main(int argc, char **argv) {
 
     t_init();
     t_testing("Create hash table");
-    hashtable_t *table = ht_create(256);
+
+    hashtable_t *table = ht_create(256, NULL);
     t_result(table != NULL, "Can't create a new hash table");
 
-    ht_set_free_item_callback(table, NULL);
-
     t_testing("ht_set()");
-    ht_set(table, "key1", 4, "value1");
+    ht_set(table, "key1", 4, "value1", 6, NULL, NULL);
     t_result(ht_count(table) == 1, "Count is not 1 after setting an item in the table");
 
     t_testing("ht_get()");
-    t_validate_string(ht_get(table, "key1", 4), "value1");
+    t_validate_string(ht_get(table, "key1", 4, NULL), "value1");
 
     t_testing("ht_set() overrides previous value (and returns it)");
     char *test_value = "blah";
-    char *old_value = ht_set(table, "key1", 4, test_value);
-    char *new_value = ht_get(table, "key1", 4);
+    void *old_value = NULL;
+    ht_set(table, "key1", 4, test_value, strlen(test_value), &old_value, NULL);
+    char *new_value = ht_get(table, "key1", 4, NULL);
     if (strcmp(old_value, "value1") != 0) {
         t_failure("Old value not returned from ht_set() (got: %s , expected: value1)", old_value);
     } else if (strcmp(new_value, test_value) != 0) {
@@ -71,25 +71,19 @@ int main(int argc, char **argv) {
 
     ht_clear(table);
 
-    ht_set(table, "test_key", 7, "test_value");
+    ht_set(table, "test_key", 7, "test_value", 10, NULL, NULL);
 
     t_testing("ht_unset()");
-    old_value = ht_unset(table, "test_key", 7);
-    t_result(ht_get(table, "test_key", 7) == NULL && ht_count(table) == 1, "ht_unset() failed");
+    old_value = NULL;
+    ht_unset(table, "test_key", 7, &old_value, NULL);
+    t_result(ht_get(table, "test_key", 7, NULL) == NULL && ht_count(table) == 1, "ht_unset() failed");
 
     t_testing("ht_unset() returns old value");
     t_result(strcmp(old_value, "test_value") == 0, "ht_unset() didn't return the correct old value (was: %s)", old_value);
 
     t_testing("ht_delete()");
-    ht_delete(table, "test_key", 7);
-    t_result(ht_get(table, "test_key", 7) == NULL && ht_count(table) == 0, "ht_delete() failed");
-
-    ht_set(table, "test_key", 7, "test_value");
-    t_testing("ht_pop()");
-    old_value = ht_pop(table, "test_key", 7);
-    t_result(ht_get(table, "test_key", 7) == NULL && ht_count(table) == 0, "ht_pop() failed");
-    t_testing("ht_pop() returns old value");
-    t_result(strcmp(old_value, "test_value") == 0, "ht_pop() didn't return the correct old value (was: %s)", old_value);
+    ht_delete(table, "test_key", 7, NULL, NULL);
+    t_result(ht_get(table, "test_key", 7, NULL) == NULL && ht_count(table) == 0, "ht_delete() failed");
 
     int num_parallel_threads = 5;
     int num_parallel_items = 100000;
