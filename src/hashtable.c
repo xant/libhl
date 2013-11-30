@@ -43,6 +43,7 @@ typedef struct __ht_iterator_arg {
 
 struct __hashtable {
     uint32_t size;
+    uint32_t max_size;
     uint32_t count;
     linked_list_t **items; 
 #ifdef THREAD_SAFE
@@ -63,17 +64,18 @@ typedef struct __ht_collector_arg {
     uint32_t count;
 } ht_collector_arg_t;
 
-hashtable_t *ht_create(uint32_t size, ht_free_item_callback_t cb) {
+hashtable_t *ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb) {
     hashtable_t *table = (hashtable_t *)calloc(1, sizeof(hashtable_t));
 
     if (table)
-        ht_init(table, size, cb);
+        ht_init(table, initial_size, max_size, cb);
 
     return table;
 }
 
-void ht_init(hashtable_t *table, uint32_t size, ht_free_item_callback_t cb) {
-    table->size = size > 256 ? size : 256;
+void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb) {
+    table->size = initial_size > 256 ? initial_size : 256;
+    table->max_size = max_size;
     table->items = (linked_list_t **)calloc(table->size,
                                             sizeof(linked_list_t *));
 
@@ -172,8 +174,17 @@ void ht_grow_table(hashtable_t *table) {
     // if we need to extend the table, better locking it globally
     // preventing any operation on the actual one
     MUTEX_LOCK(&table->lock);
+
+    if (table->max_size && table->size >= table->max_size) {
+        MUTEX_UNLOCK(&table->lock);
+        return;
+    }
+
     uint32_t i;
     uint32_t newSize = table->size << 1;
+
+    if (table->max_size && newSize > table->max_size)
+        newSize = table->max_size;
 
     //fprintf(stderr, "Growing table from %u to %u\n", table->size, newSize);
 
@@ -208,6 +219,7 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 {
     uint32_t hash;
     uint32_t actual_size;
+    uint32_t max_size;
     void *prev = NULL;
     size_t plen = 0;
 
@@ -215,6 +227,7 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
     MUTEX_LOCK(&table->lock);
 
     actual_size = table->size;
+    max_size = table->max_size;
 
     linked_list_t *list = table->items[hash%table->size];
     if (!list) {
@@ -293,7 +306,9 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 
     list_unlock(list);
 
-    if (ht_count(table) > actual_size + HT_GROW_THRESHOLD) {
+    if (ht_count(table) > actual_size + HT_GROW_THRESHOLD && 
+        (!table->max_size || actual_size < table->max_size))
+    {
         ht_grow_table(table);
     }
 

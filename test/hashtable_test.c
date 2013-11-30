@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
     t_init();
     t_testing("Create hash table");
 
-    hashtable_t *table = ht_create(256, NULL);
+    hashtable_t *table = ht_create(256, 0, NULL);
     t_result(table != NULL, "Can't create a new hash table");
 
     t_testing("ht_set()");

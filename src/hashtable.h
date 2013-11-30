@@ -33,14 +33,14 @@ typedef void (*ht_free_item_callback_t)(void *);
  *
  * The table will be expanded if necessary
  */
-hashtable_t *ht_create(uint32_t size, ht_free_item_callback_t free_item_cb);
+hashtable_t *ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t free_item_cb);
 
 /**
  * @brief Initialize a pre-allocated table descriptor
  *
  * This function can be used to initialize a statically defined table
  */
-void ht_init(hashtable_t *table, uint32_t size, ht_free_item_callback_t free_item_cb);
+void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t free_item_cb);
 
 /**
  * @brief Set the callback which must be called to release values stored in the table
