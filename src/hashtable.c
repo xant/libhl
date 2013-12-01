@@ -219,7 +219,6 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 {
     uint32_t hash;
     uint32_t actual_size;
-    uint32_t max_size;
     void *prev = NULL;
     size_t plen = 0;
 
@@ -227,7 +226,6 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
     MUTEX_LOCK(&table->lock);
 
     actual_size = table->size;
-    max_size = table->max_size;
 
     linked_list_t *list = table->items[hash%table->size];
     if (!list) {
