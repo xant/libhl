@@ -168,5 +168,7 @@ int main(int argc, char **argv) {
 
     rb_destroy(rb);
 
+    t_summary();
+
     exit(0);
 }
