@@ -202,8 +202,10 @@ void ht_grow_table(hashtable_t *table) {
     for (i = 0; i < table->size; i++) {
         linked_list_t *items = table->items[i];
         if (items) {
+            list_lock(items);
             foreach_list_value(items, _copyItems, (void *)&helper);
             set_free_value_callback(items, NULL);
+            list_unlock(items);
             destroy_list(items);
         }
     }
@@ -498,8 +500,8 @@ linked_list_t *ht_get_all_keys(hashtable_t *table) {
         .output = create_list(),
         .count = table->count
     };
+    MUTEX_LOCK(&table->lock);
     for (i = 0; i < table->size; i++) {
-        MUTEX_LOCK(&table->lock);
         linked_list_t *items = table->items[i];
 
         if (!items) {
@@ -511,7 +513,9 @@ linked_list_t *ht_get_all_keys(hashtable_t *table) {
         MUTEX_UNLOCK(&table->lock);
         foreach_list_value(items, _collect_key, &arg);
         list_unlock(items);
+        MUTEX_LOCK(&table->lock);
     }
+    MUTEX_UNLOCK(&table->lock);
     return arg.output;
 }
 
@@ -529,12 +533,11 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
         .output = create_list(),
         .count = table->count
     };
+    MUTEX_LOCK(&table->lock);
     for (i = 0; i < table->size; i++) {
-        MUTEX_LOCK(&table->lock);
         linked_list_t *items = table->items[i];
 
         if (!items) {
-            MUTEX_UNLOCK(&table->lock);
             continue;
         }
 
@@ -542,7 +545,9 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
         MUTEX_UNLOCK(&table->lock);
         foreach_list_value(items, _collect_value, &arg);
         list_unlock(items);
+        MUTEX_LOCK(&table->lock);
     }
+    MUTEX_UNLOCK(&table->lock);
     return arg.output;
 }
 
@@ -562,12 +567,11 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
         .table = table
     };
 
+    MUTEX_LOCK(&table->lock);
     for (i = 0; i < table->size; i++) {
         linked_list_t *items = table->items[i];
-        MUTEX_LOCK(&table->lock);
 
         if (!items) {
-            MUTEX_UNLOCK(&table->lock);
             continue;
         }
         
@@ -581,7 +585,9 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
         foreach_list_value(items, _keyIterator, (void *)&arg);
 
         list_unlock(items);
+        MUTEX_LOCK(&table->lock);
     }
+    MUTEX_UNLOCK(&table->lock);
 }
 
 static int _valueIterator(void *item, uint32_t idx, void *user) {
@@ -600,12 +606,11 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
         .table = table
     };
 
+    MUTEX_LOCK(&table->lock);
     for (i = 0; i < table->size; i++) {
-        MUTEX_LOCK(&table->lock);
         linked_list_t *items = table->items[i];
 
         if (!items) {
-            MUTEX_UNLOCK(&table->lock);
             continue;
         }
 
@@ -618,7 +623,9 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
         foreach_list_value(items, _valueIterator, (void *)&arg);
 
         list_unlock(items);
+        MUTEX_LOCK(&table->lock);
     }
+    MUTEX_UNLOCK(&table->lock);
 }
 
 static int _pair_iterator(void *item, uint32_t idx, void *user) {
@@ -635,12 +642,11 @@ void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *u
         .user = user,
         .table = table
     };
+    MUTEX_LOCK(&table->lock);
     for (i = 0; i < table->size; i++) {
-        MUTEX_LOCK(&table->lock);
         linked_list_t *items = table->items[i];
 
         if (!items) {
-            MUTEX_UNLOCK(&table->lock);
             continue;
         }
 
@@ -653,7 +659,9 @@ void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *u
         foreach_list_value(items, _pair_iterator, (void *)&arg);
 
         list_unlock(items);
+        MUTEX_LOCK(&table->lock);
     }
+    MUTEX_UNLOCK(&table->lock);
 }
 
 uint32_t ht_count(hashtable_t *table) {
