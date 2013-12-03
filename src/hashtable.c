@@ -331,7 +331,11 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
     return 0;
 }
 
-int ht_set(hashtable_t *table, void *key, size_t len, void *data, size_t dlen, void **prev_data, size_t *prev_len) {
+int ht_set(hashtable_t *table, void *key, size_t len, void *data, size_t dlen) {
+    return _ht_set_internal(table, key, len, data, dlen, NULL, 0, 0);
+}
+
+int ht_get_and_set(hashtable_t *table, void *key, size_t len, void *data, size_t dlen, void **prev_data, size_t *prev_len) {
     return _ht_set_internal(table, key, len, data, dlen, prev_data, prev_len, 0);
 }
 

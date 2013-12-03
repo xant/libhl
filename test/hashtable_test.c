@@ -19,7 +19,7 @@ static void *parallel_insert(void *user) {
         sprintf(k, "%d", i);
         char *v = malloc(100);
         sprintf(v, "test%d", i+1);
-        ht_set(arg->table, (void *)k, strlen(k), v, strlen(v), NULL, NULL);
+        ht_set(arg->table, (void *)k, strlen(k), v, strlen(v));
     }
     return NULL;
 }
@@ -51,19 +51,19 @@ int main(int argc, char **argv) {
     t_result(table != NULL, "Can't create a new hash table");
 
     t_testing("ht_set()");
-    ht_set(table, "key1", 4, "value1", 6, NULL, NULL);
+    ht_set(table, "key1", 4, "value1", 6);
     t_result(ht_count(table) == 1, "Count is not 1 after setting an item in the table");
 
     t_testing("ht_get()");
     t_validate_string(ht_get(table, "key1", 4, NULL), "value1");
 
-    t_testing("ht_set() overrides previous value (and returns it)");
+    t_testing("ht_get_and_set() overrides previous value (and returns it)");
     char *test_value = "blah";
     void *old_value = NULL;
-    ht_set(table, "key1", 4, test_value, strlen(test_value), &old_value, NULL);
+    ht_get_and_set(table, "key1", 4, test_value, strlen(test_value), &old_value, NULL);
     char *new_value = ht_get(table, "key1", 4, NULL);
     if (strcmp(old_value, "value1") != 0) {
-        t_failure("Old value not returned from ht_set() (got: %s , expected: value1)", old_value);
+        t_failure("Old value not returned from ht_get_and_set() (got: %s , expected: value1)", old_value);
     } else if (strcmp(new_value, test_value) != 0) {
         t_failure("New value not stored properly (got: %s , expected: %s)", new_value, test_value);
     } else {
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 
     ht_clear(table);
 
-    ht_set(table, "test_key", 7, "test_value", 10, NULL, NULL);
+    ht_set(table, "test_key", 7, "test_value", 10);
 
     t_testing("ht_unset()");
     old_value = NULL;

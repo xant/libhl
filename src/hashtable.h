@@ -87,7 +87,9 @@ void *ht_get_deep_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen,
  * @arg len : The length of the key
  * @return The previous value if any, NULL otherwise
  */
-int ht_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen, void **prev_data, size_t *prev_len);
+int ht_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen);
+
+int ht_get_and_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen, void **prev_data, size_t *prev_len);
 
 int ht_set_copy(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen, void **prev_data, size_t *prev_len);
 
