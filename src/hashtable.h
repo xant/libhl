@@ -137,7 +137,7 @@ linked_list_t *ht_get_all_values(hashtable_t *table);
 /**
  * @brief Callback for the key iterator
  */
-typedef void (*ht_key_iterator_callback_t)(hashtable_t *table, void *key, size_t klen, void *user);
+typedef int (*ht_key_iterator_callback_t)(hashtable_t *table, void *key, size_t klen, void *user);
 
 /**
  * @brief Key iterator
@@ -150,7 +150,7 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
 /**
  * @brief Callback for the value iterator
  */
-typedef void (*ht_value_iterator_callback_t)(hashtable_t *table, void *value, size_t vlen, void *user);
+typedef int (*ht_value_iterator_callback_t)(hashtable_t *table, void *value, size_t vlen, void *user);
 
 /**
  * @brief Value iterator
@@ -163,7 +163,7 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
 /**
  * @brief Callback for the pair iterator
  */
-typedef void (*ht_pair_iterator_callback_t)(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user);
+typedef int (*ht_pair_iterator_callback_t)(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user);
 
 /**
  * @brief Pair iterator

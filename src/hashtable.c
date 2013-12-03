@@ -53,7 +53,7 @@ struct __hashtable {
 };
 
 typedef struct __ht_iterator_callback {
-    void (*cb)();
+    int (*cb)();
     void *user;
     uint32_t count;
     hashtable_t *table;
@@ -284,8 +284,12 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
         }
 
         if (copy) {
-            item->data = malloc(dlen);
-            memcpy(item->data, data, dlen);
+            if (dlen) {
+                item->data = malloc(dlen);
+                memcpy(item->data, data, dlen);
+            } else {
+                item->data = NULL;
+            }
         } else {
             item->data = data;
         }
@@ -546,8 +550,7 @@ static int _keyIterator(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
-    arg->cb(arg->table, ht_item->key, ht_item->klen, arg->user);
-    return 1;
+    return arg->cb(arg->table, ht_item->key, ht_item->klen, arg->user);
 }
 
 void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user) {
@@ -585,8 +588,7 @@ static int _valueIterator(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
-    arg->cb(arg->table, ht_item->data, ht_item->dlen, arg->user);
-    return 1;
+    return arg->cb(arg->table, ht_item->data, ht_item->dlen, arg->user);
 }
 
 void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user) {
@@ -623,8 +625,7 @@ static int _pair_iterator(void *item, uint32_t idx, void *user) {
     if (idx) { } // suppress warnings
     ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
     ht_item_t *ht_item = (ht_item_t *)item;
-    arg->cb(arg->table, ht_item->key, ht_item->klen, ht_item->data, ht_item->dlen, arg->user);
-    return 1;
+    return arg->cb(arg->table, ht_item->key, ht_item->klen, ht_item->data, ht_item->dlen, arg->user);
 }
 
 void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user) {

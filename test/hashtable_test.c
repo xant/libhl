@@ -24,13 +24,14 @@ static void *parallel_insert(void *user) {
     return NULL;
 }
 
-void check_item(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user) {
+int check_item(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user) {
     int *check_item_count = (int *)user;
     char test[25];
     int num = atoi((char *)key);
     sprintf(test, "test%d", num+1);
     if (strcmp(test, value) == 0)
         (*check_item_count)++;
+    return 1;
 }
 
 static int free_count = 0;
