@@ -781,7 +781,7 @@ void destroy_tagged_value(tagged_value_t *tval)
         if(tval->value) {
             if(tval->type == TV_TYPE_LIST) 
                 destroy_list((linked_list_t *)tval->value);
-            else 
+            else if (tval->vlen)
                 free(tval->value);
         }
         free(tval);

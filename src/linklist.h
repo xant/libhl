@@ -261,7 +261,7 @@ tagged_value_t *create_tagged_value(char *tag, void *val, uint32_t len);
  * Only the tag will be copied, the value will just point 
  * to the provided value without it being copied 
  */
-tagged_value_t *create_tagged_value_no_copy(char *tag, void *val);
+tagged_value_t *create_tagged_value_nocopy(char *tag, void *val);
 
 /**
  * @brief Create a tagged value where the value is a linked_list_t
