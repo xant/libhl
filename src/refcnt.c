@@ -88,7 +88,8 @@ refcnt_node_t *deref_link(refcnt_t *refcnt, refcnt_node_t **link) {
 }
 
 void release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
-    ATOMIC_DECREMENT(ref->count, 1);
+    if (ATOMIC_READ(ref->count) > 0)
+        ATOMIC_DECREMENT(ref->count, 1);
     if (ATOMIC_CMPXCHG(ref->delete, 0, 1)) {
         if (ATOMIC_READ(ref->count) == 0) {
             if (refcnt->terminate_node_cb)
