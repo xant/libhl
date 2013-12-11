@@ -107,8 +107,8 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
  * @arg table : A valid pointer to an hashtable_t structure
  * @arg key : The key to use
  * @arg len : The length of the key
- * (equivalent to an ht_delete() call with the difference that
- * the previous value will be returned and the free callback won't be called)
+ * if prev_data is not NULL, the previous value will be pointed by *prev_data 
+ * and the free callback won't be called
  */
 int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size_t *prev_len);
 

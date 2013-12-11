@@ -388,13 +388,15 @@ int ht_unset(hashtable_t *table, void *key, size_t len, void **prev_data, size_t
 
 int ht_delete(hashtable_t *table, void *key, size_t len, void **prev_data, size_t *prev_len) {
     uint32_t hash;
+    int ret = -1;
+
     PERL_HASH(hash, key, len);
     MUTEX_LOCK(&table->lock);
     linked_list_t *list = table->items[hash%table->size];
 
     if (!list) {
         MUTEX_UNLOCK(&table->lock);
-        return -1;
+        return ret;
     }
 
     list_lock(list);
@@ -409,7 +411,9 @@ int ht_delete(hashtable_t *table, void *key, size_t len, void **prev_data, size_
         .index = UINT_MAX,
         .set   = false
     };
+
     foreach_list_value(list, _get_item, &arg);
+
     if (arg.index != UINT_MAX) {
         ht_item_t *item = (ht_item_t *)fetch_value(list, arg.index);
         if (item) {
@@ -424,11 +428,12 @@ int ht_delete(hashtable_t *table, void *key, size_t len, void **prev_data, size_
             free(item->key);
             free(item);
             __sync_sub_and_fetch(&table->count, 1);
+            ret = 0;
         }
     }
 
     list_unlock(list);
-    return 0;
+    return ret;
 }
 
 void *_ht_get_internal(hashtable_t *table, void *key, size_t len,
