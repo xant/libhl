@@ -6,6 +6,10 @@
 #include <limits.h>
 #include <strings.h>
 
+#ifdef __MACH__
+#include <libkern/OSAtomic.h>
+#endif
+
 #define PERL_HASH_FUNC_ONE_AT_A_TIME
 #define PERL_STATIC_INLINE static inline
 #define U8  uint8_t
@@ -17,12 +21,19 @@
 #define STMT_END
 #include <hv_func.h>
 
+#include "bsd_queue.h"
+
 #ifdef THREAD_SAFE
-#define MUTEX_LOCK(__mutex) pthread_mutex_lock(__mutex) 
-#define MUTEX_UNLOCK(__mutex) pthread_mutex_unlock(__mutex) 
+#ifdef __MACH__
+#define SPIN_LOCK(__mutex) OSSpinLockLock(__mutex)
+#define SPIN_UNLOCK(__mutex) OSSpinLockUnlock(__mutex)
 #else
-#define MUTEX_LOCK(__mutex)
-#define MUTEX_UNLOCK(__mutex)
+#define SPIN_LOCK(__mutex) pthread_spin_lock(__mutex)
+#define SPIN_UNLOCK(__mutex) pthread_spin_unlock(__mutex)
+#endif
+#else
+#define SPIN_LOCK(__mutex)
+#define SPIN_UNLOCK(__mutex)
 #endif
 
 #define HT_GROW_THRESHOLD 16
@@ -33,6 +44,7 @@ typedef struct __ht_item {
     size_t   klen;
     void    *data;
     size_t   dlen;
+    TAILQ_ENTRY(__ht_item) next;
 } ht_item_t;
 
 typedef struct __ht_iterator_arg {
@@ -41,13 +53,30 @@ typedef struct __ht_iterator_arg {
     ht_item_t item;
 } ht_iterator_arg_t;
 
+typedef TAILQ_HEAD(__ht_items_list_head, __ht_item) ht_items_list_head_t;
+
+typedef struct {
+    TAILQ_HEAD(, __ht_item) head;
+#ifdef THREAD_SAFE
+#ifdef __MACH__
+    OSSpinLock lock;
+#else
+    pthread_spinlock_t lock;
+#endif
+#endif
+} ht_items_list_t;
+
 struct __hashtable {
     uint32_t size;
     uint32_t max_size;
     uint32_t count;
-    linked_list_t **items; 
+    ht_items_list_t **items;
 #ifdef THREAD_SAFE
-    pthread_mutex_t lock;
+#ifdef __MACH__
+    OSSpinLock lock;
+#else
+    pthread_spinlock_t lock;
+#endif
 #endif
     ht_free_item_callback_t free_item_cb;
 };
@@ -76,12 +105,15 @@ hashtable_t *ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_ca
 void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb) {
     table->size = initial_size > 256 ? initial_size : 256;
     table->max_size = max_size;
-    table->items = (linked_list_t **)calloc(table->size,
-                                            sizeof(linked_list_t *));
+    table->items = (ht_items_list_t **)calloc(table->size, sizeof(ht_items_list_t *));
 
     if (table->items) {
 #ifdef THREAD_SAFE
-        pthread_mutex_init(&table->lock, NULL);
+#ifdef __MACH__
+        table->lock = 0;
+#else
+        pthread_spin_init(&table->lock, 0);
+#endif
 #endif
     }
     ht_set_free_item_callback(table, cb);
@@ -89,94 +121,61 @@ void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_fr
 
 void ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
 {
-    MUTEX_LOCK(&table->lock);
-    table->free_item_cb = cb;
-    MUTEX_UNLOCK(&table->lock);
-}
-
-static int _destroy_item(void *item, uint32_t idx, void *user) {
-    if (idx) { } // suppress warnings
-    ht_free_item_callback_t cb = (ht_free_item_callback_t)user;
-    ht_item_t *ht_item = (ht_item_t *)item;
-    if (cb)
-        cb(ht_item->data);
-    free(ht_item->key);
-    return 1; 
+    ht_free_item_callback_t ocb = NULL;
+    do {
+         ocb = __sync_fetch_and_add(&table->free_item_cb, 0);
+    } while(!__sync_bool_compare_and_swap(&table->free_item_cb, ocb, cb));
 }
 
 void ht_clear(hashtable_t *table) {
     uint32_t i;
-    MUTEX_LOCK(&table->lock);
+    SPIN_LOCK(&table->lock);
     for (i = 0; i < table->size; i++) {
-        linked_list_t *list = table->items[i];
-        if (list) {
-            uint32_t count = list_count(list);
-            foreach_list_value(list, _destroy_item,
-                    (void *)table->free_item_cb);
-            destroy_list(list);
-            table->items[i] = NULL;
-            table->count -= count;
+        ht_item_t *item = NULL;
+
+        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+
+        if (!list)
+            continue;
+
+        while((item = TAILQ_FIRST(&list->head))) {
+            TAILQ_REMOVE(&list->head, item, next);
+            if (table->free_item_cb)
+                table->free_item_cb(item->data);
+            free(item->key);
+            free(item);
+            __sync_sub_and_fetch(&table->count, 1);
         }
+
+        __sync_bool_compare_and_swap(&table->items[i], list, NULL);
+#ifdef THREAD_SAFE
+#ifndef __MACH__
+        pthread_spin_destroy(&list->lock);
+#endif
+#endif
+        free(list);
     }
-    MUTEX_UNLOCK(&table->lock);
+    SPIN_UNLOCK(&table->lock);
 }
 
 void ht_destroy(hashtable_t *table) {
     ht_clear(table);
     free(table->items);
 #ifdef THREAD_SAFE
-    pthread_mutex_destroy(&table->lock);
+#ifndef __MACH__
+    pthread_spin_destroy(&table->lock);
+#endif
 #endif
     free(table);
-}
-
-static int _get_item(void *item, uint32_t idx, void *user) {
-    ht_iterator_arg_t *arg = (ht_iterator_arg_t *)user;
-    ht_item_t *ht_item = (ht_item_t *)item;
-    if (/*ht_item->hash == arg->item.hash && */
-        ((char *)ht_item->key)[0] == ((char *)arg->item.key)[0] &&
-        ht_item->klen == arg->item.klen &&
-        memcmp(ht_item->key, arg->item.key, ht_item->klen) == 0)
-    {
-        char *data = ht_item->data;
-        if (arg->set) {
-            ht_item->data = arg->item.data;
-            ht_item->dlen = arg->item.dlen;
-        }
-        arg->item.data = data;
-        arg->item.dlen = ht_item->dlen;
-        arg->index = idx;
-        return 0;
-    }
-    return 1;
-}
-
-typedef struct __ht_copy_helper {
-    linked_list_t **items;
-    uint32_t size;
-} ht_copy_helper;
-
-static int _copyItems(void *item, uint32_t idx, void *user) {
-    if (idx) { } // suppress warnings
-    ht_copy_helper *helper = (ht_copy_helper *)user;
-    ht_item_t *ht_item = (ht_item_t *)item;
-    linked_list_t *list = helper->items[ht_item->hash % helper->size];
-    if (!list) {
-        list = create_list();
-        set_free_value_callback(list, free);
-        helper->items[ht_item->hash % helper->size] = list;
-    }
-    push_value(list, ht_item); 
-    return 1;
 }
 
 void ht_grow_table(hashtable_t *table) {
     // if we need to extend the table, better locking it globally
     // preventing any operation on the actual one
-    MUTEX_LOCK(&table->lock);
+    SPIN_LOCK(&table->lock);
 
     if (table->max_size && table->size >= table->max_size) {
-        MUTEX_UNLOCK(&table->lock);
+        SPIN_UNLOCK(&table->lock);
         return;
     }
 
@@ -188,32 +187,55 @@ void ht_grow_table(hashtable_t *table) {
 
     //fprintf(stderr, "Growing table from %u to %u\n", table->size, newSize);
 
-    linked_list_t **items_list =
-        (linked_list_t **)calloc(newSize, sizeof(linked_list_t *));
+    ht_items_list_t **items_list = 
+        (ht_items_list_t **)calloc(newSize, sizeof(ht_items_list_t *));
 
     if (!items_list) {
         //fprintf(stderr, "Can't create new items array list: %s\n", strerror(errno));
         return;
     }
-    ht_copy_helper helper = {
-        .items = items_list,
-        .size = newSize
-    };
+
+    ht_item_t *item = NULL;
+
     for (i = 0; i < table->size; i++) {
-        linked_list_t *items = table->items[i];
-        if (items) {
-            list_lock(items);
-            foreach_list_value(items, _copyItems, (void *)&helper);
-            set_free_value_callback(items, NULL);
-            list_unlock(items);
-            destroy_list(items);
+        ht_items_list_t *list = NULL;
+        do {
+            list = __sync_fetch_and_add(&table->items[i], 0);
+        } while (!__sync_bool_compare_and_swap(&table->items[i], list, NULL));
+
+        if (!list)
+            continue;
+
+        SPIN_LOCK(&list->lock);
+        while((item = TAILQ_FIRST(&list->head))) {
+            TAILQ_REMOVE(&list->head, item, next);
+            ht_items_list_t *new_list = items_list[item->hash%newSize];
+            if (!new_list) {
+                new_list = malloc(sizeof(ht_items_list_t));
+                TAILQ_INIT(&new_list->head);
+#ifdef THREAD_SAFE
+#ifdef __MACH__
+                new_list->lock = 0;
+#else
+                pthread_spin_init(&new_list->lock, 0);
+#endif
+#endif
+                items_list[item->hash%newSize] = new_list;
+            }
+            TAILQ_INSERT_TAIL(&new_list->head, item, next);
         }
+        SPIN_UNLOCK(&list->lock);
+#ifndef __MACH__
+        pthread_spin_destroy(&list->lock);
+#endif
+        free(list);
     }
-    free(table->items);
-    table->items = helper.items;
+    ht_items_list_t **old_items = __sync_fetch_and_add(&table->items, 0);
+    __sync_bool_compare_and_swap(&table->items, old_items, items_list);
+    free(old_items);
 
     table->size = newSize;
-    MUTEX_UNLOCK(&table->lock);
+    SPIN_UNLOCK(&table->lock);
 }
 
 int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
@@ -225,15 +247,27 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
     size_t plen = 0;
 
     PERL_HASH(hash, key, klen);
-    MUTEX_LOCK(&table->lock);
 
     actual_size = table->size;
 
-    linked_list_t *list = table->items[hash%table->size];
+    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+
     if (!list) {
-        list = create_list();
-        set_free_value_callback(list, free);
-        table->items[hash%table->size] = list;
+        SPIN_LOCK(&table->lock);
+        list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+        if (!list) {
+            list = malloc(sizeof(ht_items_list_t));
+            table->items[hash%table->size] = list;
+            TAILQ_INIT(&list->head);
+#ifdef THREAD_SAFE
+#ifdef __MACH__
+            list->lock = 0;
+#else
+            pthread_spin_init(&list->lock, 0);
+#endif
+#endif
+        }
+        SPIN_UNLOCK(&table->lock);
     }
 
     // we want to lock the list now to avoid it being destroyed
@@ -242,48 +276,48 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
     // The problem would exist if the list is destroyed while we are 
     // still accessing it so we need to lock it for this purpose
 
-    list_lock(list);
+    SPIN_LOCK(&list->lock);
 
     // we can anyway unlock the table to allow operations which 
     // don't involve the actual linklist
 
-    MUTEX_UNLOCK(&table->lock);
-
-    ht_iterator_arg_t arg = {
-        .index = UINT_MAX,
-        .set   = true,
-        .item  = {
-            .hash  = hash,
-            .key   = key,
-            .klen  = klen,
-            .data  = data,
-            .dlen  = dlen
+    ht_item_t *item = NULL;
+    TAILQ_FOREACH(item, &list->head, next) {
+        if (/*ht_item->hash == arg->item.hash && */
+            ((char *)item->key)[0] == ((char *)key)[0] &&
+            item->klen == klen &&
+            memcmp(item->key, key, klen) == 0)
+        {
+            prev = item->data;
+            plen = item->dlen;
+            item->dlen = dlen;
+            if (copy) {
+                item->data = malloc(dlen);
+                memcpy(item->data, data, dlen);
+            } else {
+                item->data = data;
+            }
+            break;
         }
-    };
+    }
 
-    if (list_count(list))
-        foreach_list_value(list, _get_item, &arg);
-
-    if (arg.index != UINT_MAX) {
-        prev = arg.item.data;
-        plen = arg.item.dlen;
-    } else {
+    if (!prev) {
         ht_item_t *item = (ht_item_t *)calloc(1, sizeof(ht_item_t));
         if (!item) {
             //fprintf(stderr, "Can't create new item: %s\n", strerror(errno));
-            list_unlock(list); 
+            SPIN_UNLOCK(&list->lock);
             return -1;
         }
         item->hash = hash;
         item->klen = klen;
         item->key = malloc(klen);
-        memcpy(item->key, key, klen);
         if (!item->key) {
             //fprintf(stderr, "Can't copy key: %s\n", strerror(errno));
-            list_unlock(list);
+            SPIN_UNLOCK(&list->lock);
             free(item);
             return -1;
         }
+        memcpy(item->key, key, klen);
 
         if (copy) {
             if (dlen) {
@@ -297,18 +331,11 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
         }
         item->dlen = dlen;
 
-        if (push_value(list, item) == 0) {
-            __sync_add_and_fetch(&table->count, 1);
-        } else {
-            //fprintf(stderr, "Can't push new value for key: %s\n", strerror(errno));
-            list_unlock(list);
-            free(item->key);
-            free(item);
-            return -1;
-        }
+        TAILQ_INSERT_TAIL(&list->head, item, next);
+        __sync_add_and_fetch(&table->count, 1);
     }
 
-    list_unlock(list);
+    SPIN_UNLOCK(&list->lock);
 
     if (ht_count(table) > actual_size + HT_GROW_THRESHOLD && 
         (!table->max_size || actual_size < table->max_size))
@@ -343,141 +370,147 @@ int ht_set_copy(hashtable_t *table, void *key, size_t len, void *data, size_t dl
     return _ht_set_internal(table, key, len, data, dlen, prev_data, prev_len, 1);
 }
 
-int ht_unset(hashtable_t *table, void *key, size_t len, void **prev_data, size_t *prev_len) {
+int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_t *prev_len) {
     uint32_t hash;
-    void *data = NULL;
 
-    PERL_HASH(hash, key, len);
+    PERL_HASH(hash, key, klen);
 
-    MUTEX_LOCK(&table->lock);
-    linked_list_t *list = table->items[hash%table->size];
 
-    if (!list) {
-        MUTEX_UNLOCK(&table->lock);
+    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+
+    if (!list)
         return -1;
-    }
 
     // TODO : maybe this lock is not necessary
-    list_lock(list);
-    MUTEX_UNLOCK(&table->lock);
+    SPIN_LOCK(&list->lock);
 
-    ht_iterator_arg_t arg = {
-        .item = {
-            .hash = hash,
-            .key = key,
-            .klen = len,
-            .data = NULL,
-            .dlen = 0
-        },
-        .set = true
-    };
-    foreach_list_value(list, _get_item, &arg);
-    list_unlock(list);
 
-    data = arg.item.data;
 
-    if (prev_data)
-        *prev_data = data;
-    else if (table->free_item_cb)
-        table->free_item_cb(data);
+    void *prev = NULL;
+    size_t plen = 0;
 
-    if (prev_len)
-        *prev_len = arg.item.dlen;
+    ht_item_t *item = NULL;
+    TAILQ_FOREACH(item, &list->head, next) {
+        if (/*ht_item->hash == arg->item.hash && */
+            ((char *)item->key)[0] == ((char *)key)[0] &&
+            item->klen == klen &&
+            memcmp(item->key, key, klen) == 0)
+        {
+            prev = item->data;
+            plen = item->dlen;
+            item->data = NULL;
+            item->dlen = 0;
+            break;
+        }
+    }
+
+    SPIN_UNLOCK(&list->lock);
+
+    if (prev) {
+        if (prev_data)
+            *prev_data = prev;
+        else if (table->free_item_cb)
+            table->free_item_cb(prev);
+
+        if (prev_len)
+            *prev_len = plen;
+    }
+
     return 0;
 }
 
-int ht_delete(hashtable_t *table, void *key, size_t len, void **prev_data, size_t *prev_len) {
+int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size_t *prev_len) {
     uint32_t hash;
     int ret = -1;
 
-    PERL_HASH(hash, key, len);
-    MUTEX_LOCK(&table->lock);
-    linked_list_t *list = table->items[hash%table->size];
+    PERL_HASH(hash, key, klen);
+
+    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
 
     if (!list) {
-        MUTEX_UNLOCK(&table->lock);
         return ret;
     }
 
-    list_lock(list);
-    MUTEX_UNLOCK(&table->lock);
+    SPIN_LOCK(&list->lock);
 
-    ht_iterator_arg_t arg = {
-        .item = {
-            .hash = hash,
-            .key = key,
-            .klen = len,
-        },
-        .index = UINT_MAX,
-        .set   = false
-    };
+    void *prev = NULL;
+    size_t plen = 0;
 
-    foreach_list_value(list, _get_item, &arg);
-
-    if (arg.index != UINT_MAX) {
-        ht_item_t *item = (ht_item_t *)fetch_value(list, arg.index);
-        if (item) {
-            if (prev_data)
-                *prev_data = item->data;
-            else if (table->free_item_cb)
-                table->free_item_cb(item->data);
-
-            if (prev_len)
-                *prev_len = item->dlen;
-
+    ht_item_t *item = NULL;
+    ht_item_t *tmp;
+    TAILQ_FOREACH_SAFE(item, &list->head, next, tmp) {
+        if (/*ht_item->hash == arg->item.hash && */
+            ((char *)item->key)[0] == ((char *)key)[0] &&
+            item->klen == klen &&
+            memcmp(item->key, key, klen) == 0)
+        {
+            prev = item->data;
+            plen = item->dlen;
+            TAILQ_REMOVE(&list->head, item, next);
             free(item->key);
             free(item);
             __sync_sub_and_fetch(&table->count, 1);
-            ret = 0;
+            break;
         }
     }
 
-    list_unlock(list);
+    SPIN_UNLOCK(&list->lock);
+
+    if (prev) {
+        if (prev_data)
+            *prev_data = prev;
+        else if (table->free_item_cb)
+            table->free_item_cb(prev);
+
+        if (prev_len)
+            *prev_len = plen;
+
+        ret = 0;
+    }
+
     return ret;
 }
 
-void *_ht_get_internal(hashtable_t *table, void *key, size_t len,
+void *_ht_get_internal(hashtable_t *table, void *key, size_t klen,
         size_t *dlen, int copy, ht_deep_copy_callback_t copy_cb)
 {
     uint32_t hash = 0;
-    void *data = NULL; 
-    PERL_HASH(hash, key, len);
-    MUTEX_LOCK(&table->lock);
-    linked_list_t *list = table->items[hash%table->size];
+
+    PERL_HASH(hash, key, klen);
+    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+
     if (!list) {
-        MUTEX_UNLOCK(&table->lock);
         return NULL;
     }
 
-    list_lock(list);
-    MUTEX_UNLOCK(&table->lock);
+    SPIN_LOCK(&list->lock);
 
-    ht_iterator_arg_t arg = {
-        .item = {
-            .hash = hash,
-            .key = key,
-            .klen = len,
-        },
-        .index = UINT_MAX,
-        .set   = false
-    };
-    foreach_list_value(list, _get_item, &arg);
-    if (arg.index != UINT_MAX) {
-        if (copy) {
-            if (copy_cb) {
-                data = copy_cb(arg.item.data, arg.item.dlen);
+    void *data = NULL;
+
+    ht_item_t *item = NULL;
+    TAILQ_FOREACH(item, &list->head, next) {
+        if (/*ht_item->hash == arg->item.hash && */
+            ((char *)item->key)[0] == ((char *)key)[0] &&
+            item->klen == klen &&
+            memcmp(item->key, key, klen) == 0)
+        {
+            if (copy) {
+                if (copy_cb) {
+                    data = copy_cb(item->data, item->dlen);
+                } else {
+                    data = malloc(item->dlen);
+                    memcpy(data, item->data, item->dlen);
+                }
             } else {
-                data = malloc(arg.item.dlen);
-                memcpy(data, arg.item.data, arg.item.dlen);
+                data = item->data;
             }
-        } else {
-            data = arg.item.data;
+            if (dlen)
+                *dlen = item->dlen;
         }
-        if (dlen)
-            *dlen = arg.item.dlen;
     }
 
-    list_unlock(list);
+    SPIN_UNLOCK(&list->lock);
+
     return data;
 }
 
@@ -495,182 +528,144 @@ void *ht_get_deep_copy(hashtable_t *table, void *key, size_t klen,
     return _ht_get_internal(table, key, klen, dlen, 1, copy_cb);
 }
 
-static int _collect_key(void *item, uint32_t idx, void *user) {
-    if (idx) { } // suppress warnings
-    ht_item_t *ht_item = (ht_item_t *)item;
-    ht_collector_arg_t *arg = (ht_collector_arg_t *)user;
-    push_value(arg->output, ht_item->key);
-    return list_count(arg->output) >= arg->count ? 0 : 1;
+static void free_key(hashtable_key_t *key) {
+    free(key->data);
+    free(key);
 }
 
 linked_list_t *ht_get_all_keys(hashtable_t *table) {
     uint32_t i;
-    ht_collector_arg_t arg = {
-        .output = create_list(),
-        .count = table->count
-    };
-    MUTEX_LOCK(&table->lock);
-    for (i = 0; i < table->size; i++) {
-        linked_list_t *items = table->items[i];
 
-        if (!items) {
-            MUTEX_UNLOCK(&table->lock);
+    linked_list_t *output = create_list();
+    set_free_value_callback(output, (free_value_callback_t)free_key);
+
+    for (i = 0; i < table->size; i++) {
+        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+
+        if (!list) {
             continue;
         }
 
-        list_lock(items);
-        MUTEX_UNLOCK(&table->lock);
-        foreach_list_value(items, _collect_key, &arg);
-        list_unlock(items);
-        MUTEX_LOCK(&table->lock);
-    }
-    MUTEX_UNLOCK(&table->lock);
-    return arg.output;
-}
+        SPIN_LOCK(&list->lock);
 
-static int _collect_value(void *item, uint32_t idx, void *user) {
-    if (idx) { } // suppress warnings
-    ht_item_t *ht_item = (ht_item_t *)item;
-    ht_collector_arg_t *arg = (ht_collector_arg_t *)user;
-    push_value(arg->output, ht_item->data);
-    return list_count(arg->output) >= arg->count ? 0 : 1;
+        ht_item_t *item = NULL;
+        TAILQ_FOREACH(item, &list->head, next) {
+            hashtable_key_t *key = malloc(sizeof(hashtable_key_t));
+            key->data = malloc(item->klen);
+            memcpy(key->data, item->key, item->klen);
+            key->len = item->klen;
+            key->vlen = item->dlen;
+            push_value(output, key);
+        }
+
+        SPIN_UNLOCK(&list->lock);
+    }
+    return output;
 }
 
 linked_list_t *ht_get_all_values(hashtable_t *table) {
     uint32_t i;
-    ht_collector_arg_t arg = {
-        .output = create_list(),
-        .count = table->count
-    };
-    MUTEX_LOCK(&table->lock);
-    for (i = 0; i < table->size; i++) {
-        linked_list_t *items = table->items[i];
 
-        if (!items) {
+    linked_list_t *output = create_list();
+
+    for (i = 0; i < table->size; i++) {
+        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+
+        if (!list) {
             continue;
         }
 
-        list_lock(items);
-        MUTEX_UNLOCK(&table->lock);
-        foreach_list_value(items, _collect_value, &arg);
-        list_unlock(items);
-        MUTEX_LOCK(&table->lock);
-    }
-    MUTEX_UNLOCK(&table->lock);
-    return arg.output;
-}
+        SPIN_LOCK(&list->lock);
 
-static int _keyIterator(void *item, uint32_t idx, void *user) {
-    if (idx) { } // suppress warnings
-    ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
-    ht_item_t *ht_item = (ht_item_t *)item;
-    return arg->cb(arg->table, ht_item->key, ht_item->klen, arg->user);
+        ht_item_t *item = NULL;
+        TAILQ_FOREACH(item, &list->head, next) {
+            hashtable_value_t *v = malloc(sizeof(hashtable_value_t));
+            v->data = malloc(item->dlen);
+            v->len = item->dlen;
+            push_value(output, v);
+        }
+
+        SPIN_UNLOCK(&list->lock);
+    }
+    return output;
 }
 
 void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user) {
     uint32_t i;
 
-    ht_iterator_callback_t arg = { 
-        .cb = cb,
-        .user = user,
-        .table = table
-    };
-
-    MUTEX_LOCK(&table->lock);
     for (i = 0; i < table->size; i++) {
-        linked_list_t *items = table->items[i];
+        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
 
-        if (!items) {
+        if (!list) {
             continue;
         }
         
         // Note: once we acquired the linklist, we don't need to lock the whole
         // table anymore. We need to lock the list though to prevent it from
         // being destroyed while we are still accessing it (or iterating over)
+        SPIN_LOCK(&list->lock);
 
-        list_lock(items);
-        MUTEX_UNLOCK(&table->lock);
+        ht_item_t *item = NULL;
+        TAILQ_FOREACH(item, &list->head, next) {
+            int rc = cb(table, item->key, item->klen, user);
+            if (rc == 0)
+                break;
+        }
 
-        foreach_list_value(items, _keyIterator, (void *)&arg);
-
-        list_unlock(items);
-        MUTEX_LOCK(&table->lock);
+        SPIN_UNLOCK(&list->lock);
     }
-    MUTEX_UNLOCK(&table->lock);
-}
-
-static int _valueIterator(void *item, uint32_t idx, void *user) {
-    if (idx) { } // suppress warnings
-    ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
-    ht_item_t *ht_item = (ht_item_t *)item;
-    return arg->cb(arg->table, ht_item->data, ht_item->dlen, arg->user);
 }
 
 void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user) {
     uint32_t i;
 
-    ht_iterator_callback_t arg = { 
-        .cb = cb,
-        .user = user,
-        .table = table
-    };
-
-    MUTEX_LOCK(&table->lock);
     for (i = 0; i < table->size; i++) {
-        linked_list_t *items = table->items[i];
+        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
 
-        if (!items) {
+        if (!list) {
             continue;
         }
 
         // Note: once we acquired the linklist, we don't need to lock the whole
         // table anymore. We need to lock the list though to prevent it from
         // being destroyed while we are still accessing it (or iterating over)
-        list_lock(items);
+        SPIN_LOCK(&list->lock);
 
-        MUTEX_UNLOCK(&table->lock);
-        foreach_list_value(items, _valueIterator, (void *)&arg);
+        ht_item_t *item = NULL;
+        TAILQ_FOREACH(item, &list->head, next) {
+            int rc = cb(table, item->data, item->dlen, user);
+            if (rc == 0)
+                break;
+        }
 
-        list_unlock(items);
-        MUTEX_LOCK(&table->lock);
+        SPIN_UNLOCK(&list->lock);
     }
-    MUTEX_UNLOCK(&table->lock);
-}
-
-static int _pair_iterator(void *item, uint32_t idx, void *user) {
-    if (idx) { } // suppress warnings
-    ht_iterator_callback_t *arg = (ht_iterator_callback_t *)user;
-    ht_item_t *ht_item = (ht_item_t *)item;
-    return arg->cb(arg->table, ht_item->key, ht_item->klen, ht_item->data, ht_item->dlen, arg->user);
 }
 
 void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user) {
     uint32_t i;
-    ht_iterator_callback_t arg = { 
-        .cb = cb,
-        .user = user,
-        .table = table
-    };
-    MUTEX_LOCK(&table->lock);
-    for (i = 0; i < table->size; i++) {
-        linked_list_t *items = table->items[i];
 
-        if (!items) {
+    for (i = 0; i < table->size; i++) {
+        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+
+        if (!list) {
             continue;
         }
 
         // Note: once we acquired the linklist, we don't need to lock the whole
         // table anymore. We need to lock the list though to prevent it from
         // being destroyed while we are still accessing it (or iterating over)
-        list_lock(items);
+        SPIN_LOCK(&list->lock);
 
-        MUTEX_UNLOCK(&table->lock);
-        foreach_list_value(items, _pair_iterator, (void *)&arg);
+        ht_item_t *item = NULL;
+        TAILQ_FOREACH(item, &list->head, next) {
+            int rc = cb(table, item->key, item->klen, item->data, item->dlen, user);
+            if (rc == 0)
+                break;
+        }
 
-        list_unlock(items);
-        MUTEX_LOCK(&table->lock);
+        SPIN_UNLOCK(&list->lock);
     }
-    MUTEX_UNLOCK(&table->lock);
 }
 
 uint32_t ht_count(hashtable_t *table) {

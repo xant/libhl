@@ -122,12 +122,25 @@ uint32_t ht_count(hashtable_t *table);
 // use the following two functions only if the hashtable_t contains
 // a small number of keys, use the iterators otherwise
 
+typedef struct __hashtable_key_s {
+    void  *data;
+    size_t len;
+    size_t vlen;
+} hashtable_key_t;
+
 /**
  * @brief Get all stored keys
  * @arg table : A valid pointer to an hashtable_t structure
- * @return A list of all keys present in the table
+ * @return A list of hashtable_key_t pointers with all the
+ *         keys present in the table
  */
 linked_list_t *ht_get_all_keys(hashtable_t *table);
+
+
+typedef struct __hashtable_value_s {
+    void  *data;
+    size_t len;
+} hashtable_value_t;
 
 /**
  * @brief Get all stored values
