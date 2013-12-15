@@ -680,11 +680,42 @@ int swap_values(linked_list_t *list,  uint32_t pos1, uint32_t pos2)
 
 void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uint32_t idx, void *user), void *user)
 {
-    uint32_t i;
     MUTEX_LOCK(&list->lock);
+#if 0
     for(i=0;i<list->length;i++) {
         if (item_handler(pick_value(list, i), i, user) == 0)
             break;
+    }
+#endif
+    uint32_t idx = 0;
+    list_entry_t *e = list->head;
+    while(e) {
+        int rc = item_handler(e->value, idx++, user);
+        if (rc == 0) {
+            break;
+        } else if (rc == -1) {
+            list_entry_t *d = e;
+            if (list->head == list->tail && list->tail == e) {
+                list->head = list->tail = NULL;
+            } else if (e == list->head) {
+                list->head = e->next;
+                list->head->prev = NULL;
+            } else if (e == list->tail) {
+                list->tail = e->prev;
+                list->tail->next = NULL;
+            } else {
+                e = e->next;
+                e->prev = d->prev;
+                e->prev->next = e;
+            }
+            d->list = NULL;
+            list->length--;
+            // the callback got the value and will take care of releasing it
+            destroy_entry(d);
+            break;
+        } else {
+            e = e->next;
+        }
     }
     MUTEX_UNLOCK(&list->lock);
 }
