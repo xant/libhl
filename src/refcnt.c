@@ -34,7 +34,7 @@ refcnt_t *refcnt_create(uint32_t gc_threshold,
     refcnt->terminate_node_cb = terminate_node_cb;
     refcnt->free_node_ptr_cb = free_node_ptr_cb;
     refcnt->gc_threshold = gc_threshold;
-    int rbuf_size = gc_threshold + gc_threshold/3;
+    int rbuf_size = gc_threshold + gc_threshold/2;
     if (rbuf_size < RBUF_MIN_SIZE)
         rbuf_size = RBUF_MIN_SIZE;
     refcnt->free_list = rb_create(rbuf_size, RBUF_MODE_BLOCKING);
@@ -52,7 +52,7 @@ static void gc(refcnt_t *refcnt) {
             refcnt->free_node_ptr_cb(ATOMIC_READ(ref->ptr));
         }
         free(ref);
-    } while (1);
+    } while (rb_write_count(refcnt->free_list) - rb_read_count(refcnt->free_list) > refcnt->gc_threshold/3);
 }
 
 void refcnt_destroy(refcnt_t *refcnt) {
