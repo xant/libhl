@@ -257,8 +257,7 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
         list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
         if (!list) {
             list = malloc(sizeof(ht_items_list_t));
-            table->items[hash%table->size] = list;
-            TAILQ_INIT(&list->head);
+
 #ifdef THREAD_SAFE
 #ifdef __MACH__
             list->lock = 0;
@@ -266,6 +265,21 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
             pthread_spin_init(&list->lock, 0);
 #endif
 #endif
+            TAILQ_INIT(&list->head);
+
+            while (!__sync_bool_compare_and_swap(&table->items[hash%table->size], NULL, list)) {
+                ht_items_list_t *l = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+                if (l) {
+#ifdef THREAD_SAFE
+#ifndef __MACH__
+                    pthread_spin_destroy(&list->lock);
+#endif
+#endif
+                    free(list);
+                    list = l;
+                    break;
+                }
+            }
         }
         SPIN_UNLOCK(&table->lock);
     }
