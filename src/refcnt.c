@@ -41,8 +41,9 @@ refcnt_t *refcnt_create(uint32_t gc_threshold,
     return refcnt;
 }
 
-static void gc(refcnt_t *refcnt) {
-    //printf("GARBAGE COLLECTING\n");
+static void gc(refcnt_t *refcnt, int force) {
+
+    int limit = force ? 0 : refcnt->gc_threshold/3;
     do {
         refcnt_node_t *ref = rb_read(refcnt->free_list);
         if (!ref)
@@ -52,11 +53,11 @@ static void gc(refcnt_t *refcnt) {
             refcnt->free_node_ptr_cb(ATOMIC_READ(ref->ptr));
         }
         free(ref);
-    } while (rb_write_count(refcnt->free_list) - rb_read_count(refcnt->free_list) > refcnt->gc_threshold/3);
+    } while (rb_write_count(refcnt->free_list) - rb_read_count(refcnt->free_list) > limit);
 }
 
 void refcnt_destroy(refcnt_t *refcnt) {
-    gc(refcnt);
+    gc(refcnt, 1);
     rb_destroy(refcnt->free_list);
     free(refcnt);
 }
@@ -100,7 +101,7 @@ void release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
         }
     }
     if (rb_write_count(refcnt->free_list) - rb_read_count(refcnt->free_list) > refcnt->gc_threshold)
-        gc(refcnt);
+        gc(refcnt, 0);
 }
 
 int compare_and_swap_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *old, refcnt_node_t *ref) {
