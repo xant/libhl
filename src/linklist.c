@@ -911,6 +911,9 @@ tagged_value_t *get_tagged_value(linked_list_t *list, char *tag)
     for(i = 0;i < (int)list_count(list); i++)
     {
         tval = pick_tagged_value(list, i);
+        if (!tval) {
+            continue;
+        }
         if(strcmp(tval->tag, tag) == 0)
             return tval;
     }
@@ -934,6 +937,9 @@ uint32_t get_tagged_values(linked_list_t *list, char *tag, linked_list_t *values
     for(i = 0;i < (int)list_count(list); i++)
     {
         tval = pick_tagged_value(list, i);
+        if (!tval) {
+            continue;
+        }
         if(strcmp(tval->tag, tag) == 0)
         {
             push_value(values, tval->value);
