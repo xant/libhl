@@ -1,5 +1,5 @@
 #ifndef __FBUF_H__
-#define __FBUF_H
+#define __FBUF_H__
 
 /**
  * @file
