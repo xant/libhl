@@ -2,10 +2,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <rbuf.h>
+#include <rqueue.h>
 #include <stdio.h>
 
-#define RBUF_MIN_SIZE 1<<8
+#define RQUEUE_MIN_SIZE 1<<8
 
 #pragma pack(push, 4)
 struct __refcnt_node {
@@ -17,7 +17,7 @@ struct __refcnt_node {
 struct __refcnt {
     refcnt_terminate_node_callback_t terminate_node_cb;
     refcnt_free_node_ptr_callback_t free_node_ptr_cb;
-    rbuf_t *free_list;
+    rqueue_t *free_list;
     uint32_t gc_threshold;
 };
 #pragma pack(pop)
@@ -34,10 +34,10 @@ refcnt_t *refcnt_create(uint32_t gc_threshold,
     refcnt->terminate_node_cb = terminate_node_cb;
     refcnt->free_node_ptr_cb = free_node_ptr_cb;
     refcnt->gc_threshold = gc_threshold;
-    int rbuf_size = gc_threshold + gc_threshold/2;
-    if (rbuf_size < RBUF_MIN_SIZE)
-        rbuf_size = RBUF_MIN_SIZE;
-    refcnt->free_list = rb_create(rbuf_size, RBUF_MODE_BLOCKING);
+    int rqueue_size = gc_threshold + gc_threshold/2;
+    if (rqueue_size < RQUEUE_MIN_SIZE)
+        rqueue_size = RQUEUE_MIN_SIZE;
+    refcnt->free_list = rqueue_create(rqueue_size, RQUEUE_MODE_BLOCKING);
     return refcnt;
 }
 
@@ -45,7 +45,7 @@ static void gc(refcnt_t *refcnt, int force) {
 
     int limit = force ? 0 : refcnt->gc_threshold/3;
     do {
-        refcnt_node_t *ref = rb_read(refcnt->free_list);
+        refcnt_node_t *ref = rqueue_read(refcnt->free_list);
         if (!ref)
             break;
 
@@ -53,12 +53,12 @@ static void gc(refcnt_t *refcnt, int force) {
             refcnt->free_node_ptr_cb(ATOMIC_READ(ref->ptr));
         }
         free(ref);
-    } while (rb_write_count(refcnt->free_list) - rb_read_count(refcnt->free_list) > limit);
+    } while (rqueue_write_count(refcnt->free_list) - rqueue_read_count(refcnt->free_list) > limit);
 }
 
 void refcnt_destroy(refcnt_t *refcnt) {
     gc(refcnt, 1);
-    rb_destroy(refcnt->free_list);
+    rqueue_destroy(refcnt->free_list);
     free(refcnt);
 }
 
@@ -95,12 +95,12 @@ void release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
         if (ATOMIC_READ(ref->count) == 0) {
             if (refcnt->terminate_node_cb)
                 refcnt->terminate_node_cb(ref, 0);
-            rb_write(refcnt->free_list, ref);
+            rqueue_write(refcnt->free_list, ref);
         } else {
             ATOMIC_CMPXCHG(ref->delete, 1, 0);
         }
     }
-    if (rb_write_count(refcnt->free_list) - rb_read_count(refcnt->free_list) > refcnt->gc_threshold)
+    if (rqueue_write_count(refcnt->free_list) - rqueue_read_count(refcnt->free_list) > refcnt->gc_threshold)
         gc(refcnt, 0);
 }
 
