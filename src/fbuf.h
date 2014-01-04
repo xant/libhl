@@ -18,9 +18,6 @@
  * - If extending the buffer fails, the buffer is left untouched.
  * - Buffer grows quickly until 64kB and then slows down to adding 1Mb at a time
  *
- *
- * @todo An offset field should be added to prevent copying the buffer to the
- *       start all the time.
  */
 
 #ifdef __cplusplus
@@ -36,15 +33,18 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 
-#define FBUF_MAXLEN_NONE	0	//!< No preferred maximum length for fbuf.
+#define FBUF_MAXLEN_NONE 0 //!< No preferred maximum length for fbuf.
 #define FBUF_STATIC_INITIALIZER { 0, NULL, 0, 0, 0 }
 
 typedef struct __fbuf {
-    unsigned int id;			//!< unique ID for the buffer for reference
-    char *data;				//!< buffer
-    unsigned int len;			//!< allocated length of buffer
-    unsigned int prefmaxlen;		//!< preferred maximum size of buffer
-    unsigned int used;			//!< number of bytes used in buffer
+    unsigned int id;          //!< unique ID for the buffer for reference
+    char *data;               //!< buffer. the caller should never access it directly but use 
+                              //   the fbuf_data() function instead. If accessed directly,
+                              //   the 'skip' member needs to be taken into account
+    unsigned int len;         //!< allocated length of buffer
+    unsigned int prefmaxlen;  //!< preferred maximum size of buffer
+    unsigned int used;        //!< number of bytes used in buffer
+    unsigned int skip;        //!< how many bytes to ignore from the beginning buffer
 } fbuf_t;
 
 /**
@@ -163,6 +163,16 @@ int fbuf_add(fbuf_t *fbuf, const char *data);
 int fbuf_add_nl(fbuf_t *fbuf, const char *data);
 
 /**
+ * @brief Prepend the string to the fbuf.
+ * @param fbuf fbuf
+ * @param data string to the added to the start of the fbuf
+ * @returns number of characters added on succes; -1 otherwise.
+ */
+int fbuf_prepend(fbuf_t *fbuf, const char *data);
+
+int fbuf_prepend_binary(fbuf_t *fbuf, const char *data, int len);
+
+/**
  * @brief Concatenates fbufsrc after fbufdst.
  * @param fbufdst fbuf to add to
  * @param fbufsrc fbuf to add to fbufdst
@@ -247,6 +257,13 @@ int fbuf_remove(fbuf_t *fbuf, unsigned int len);
 int fbuf_trim(fbuf_t *fbuf);
 
 /**
+ * @brief Remove trailing whitespace.
+ * @param fbuf fbuf
+ * @returns number of bytes removed.
+ */
+int fbuf_rtrim(fbuf_t *fbuf);
+
+/**
  * @brief Return a pointer to the buffer.
  * @param fbuf fbuf
  * @returns pointer to actual buffer, or NULL.
@@ -297,13 +314,13 @@ unsigned int fbuf_len(fbuf_t *fbuf);
  * @note prefmaxlen is set, but buffer is not resized.
  */
 
-unsigned int fbuf_set_pref_maxlen(fbuf_t *fbuf, unsigned int newprefmaxlen);
+unsigned int fbuf_set_prefmaxlen(fbuf_t *fbuf, unsigned int newprefmaxlen);
 /**
  * @brief Return the currently set preferred maximum length of the buffer.
  * @param fbuf fbuf
  * @returns Current value for prefmaxlen.
  */
-unsigned int fbuf_pref_maxlen(fbuf_t *fbuf);
+unsigned int fbuf_prefmaxlen(fbuf_t *fbuf);
 
 /**
  * @brief Set a hard limit on the size of all buffers.

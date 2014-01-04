@@ -13,49 +13,49 @@
 #else
 #include <io.h>
 #include <sys/types.h>
-#define bcopy(src, dst, count)	memcpy((void *)dst, (const void *)src, (size_t) count) 
-#define bzero(addr, count)		memset((addr), 0, (count))
-#define MAX(a, b)	((a) > (b) ? (a) : (b))
-#define MIN(a, b)	((a) < (b) ? (a) : (b))
+#define bcopy(src, dst, count) memcpy((void *)dst, (const void *)src, (size_t) count) 
+#define bzero(addr, count) memset((addr), 0, (count))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
 
 #include "fbuf.h"
 
 #ifdef DEBUG_FBUF
-#define DEBUG_FBUF_INFO(fbuf, msg)	do { \
-					    static int _debug = 0; \
-					    if (++_debug == 1) { \
-						DBG("%s: %d: %s, len = %d, prefmaxlen = %d, used = %d\n", \
-						       __FUNCTION__, fbuf->id, msg, fbuf->len, fbuf->prefmaxlen, fbuf->used); \
-						DBG("%s: %s\n", \
-						       __FUNCTION__, hex_escape(fbuf->data, fbuf->used)); \
-					    } \
-					    --_debug; \
-					} while (0)
+#define DEBUG_FBUF_INFO(fbuf, msg) \
+    do { \
+        static int _debug = 0; \
+        if (++_debug == 1) { \
+            DBG("%s: %d: %s, len = %d, prefmaxlen = %d, used = %d\n", \
+                   __FUNCTION__, fbuf->id, msg, fbuf->len, fbuf->prefmaxlen, fbuf->used); \
+            DBG("%s: %s\n", \
+                   __FUNCTION__, hex_escape(fbuf->data, fbuf->used)); \
+        } \
+        --_debug; \
+    } while (0)
 #else
-#define DEBUG_FBUF_INFO(fbuf, msg)	/* nop */ //!< Debug printf
+#define DEBUG_FBUF_INFO(fbuf, msg)        /* nop */ //!< Debug printf
 #endif
 
-#define FBUF_MINSIZE		8192		//!< Minimum size of buffer
-#define FBUF_FASTGROWSIZE	64*1024		//!< Grow quickly up to 64kB (x 2) ...
-#define FBUF_SLOWGROWSIZE	64*1024		//!< ... and slowly after that (+64kB)
-#define FBUF_LINE_EST		127		//!< estimated for the length of a printf statement
-#define FBUF_READ_EST		1024		//!< default value for fbuf_read()
-#define FBUF_WRITE_EST		10240		//!< default value for fbuf_write()
+#define FBUF_MINSIZE      16      //!< Minimum size of buffer
+#define FBUF_FASTGROWSIZE 64*1024 //!< Grow quickly up to 64kB (x 2) ...
+#define FBUF_SLOWGROWSIZE 64*1024 //!< ... and slowly after that (+64kB)
+#define FBUF_LINE_EST     127     //!< estimated for the length of a printf statement
+#define FBUF_READ_EST     1024    //!< default value for fbuf_read()
+#define FBUF_WRITE_EST    10240   //!< default value for fbuf_write()
 
 static int fbuf_count = 0;
-static unsigned int globalMaxLen = 0;		//!< hard limit for size of all buffers
+static unsigned int globalMaxLen = 0; //!< hard limit for size of all buffers
 
 fbuf_t *
 fbuf_create(unsigned int prefmaxlen)
 {
     fbuf_t *fbuf = (fbuf_t *)calloc(1, sizeof(fbuf_t));
     if (fbuf) {
-	DEBUG_FBUF_INFO(fbuf, "creating");
+        DEBUG_FBUF_INFO(fbuf, "creating");
         fbuf->id = fbuf_count++;
         fbuf->prefmaxlen = prefmaxlen;
-
     }
 
     return fbuf;
@@ -90,8 +90,10 @@ fbuf_duplicate(fbuf_t *fbufsrc)
 {
     fbuf_t *fbufdst = fbuf_create(fbufsrc->prefmaxlen);
     if (!fbufdst)
-	return NULL;
-    fbuf_add(fbufdst, fbufsrc->data);
+        return NULL;
+
+    if (fbufsrc->used)
+        fbuf_add_binary(fbufdst, fbufsrc->data + fbufsrc->skip, fbufsrc->used);
 
     DEBUG_FBUF_INFO(fbufsrc, "original");
     DEBUG_FBUF_INFO(fbufdst, "duplicate");
@@ -100,34 +102,44 @@ fbuf_duplicate(fbuf_t *fbufsrc)
 }
 
 unsigned int
-fbuf_extended(fbuf_t *fbuf, unsigned int newlen)
+fbuf_extend(fbuf_t *fbuf, unsigned int newlen)
 {
     char *p;
 
-    newlen++;		// Include room for a '\0' terminator
+    newlen++; // Include room for a '\0' terminator
+
+    // check if we already have enough space
+    unsigned int available_space = fbuf->len - fbuf->skip;
 
     // Do we need to extend the buffer?
-    if (newlen <= fbuf->len)
-	return fbuf->len;
+    if (newlen <= available_space) {
+        return fbuf->len;
+    } else if (fbuf->skip && newlen <= fbuf->len) {
+        if (fbuf->used)
+            memmove(fbuf->data, fbuf->data + fbuf->skip, fbuf->used+1);
+        else
+            fbuf->data[0] = '\0';
+        fbuf->skip = 0;
+    }
 
     // We may only extend the buffer the current length of the buffer is less
     // then prefmaxlen (if this soft limit is set).
     if (fbuf->prefmaxlen != FBUF_MAXLEN_NONE && fbuf->len > fbuf->prefmaxlen) {
-	errno = ENOMEM;
+        errno = ENOMEM;
         return 0;
     }
 
     // We may only extend the buffer if the new length is less then the global
     // hard limit on fbuf buffer lengths.
     if (globalMaxLen && newlen > globalMaxLen) {
-	// If a prefmax is set for this buffer assume that the code can handle
-	// errors. Otherwise exit with an error.
-	if (fbuf->prefmaxlen != FBUF_MAXLEN_NONE) {
-	    errno = ENOMEM;
-	    return 0;
-	} else {
-	    exit(99);
-	}
+        // If a prefmax is set for this buffer assume that the code can handle
+        // errors. Otherwise exit with an error.
+        if (fbuf->prefmaxlen != FBUF_MAXLEN_NONE) {
+            errno = ENOMEM;
+            return 0;
+        } else {
+            exit(99);
+        }
     }
 
     // Calculate the new size for the buffer
@@ -136,26 +148,34 @@ fbuf_extended(fbuf_t *fbuf, unsigned int newlen)
     // - Grow more slowly once the threshold has been reached.
     // - Cap the new length if it exceeds global maximum if set.
     while (newlen > fbuf->len) {
-	if (fbuf->len == 0)
-	    fbuf->len = FBUF_MINSIZE;
-	else if (fbuf->len < FBUF_FASTGROWSIZE)
-	    fbuf->len *= 2;
-	else
-	    fbuf->len += FBUF_SLOWGROWSIZE;
+        if (fbuf->len == 0)
+            fbuf->len = FBUF_MINSIZE;
+        else if (fbuf->len < FBUF_FASTGROWSIZE)
+            fbuf->len *= 2;
+        else
+            fbuf->len += FBUF_SLOWGROWSIZE;
     }
     if (globalMaxLen && fbuf->len > globalMaxLen)
-	fbuf->len = globalMaxLen;
+        fbuf->len = globalMaxLen;
 
-    p = (char *)realloc(fbuf->data, fbuf->len);
-    if (p) {
-	if (!fbuf->data)
-	    p[0] = '\0';		// terminate the new buffer string
-	fbuf->data = p;
-	DEBUG_FBUF_INFO(fbuf, "extended");
-	
-	return fbuf->len;
+    if (fbuf->skip) {
+        p = (char *)malloc(fbuf->len);
+        if (fbuf->used)
+            memcpy(p, fbuf->data + fbuf->skip, fbuf->used);
+        fbuf->skip = 0;
     } else {
-	return 0;
+        p = (char *)realloc(fbuf->data, fbuf->len);
+    }
+
+    if (p) {
+        if (!fbuf->data)
+            p[0] = '\0';                // terminate the new buffer string
+        fbuf->data = p;
+        DEBUG_FBUF_INFO(fbuf, "extended");
+        
+        return fbuf->len;
+    } else {
+        return 0;
     }
 }
 
@@ -165,31 +185,39 @@ fbuf_shrink(fbuf_t *fbuf)
     unsigned int newlen, len = fbuf->len;
     char *p;
 
+    if (fbuf->skip) {
+        if (fbuf->used)
+            memmove(fbuf->data, fbuf->data + fbuf->skip, fbuf->used+1);
+        else
+            fbuf->data[0] = '\0';
+        fbuf->skip = 0;
+    }
+
     if (fbuf->used == 0)
-	len = 0;
+        len = 0;
 
     do {
-	newlen = len;
-	if (len <= FBUF_MINSIZE)
-	    break;
-	else if (len <= FBUF_FASTGROWSIZE)
-	    len /= 2;
-	else
-	    len -= FBUF_SLOWGROWSIZE;
+        newlen = len;
+        if (len <= FBUF_MINSIZE)
+            break;
+        else if (len <= FBUF_FASTGROWSIZE)
+            len /= 2;
+        else
+            len -= FBUF_SLOWGROWSIZE;
     } while (len >= fbuf->used+1);
     // len is now the first size smaller than required, newlen is the last
     // size that fits the buffer.
 
-    if (newlen == fbuf->len)		// nothing to be done
-	return fbuf->len;
+    if (newlen == fbuf->len)                // nothing to be done
+        return fbuf->len;
 
     if (newlen == 0) {
-	free(fbuf->data);
-	fbuf->data = NULL;
-	fbuf->len = 0;
+        free(fbuf->data);
+        fbuf->data = NULL;
+        fbuf->len = 0;
     } else if ((p = (char *)realloc(fbuf->data, newlen)) != NULL) {
-	fbuf->data = p;
-	fbuf->len = newlen;
+        fbuf->data = p;
+        fbuf->len = newlen;
     }
 
     DEBUG_FBUF_INFO(fbuf, "shrunk");
@@ -200,17 +228,18 @@ void
 fbuf_clear(fbuf_t *fbuf)
 {
     fbuf->used = 0;
+    fbuf->skip = 0;
     if (fbuf->len > 0)
-	fbuf->data[0] = '\0';
+        fbuf->data[0] = '\0';
 }
 
 void
 fbuf_destroy(fbuf_t *fbuf)
 {
     if (fbuf->data)
-	free(fbuf->data);
+        free(fbuf->data);
     fbuf->data = NULL;
-    fbuf->used = fbuf->len = 0;
+    fbuf->used = fbuf->len = fbuf->skip = 0;
 
     DEBUG_FBUF_INFO(fbuf, "destroyed");
 }
@@ -219,11 +248,11 @@ void
 fbuf_free(fbuf_t *fbuf)
 {
     if (fbuf->data)
-	free(fbuf->data);
+        free(fbuf->data);
 
 #ifdef DEBUG_BUILD
     fbuf->data = NULL;
-    fbuf->used = fbuf->len = 0;
+    fbuf->used = fbuf->len = fbuf->skip = 0;
 #endif
 
     DEBUG_FBUF_INFO(fbuf, "destroyed");
@@ -234,12 +263,12 @@ fbuf_free(fbuf_t *fbuf)
 int
 fbuf_add_binary(fbuf_t *fbuf, const char *data, int len)
 {
-    if (!fbuf_extended(fbuf, fbuf->used+len))
-	return -1;
+    if (len <= 0 || !fbuf_extend(fbuf, fbuf->used+len))
+        return -1;
 
-    memcpy(fbuf->data+fbuf->used, data, len);
+    memcpy(fbuf->data+fbuf->skip+fbuf->used, data, len);
     fbuf->used += len;
-    fbuf->data[fbuf->used] = 0;
+    fbuf->data[fbuf->skip+fbuf->used] = 0;
 
     return len;
 }
@@ -249,11 +278,43 @@ fbuf_add(fbuf_t *fbuf, const char *data)
 {
     int datalen;
 
-    if (!data || data[0] == '\0')	// nothing to be done
-	return 0;
+    if (!data || data[0] == '\0')        // nothing to be done
+        return 0;
 
     datalen = strlen(data);
     return fbuf_add_binary(fbuf, data, datalen);
+}
+
+int
+fbuf_prepend_binary(fbuf_t *fbuf, const char *data, int len)
+{
+    if (len <= 0 || !data)
+	return 0; // nothing to be done
+
+    if (fbuf->skip >= len) {
+        memcpy(fbuf->data + fbuf->skip - len, data, len);
+        fbuf->skip -= len;
+    } else {
+        if (!fbuf_extend(fbuf, fbuf->used+len))
+            return -1;
+
+        memmove(fbuf->data+fbuf->skip + len,
+                fbuf->data + fbuf->skip, fbuf->used+1);
+
+        memcpy(fbuf->data + fbuf->skip, data, len);
+    }
+
+    fbuf->used += len;
+
+    return len;
+}
+
+int
+fbuf_prepend(fbuf_t *fbuf, const char *data)
+{
+    if (!data || data[0] == '\0')
+	return 0; // nothing to be done
+    return fbuf_prepend_binary(fbuf, data, strlen(data));
 }
 
 int
@@ -263,11 +324,11 @@ fbuf_add_nl(fbuf_t *fbuf, const char *data)
 
     n1 = fbuf_add(fbuf, data);
     if (n1 == -1)
-	return -1;
+        return -1;
 
     n2 = fbuf_add(fbuf, "\n");
     if (n2 == -1)
-	return -1;
+        return -1;
 
     return n1 + n2;
 }
@@ -277,14 +338,14 @@ fbuf_concat(fbuf_t *fbufdst, fbuf_t *fbufsrc)
 {
     int datalen;
 
-    if (fbufsrc->used == 0)		// nothing to be done
-	return 0;
+    if (fbufsrc->used == 0)                // nothing to be done
+        return 0;
 
     datalen = fbufsrc->used;
-    if (!fbuf_extended(fbufdst, fbufdst->used+datalen))
-	return -1;
+    if (!fbuf_extend(fbufdst, fbufdst->used+datalen))
+        return -1;
 
-    memcpy(fbufdst->data+fbufdst->used, fbufsrc->data, datalen+1);
+    memcpy(fbufdst->data+fbufdst->skip+fbufdst->used, fbufsrc->data+fbufsrc->skip, datalen+1);
     fbufdst->used += datalen;
 
     return datalen;
@@ -293,10 +354,10 @@ fbuf_concat(fbuf_t *fbufdst, fbuf_t *fbufsrc)
 int
 fbuf_copy(fbuf_t *fbufsrc, fbuf_t *fbufdst)
 {
-    if (!fbuf_extended(fbufdst, fbufsrc->used))
-	return -1;
+    if (!fbuf_extend(fbufdst, fbufsrc->used))
+        return -1;
     fbuf_clear(fbufdst);
-    strcpy(fbufdst->data, fbufsrc->data);
+    strcpy(fbufdst->data + fbufdst->skip, fbufsrc->data + fbufsrc->skip);
     fbufdst->used = fbufsrc->used;
 
     return fbufdst->used;
@@ -307,10 +368,10 @@ fbuf_set(fbuf_t *fbuf, const char *data)
 {
     int datalen = strlen(data);
 
-    if (!fbuf_extended(fbuf, datalen))
-	return -1;
+    if (!fbuf_extend(fbuf, datalen))
+        return -1;
 
-    memcpy(fbuf->data, data, datalen+1);
+    memcpy(fbuf->data + fbuf->skip, data, datalen+1);
     fbuf->used = datalen;
 
     return datalen;
@@ -322,26 +383,28 @@ fbuf_printf(fbuf_t *fbuf, const char *fmt, ...)
     va_list args;
     unsigned int n;
 
-    if (!fbuf_extended(fbuf, fbuf->used+FBUF_LINE_EST))
+    if (!fbuf_extend(fbuf, fbuf->used+FBUF_LINE_EST))
         return -1;
 
     va_start(args, fmt);
-    n = vsnprintf(fbuf->data+fbuf->used, fbuf->len-fbuf->used, fmt, args);
+    n = vsnprintf(fbuf->data + fbuf->skip + fbuf->used,
+            fbuf->len - (fbuf->skip + fbuf->used), fmt, args);
     va_end(args);
 
-    if (n >= fbuf->len-fbuf->used) {		// some chars were discarded
+    if (n >= fbuf->len - (fbuf->skip + fbuf->used)) { // some chars were discarded
         // extend the buffer and try again
-        if (!fbuf_extended(fbuf, fbuf->used+n)) {
-            fbuf->data[fbuf->used] = '\0';	// chop off any added content
+        if (!fbuf_extend(fbuf, fbuf->used+n)) {
+            fbuf->data[fbuf->skip + fbuf->used] = '\0'; // chop off any added content
             return -1;
         }
         va_start(args, fmt);
-        n = vsnprintf(fbuf->data+fbuf->used, fbuf->len-fbuf->used, fmt, args);
+        n = vsnprintf(fbuf->data + fbuf->skip + fbuf->used,
+                fbuf->len - (fbuf->skip + fbuf->used), fmt, args);
         va_end(args);
     }
 
     fbuf->used += n;
-    fbuf->data[fbuf->used] = '\0';		// terminate the buffer string
+    fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
 
     va_end(args);
 
@@ -354,15 +417,15 @@ fbuf_fread(fbuf_t *fbuf, FILE *file, unsigned int explen)
     int n;
 
     if (explen == 0)
-	explen = FBUF_READ_EST;			// one 80 char line and some
+        explen = FBUF_READ_EST;                        // one 80 char line and some
 
-    if (!fbuf_extended(fbuf, fbuf->used+explen))
-	return -1;
+    if (!fbuf_extend(fbuf, fbuf->used+explen))
+        return -1;
 
-    n = fread(fbuf->data+fbuf->used, 1, explen, file);
+    n = fread(fbuf->data + fbuf->skip + fbuf->used, 1, explen, file);
     if (n > 0)
-	fbuf->used += n;
-    fbuf->data[fbuf->used] = '\0';		// terminate the buffer string
+        fbuf->used += n;
+    fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
 
     return n;
 }
@@ -373,15 +436,15 @@ fbuf_read(fbuf_t *fbuf, int fd, unsigned int explen)
     int n;
 
     if (explen == 0)
-	explen = FBUF_READ_EST;			// one 80 char line and some
+        explen = FBUF_READ_EST; // one 80 char line and some
 
-    if (!fbuf_extended(fbuf, fbuf->used+explen))
-	return -1;
+    if (!fbuf_extend(fbuf, fbuf->used + explen))
+        return -1;
 
-    n = read(fd, fbuf->data+fbuf->used, explen);
+    n = read(fd, fbuf->data + fbuf->skip + fbuf->used, explen);
     if (n > 0)
-	fbuf->used += n;
-    fbuf->data[fbuf->used] = '\0';		// terminate the buffer string
+        fbuf->used += n;
+    fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
 
     return n;
 }
@@ -392,15 +455,15 @@ fbuf_write(fbuf_t *fbuf, int fd, unsigned int nbytes)
     int n = 0;
 
     if (nbytes == 0)
-	nbytes = fbuf->used;
+        nbytes = fbuf->used;
 
     if (nbytes > fbuf->used)
-	nbytes = fbuf->used;
+        nbytes = fbuf->used;
 
     if (nbytes > 0) {
-	n = write(fd, fbuf->data, nbytes);
-	if (n > 0)
-	    fbuf_remove(fbuf, n);
+        n = write(fd, fbuf->data + fbuf->skip, nbytes);
+        if (n > 0)
+            fbuf_remove(fbuf, n);
     }
 
     return n;
@@ -411,12 +474,15 @@ fbuf_remove(fbuf_t *fbuf, unsigned int len)
 {
     if (len >= fbuf->used) {
         fbuf->used = 0;
-	fbuf->data[fbuf->used] = '\0';		// terminate the buffer string
+        fbuf->skip = 0;
+        fbuf->data[0] = '\0'; // terminate the buffer string
     } else if (len) {
-	fbuf->used -= len;
-	memmove(fbuf->data, fbuf->data+len, fbuf->used+1);
+        fbuf->skip += len;
+        fbuf->used -= len;
+        if (fbuf->skip > fbuf->len / 2) {
+            memmove(fbuf->data, fbuf->data + fbuf->skip, fbuf->used+1);
+        }
     }
-
     return fbuf->used;
 }
 
@@ -424,35 +490,50 @@ int
 fbuf_trim(fbuf_t *fbuf)
 {
     unsigned int i = 0;
-    while (i < fbuf->used && isspace(fbuf->data[i]))
-	i++;
+    while (i < fbuf->used && isspace(fbuf->data[fbuf->skip + i]))
+        i++;
 
     fbuf_remove(fbuf, i);
 
     return i;
 }
 
+int
+fbuf_rtrim(fbuf_t *fbuf)
+{
+    unsigned int i = 0;
+
+    while (fbuf->used > 0 && isspace(fbuf->data[fbuf->skip + fbuf->used - 1])) {
+	fbuf->used -= 1;
+	i++;
+    }
+    fbuf->data[fbuf->skip + fbuf->used] = '\0';
+
+    return i;
+}
+
+
 char *
 fbuf_data(fbuf_t *fbuf)
 {
-    return fbuf->data;
+    return fbuf->data + fbuf->skip;
 }
 
 char *
 fbuf_end(fbuf_t *fbuf)
 {
     if (fbuf->data)
-	return fbuf->data + fbuf->used;
+        return fbuf->data + fbuf->skip + fbuf->used;
     else
-	return NULL;
+        return NULL;
 }
 
 int
 fbuf_set_used(fbuf_t *fbuf, unsigned int newused)
 {
     if (newused < fbuf->used) {
-	fbuf->used = newused;
-	fbuf->data[fbuf->used] = '\0';
+        fbuf->used = newused;
+        fbuf->data[fbuf->skip + fbuf->used] = '\0';
     }
 
     return fbuf->used;
@@ -471,13 +552,13 @@ fbuf_len(fbuf_t *fbuf)
 }
 
 unsigned int
-fbuf_set_pref_maxlen(fbuf_t *fbuf, unsigned int newprefmaxlen)
+fbuf_set_prefmaxlen(fbuf_t *fbuf, unsigned int newprefmaxlen)
 {
     return (fbuf->prefmaxlen = newprefmaxlen);
 }
 
 unsigned int
-fbuf_pref_maxlen(fbuf_t *fbuf)
+fbuf_prefmaxlen(fbuf_t *fbuf)
 {
     return fbuf->prefmaxlen;
 }
