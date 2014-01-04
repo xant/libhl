@@ -36,7 +36,16 @@ extern "C" {
 #define FBUF_MAXLEN_NONE 0 //!< No preferred maximum length for fbuf.
 #define FBUF_STATIC_INITIALIZER { 0, NULL, 0, 0, 0 }
 
-typedef struct __fbuf_s fbuf_t;
+typedef struct __fbuf {
+    unsigned int id;          //!< unique ID for the buffer for reference
+    char *data;               //!< buffer. the caller should never access it directly but use 
+                              //   the fbuf_data() function instead. If accessed directly,
+                              //   the 'skip' member needs to be taken into account
+    unsigned int len;         //!< allocated length of buffer
+    unsigned int prefmaxlen;  //!< preferred maximum size of buffer
+    unsigned int used;        //!< number of bytes used in buffer
+    unsigned int skip;        //!< how many bytes to ignore from the beginning buffer
+} fbuf_t;
 
 /**
  * @brief Allocate and initialise a fbuf structure.

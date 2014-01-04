@@ -45,18 +45,6 @@
 #define FBUF_READ_EST     1024    //!< default value for fbuf_read()
 #define FBUF_WRITE_EST    10240   //!< default value for fbuf_write()
 
-struct __fbuf_s {
-    unsigned int id;          //!< unique ID for the buffer for reference
-    char *data;               //!< buffer. the caller should never access it directly but use 
-                              //   the fbuf_data() function instead. If accessed directly,
-                              //   the 'skip' member needs to be taken into account
-    unsigned int len;         //!< allocated length of buffer
-    unsigned int prefmaxlen;  //!< preferred maximum size of buffer
-    unsigned int used;        //!< number of bytes used in buffer
-    unsigned int skip;        //!< how many bytes to ignore from the beginning buffer
-};
-
-
 static int fbuf_count = 0;
 static unsigned int globalMaxLen = 0; //!< hard limit for size of all buffers
 
