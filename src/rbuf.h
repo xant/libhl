@@ -47,8 +47,10 @@ typedef enum {
 /**
  * @brief Create a new ringbuffer descriptor
  * @param size : the size of the ringbuffer
- * @param mode : the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
- *             default mode is BLOCKING
+ *               (the maximum number of pointers that can fit in the ringbuffer)
+ * @param mode : the mode of the ringbuffer
+ *               (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
+ *               default mode is BLOCKING
  * @return a newly allocated and initialized ringbuffer
  *
  */
@@ -77,12 +79,14 @@ rbuf_mode_t rb_mode(rbuf_t *rb);
  *         and the mode is RBUF_MODE_BLOCKING
  */
 int rb_write(rbuf_t *rb, void *value);
+
 /**
  * @brief Read the next value in the ringbuffer
  * @param rb : A valid pointer to a rbuf_t structure
  * @return The next value in the ringbuffer
  */
 void *rb_read(rbuf_t *rb);
+
 /**
  * @brief Release all resources associated to the ringbuffer
  * @param rb : A valid pointer to a rbuf_t structure
