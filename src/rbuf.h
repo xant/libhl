@@ -26,8 +26,8 @@ typedef void (*rbuf_free_value_callback_t)(void *v);
 
 /**
  * @brief Set the callback which must be called to release values stored in the ringbuffer
- * @arg table : A valid pointer to a rbuf_t structure
- * @arg cb : an rb_free_value_callback_t function
+ * @param table : A valid pointer to a rbuf_t structure
+ * @param cb : an rb_free_value_callback_t function
  */
 void rb_set_free_value_callback(rbuf_t *rb, rbuf_free_value_callback_t cb);
 
@@ -46,8 +46,8 @@ typedef enum {
 
 /**
  * @brief Create a new ringbuffer descriptor
- * @arg size : the size of the ringbuffer
- * @arg mode : the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
+ * @param size : the size of the ringbuffer
+ * @param mode : the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
  *             default mode is BLOCKING
  * @return a newly allocated and initialized ringbuffer
  *
@@ -57,35 +57,35 @@ rbuf_t *rb_create(uint32_t size, rbuf_mode_t mode);
 
 /**
  * @brief Change the mode of an existing ringbuffer
- * @arg rb : A valid pointer to a rbuf_t structure
- * @arg mode : the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
+ * @param rb : A valid pointer to a rbuf_t structure
+ * @param mode : the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
  *
  */
 void rb_set_mode(rbuf_t *rb, rbuf_mode_t mode);
 
 /**
  * @brief Get the current mode of an existing ringbuffer
- * @arg rb : A valid pointer to a rbuf_t structure
+ * @param rb : A valid pointer to a rbuf_t structure
  * @return the mode of the ringbuffer (RBUF_MODE_BLOCKING or RBUF_MODE_OVERWRITE)
  */
 rbuf_mode_t rb_mode(rbuf_t *rb);
 
 /**
  * @brief Push a new value into the ringbuffer
- * @arg rb : A valid pointer to a rbuf_t structure
+ * @param rb : A valid pointer to a rbuf_t structure
  * @return 0 on success, -1 on failure, -2 if the buffer is full
  *         and the mode is RBUF_MODE_BLOCKING
  */
 int rb_write(rbuf_t *rb, void *value);
 /**
  * @brief Read the next value in the ringbuffer
- * @arg rb : A valid pointer to a rbuf_t structure
+ * @param rb : A valid pointer to a rbuf_t structure
  * @return The next value in the ringbuffer
  */
 void *rb_read(rbuf_t *rb);
 /**
  * @brief Release all resources associated to the ringbuffer
- * @arg rb : A valid pointer to a rbuf_t structure
+ * @param rb : A valid pointer to a rbuf_t structure
  *
  * If a free_value_callback has been set, and the ringbuffer still
  * contains data, that will be called for each value still present
@@ -95,21 +95,21 @@ void rb_destroy(rbuf_t *rb);
 
 /**
  * @brief Returns the count of 'write operations' executed so far
- * @arg rb : A valid pointer to a rbuf_t structure
+ * @param rb : A valid pointer to a rbuf_t structure
  * @return The actual number of write operations
  */
 uint32_t rb_write_count(rbuf_t *rb);
 
 /**
  * @brief Returns the count of 'read operations' executed so far
- * @arg rb : A valid pointer to a rbuf_t structure
+ * @param rb : A valid pointer to a rbuf_t structure
  * @return The actual number of read operations
  */
 uint32_t rb_read_count(rbuf_t *rb);
 
 /**
  * @brief Return a string descriptions of the ringbuffer internals
- * @arg rb : A valid pointer to a rbuf_t structure
+ * @param rb : A valid pointer to a rbuf_t structure
  * @return : a string containing the description of the ringbuffer structure
  *
  * This function is intended for debugging purposes.

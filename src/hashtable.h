@@ -28,7 +28,7 @@ typedef void (*ht_free_item_callback_t)(void *);
 
 /**
  * @brief Create a new table descriptor
- * @arg size : initial size of the table
+ * @param size : initial size of the table
  * @return a newly allocated and initialized table
  *
  * The table will be expanded if necessary
@@ -44,14 +44,14 @@ void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_fr
 
 /**
  * @brief Set the callback which must be called to release values stored in the table
- * @arg table : A valid pointer to an hashtable_t structure
- * @arg cb : an ht_free_item_callback_t function
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param cb : an ht_free_item_callback_t function
  */
 void ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb);
 
 /**
  * @brief Clear the table by removing all the stored items
- * @arg table : A valid pointer to an hashtable_t structure
+ * @param table : A valid pointer to an hashtable_t structure
  *
  * If a free_item_callback has been set, that will be called for each item removed from the table
  */
@@ -59,7 +59,7 @@ void ht_clear(hashtable_t *table);
 
 /**
  * @brief Destroy the table by releasing all its resources
- * @arg table : A valid pointer to an hashtable_t structure
+ * @param table : A valid pointer to an hashtable_t structure
  *
  * If a free_item_callback has been set, that will be called for each item removed from the table
  */
@@ -67,9 +67,9 @@ void ht_destroy(hashtable_t *table);
 
 /**
  * @brief Get the value stored at a specific key
- * @arg table : A valid pointer to an hashtable_t structure
- * @arg key : The key to use
- * @arg len : The length of the key
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key : The key to use
+ * @param len : The length of the key
  * @return The stored value if any, NULL otherwise
  */
 void *ht_get(hashtable_t *table, void *key, size_t klen, size_t *dlen);
@@ -82,9 +82,9 @@ void *ht_get_deep_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen,
 
 /**
  * @brief Set the value for a specific key
- * @arg table : A valid pointer to an hashtable_t structure
- * @arg key: The key to use
- * @arg len : The length of the key
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key: The key to use
+ * @param len : The length of the key
  * @return The previous value if any, NULL otherwise
  */
 int ht_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen);
@@ -95,18 +95,18 @@ int ht_set_copy(hashtable_t *table, void *key, size_t klen, void *data, size_t d
 
 /**
  * @brief Unset the value stored at a specific key
- * @arg table : A valid pointer to an hashtable_t structure
- * @arg key : The key to use
- * @arg len : The length of the key
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key : The key to use
+ * @param len : The length of the key
  * @return The previous value if any, NULL otherwise
  */
 int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_t *prev_len);
 
 /**
  * @brief Delete the value stored at a specific key
- * @arg table : A valid pointer to an hashtable_t structure
- * @arg key : The key to use
- * @arg len : The length of the key
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key : The key to use
+ * @param len : The length of the key
  * if prev_data is not NULL, the previous value will be pointed by *prev_data 
  * and the free callback won't be called
  */
@@ -114,7 +114,7 @@ int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size
 
 /**
  * @brief Return the count of items actually stored in the table
- * @arg table : A valid pointer to an hashtable_t structure
+ * @param table : A valid pointer to an hashtable_t structure
  * @return The actual item count
  */
 uint32_t ht_count(hashtable_t *table);
@@ -130,7 +130,7 @@ typedef struct __hashtable_key_s {
 
 /**
  * @brief Get all stored keys
- * @arg table : A valid pointer to an hashtable_t structure
+ * @param table : A valid pointer to an hashtable_t structure
  * @return A list of hashtable_key_t pointers with all the
  *         keys present in the table
  */
@@ -144,7 +144,7 @@ typedef struct __hashtable_value_s {
 
 /**
  * @brief Get all stored values
- * @arg table : A valid pointer to an hashtable_t structure
+ * @param table : A valid pointer to an hashtable_t structure
  * @return A list of all keys present in the table
  */
 linked_list_t *ht_get_all_values(hashtable_t *table);
@@ -156,9 +156,9 @@ typedef int (*ht_key_iterator_callback_t)(hashtable_t *table, void *key, size_t 
 
 /**
  * @brief Key iterator
- * @arg table : A valid pointer to an hashtable_t structure
- * @arg cb : an ht_key_iterator_callback_t function
- * @arg user : A pointer which will be passed to the iterator callback at each call
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param cb : an ht_key_iterator_callback_t function
+ * @param user : A pointer which will be passed to the iterator callback at each call
  */
 void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user);
 
@@ -169,9 +169,9 @@ typedef int (*ht_value_iterator_callback_t)(hashtable_t *table, void *value, siz
 
 /**
  * @brief Value iterator
- * @arg table : A valid pointer to an hashtable_t structure
- * @arg cb : an ht_value_iterator_callback_t function
- * @arg user : A pointer which will be passed to the iterator callback at each call
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param cb : an ht_value_iterator_callback_t function
+ * @param user : A pointer which will be passed to the iterator callback at each call
  */
 void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user);
 
@@ -182,9 +182,9 @@ typedef int (*ht_pair_iterator_callback_t)(hashtable_t *table, void *key, size_t
 
 /**
  * @brief Pair iterator
- * @arg table : A valid pointer to an hashtable_t structure
- * @arg cb : an ht_pair_iterator_callback_t function
- * @arg user : A pointer which will be passed to the iterator callback at each call
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param cb : an ht_pair_iterator_callback_t function
+ * @param user : A pointer which will be passed to the iterator callback at each call
  */
 void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user);
 
