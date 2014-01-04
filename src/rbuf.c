@@ -4,11 +4,11 @@
 
 #include <sys/types.h>
 
-#include "rbb.h"
+#include "rbuf.h"
 
-#define RBB_DEFAULT_SIZE 4096
+#define RBUF_DEFAULT_SIZE 4096
 
-struct __rbb_s {
+struct __rbuf_s {
     u_char *buf;        // the buffer
     int size;           // buffer size
     int rfx;            // read offset
@@ -16,16 +16,16 @@ struct __rbb_s {
 };
 
 
-rbb_t *
-rbb_create(int size) {
-    rbb_t *new_rb;
-    new_rb = (rbb_t *)calloc(1, sizeof(rbb_t));
+rbuf_t *
+rbuf_create(int size) {
+    rbuf_t *new_rb;
+    new_rb = (rbuf_t *)calloc(1, sizeof(rbuf_t));
     if(!new_rb) {
         /* TODO - Error Messaeggs */
         return NULL;
     }
     if(size == 0) 
-        new_rb->size = RBB_DEFAULT_SIZE+1;
+        new_rb->size = RBUF_DEFAULT_SIZE+1;
     else
         new_rb->size = size+1;
     new_rb->buf = (u_char *)malloc(new_rb->size);
@@ -38,7 +38,7 @@ rbb_create(int size) {
 }
 
 void
-rbb_skip(rbb_t *rb, int size) {
+rbuf_skip(rbuf_t *rb, int size) {
     if(size >= rb->size) { // just empty the ringbuffer
         rb->rfx = rb->wfx;
     } else {
@@ -52,8 +52,8 @@ rbb_skip(rbb_t *rb, int size) {
 }
 
 int
-rbb_read(rbb_t *rb, u_char *out, int size) {
-    int read_size = rbb_len(rb); // never read more than available data
+rbuf_read(rbuf_t *rb, u_char *out, int size) {
+    int read_size = rbuf_len(rb); // never read more than available data
     int to_end = rb->size - rb->rfx;
     
     // requested size is less than stored data, return only what has been requested
@@ -79,8 +79,8 @@ rbb_read(rbb_t *rb, u_char *out, int size) {
 }
 
 int
-rbb_write(rbb_t *rb, u_char *in, int size) {
-    int write_size = rb->size - rbb_len(rb) - 1; // don't write more than available size
+rbuf_write(rbuf_t *rb, u_char *in, int size) {
+    int write_size = rb->size - rbuf_len(rb) - 1; // don't write more than available size
 
     if(!rb || !in || !size) // safety belt
         return 0;
@@ -106,7 +106,7 @@ rbb_write(rbb_t *rb, u_char *in, int size) {
 }
 
 int
-rbb_len(rbb_t *rb) {
+rbuf_len(rbuf_t *rb) {
     if(rb->wfx == rb->rfx)
         return 0;
     if(rb->wfx < rb->rfx) 
@@ -115,12 +115,12 @@ rbb_len(rbb_t *rb) {
 }
 
 void
-rbb_clear(rbb_t *rb) {
+rbuf_clear(rbuf_t *rb) {
     rb->rfx = rb->wfx = 0;
 }
 
 void
-rbb_destroy(rbb_t *rb) {
+rbuf_destroy(rbuf_t *rb) {
     if(rb->buf)
         free(rb->buf);
     free(rb);
@@ -128,9 +128,9 @@ rbb_destroy(rbb_t *rb) {
 
 
 int
-rbb_find(rbb_t *rb, u_char octet) {
+rbuf_find(rbuf_t *rb, u_char octet) {
     int i;
-    int to_read = rbb_len(rb);
+    int to_read = rbuf_len(rb);
     if (to_read == 0)
         return -1;
 
@@ -153,10 +153,10 @@ rbb_find(rbb_t *rb, u_char octet) {
 }
 
 int
-rbb_read_until(rbb_t *rb, u_char octet, u_char *out, int maxsize)
+rbuf_read_until(rbuf_t *rb, u_char octet, u_char *out, int maxsize)
 {
     int i;
-    int size = rbb_len(rb);
+    int size = rbuf_len(rb);
     int to_read = size;
     int found = 0;
     for (i = rb->rfx; i < rb->size; i++) {
@@ -183,7 +183,7 @@ rbb_read_until(rbb_t *rb, u_char octet, u_char *out, int maxsize)
             
         }
     }
-    rbb_skip(rb, (size - to_read));
+    rbuf_skip(rb, (size - to_read));
     return (size-to_read);
 }
 
