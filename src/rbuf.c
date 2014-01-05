@@ -13,8 +13,8 @@ struct __rbuf_s {
     int size;           // buffer size
     int rfx;            // read offset
     int wfx;            // write offset
+    int mode;           // the ringbuffer mode (blocking/overwrite)
 };
-
 
 rbuf_t *
 rbuf_create(int size) {
@@ -35,6 +35,18 @@ rbuf_create(int size) {
         return NULL;
     }
     return new_rb;
+}
+
+void
+rbuf_set_mode(rbuf_t *rbuf, rbuf_mode_t mode)
+{
+    rbuf->mode = mode;
+}
+
+rbuf_mode_t
+rbuf_mode(rbuf_t *rbuf)
+{
+    return rbuf->mode;
 }
 
 void
@@ -85,8 +97,26 @@ rbuf_write(rbuf_t *rb, u_char *in, int size) {
     if(!rb || !in || !size) // safety belt
         return 0;
     // if requested size fits the available space, use that
-    if(write_size > size)  
+    if(write_size > size) {
         write_size = size;
+    } else if (rb->mode == RBUF_MODE_OVERWRITE) {
+        if (size > rb->size -1) {
+            // the provided buffer is bigger than the
+            // ringbuffer itself. Since we are in overwrite mode,
+            // only the last chunk will be actually stored.
+            write_size = rb->size - 1;
+            in = in + (size - write_size);
+            rb->rfx = 0;
+            memcpy(rb->buf, in, write_size);
+            rb->wfx = write_size;
+            return size;
+        }
+        int diff = size - write_size;
+        rb->rfx += diff;
+        write_size += diff;
+        if (rb->rfx >= rb->size)
+            rb->rfx -= rb->size;
+    }
 
     if(rb->wfx >= rb->rfx) { // write pointer is ahead
         if(write_size <= rb->size - rb->wfx) {
@@ -102,6 +132,7 @@ rbuf_write(rbuf_t *rb, u_char *in, int size) {
         memcpy(&rb->buf[rb->wfx], in, write_size);
         rb->wfx+=write_size;
     }
+
     return write_size;
 }
 

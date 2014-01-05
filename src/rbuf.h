@@ -16,6 +16,15 @@
 extern "C" {
 #endif
 
+
+typedef enum {
+    RBUF_MODE_BLOCKING = 0,
+    RBUF_MODE_OVERWRITE
+} rbuf_mode_t;
+
+/**
+ * @brief Opaque structure representing a ringbuffer handler
+ */
 typedef struct __rbuf_s rbuf_t;
 
 /**
@@ -24,6 +33,9 @@ typedef struct __rbuf_s rbuf_t;
  * @return     : A pointer to an initialized rbuf_t structure
  */
 rbuf_t *rbuf_create(int size);
+
+void rbuf_set_mode(rbuf_t *rbuf, rbuf_mode_t mode);
+rbuf_mode_t rbuf_mode(rbuf_t *rbuf);
 
 /**
  * @brief Skip the specified amount of bytes
