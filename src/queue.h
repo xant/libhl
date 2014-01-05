@@ -79,7 +79,7 @@ void queue_set_free_value_callback(queue_t *q, queue_free_value_callback_t free_
 /**
  * @brief Remove last value from the queue
  * @param q : A valid pointer to a queue_t structure
- * @return The value previous tail of the queue
+ * @return The value previously stored in the tail of the queue
  */
 void *queue_pop_right(queue_t *q);
 

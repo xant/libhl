@@ -111,6 +111,8 @@ rbuf_write(rbuf_t *rb, u_char *in, int size) {
             rb->wfx = write_size;
             return size;
         }
+        // we are in overwrite mode, so let's make some space
+        // for the new data by advancing the read offset
         int diff = size - write_size;
         rb->rfx += diff;
         write_size += diff;
