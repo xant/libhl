@@ -91,6 +91,30 @@ main (int argc, char **argv)
     t_testing("rb->rfx < rb->wfx");
     t_validate_int((rb->rfx < rb->wfx), 1);
     
+    rbuf_clear(rb);
+    t_testing("rbuf_set_mode(rb, RBUF_MODE_OVERWRITE)");
+    rbuf_set_mode(rb, RBUF_MODE_OVERWRITE);
+    t_validate_int(rbuf_mode(rb), RBUF_MODE_OVERWRITE);
+
+    char bigbuffer[32] = "0123456789ABCDEFxxxxxxxxxxxxxxxx";
+
+    t_testing("rbuf_write(rb, \"0123456789ABCDEFxxxxxxxxxxxxxxxx\", 32)");
+    t_validate_int( rbuf_write(rb, bigbuffer, 32), 32);
+    t_testing("rbuf_find(rb, '8') == 0");
+    t_validate_int(rbuf_find(rb, '8'), 0);
+    t_testing("rbuf_len(rb) == 24");
+    t_validate_int(rbuf_len(rb), 24);
+    
+    t_testing("rbuf_write(rb, \"XX\", 2)");
+    t_validate_int(rbuf_write(rb, "XX", 2), 2);
+
+    t_testing("rbuf_find(rb, 'A') == 0");
+    t_validate_int(rbuf_find(rb, 'A'), 0);
+    t_testing("rbuf_find(rb, 'X') == 22");
+    t_validate_int(rbuf_find(rb, 'X'), 22);
+
+
+
     t_summary();
 
     return t_failed;
