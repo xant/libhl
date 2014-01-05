@@ -34,7 +34,7 @@ extern "C" {
 #include <stdlib.h>
 
 #define FBUF_MAXLEN_NONE 0 //!< No preferred maximum length for fbuf.
-#define FBUF_STATIC_INITIALIZER { 0, NULL, 0, 0, 0 }
+#define FBUF_STATIC_INITIALIZER { 0, NULL, 0, 0, 0, 0 }
 
 typedef struct __fbuf {
     unsigned int id;          //!< unique ID for the buffer for reference
