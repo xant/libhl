@@ -60,7 +60,7 @@ typedef void (*refcnt_free_node_ptr_callback_t)(void *ptr);
  *                         garbage collector triggers and starts releasing the
  *                         older ones
  * @param terminate_node_cb  : The terminate node callback
- * @param free_node_callback : The free node callback
+ * @param free_node_ptr_cb : The free node callback
  */
 refcnt_t *refcnt_create(uint32_t gc_threshold,
                         refcnt_terminate_node_callback_t terminate_node_cb,

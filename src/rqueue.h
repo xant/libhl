@@ -26,7 +26,7 @@ typedef void (*rqueue_free_value_callback_t)(void *v);
 
 /**
  * @brief Set the callback which must be called to release values stored in the ringbuffer
- * @param table : A valid pointer to a rqueue_t structure
+ * @param rb : A valid pointer to a rqueue_t structure
  * @param cb : an rqueue_free_value_callback_t function
  */
 void rqueue_set_free_value_callback(rqueue_t *rb, rqueue_free_value_callback_t cb);
@@ -75,6 +75,7 @@ rqueue_mode_t rqueue_mode(rqueue_t *rb);
 /**
  * @brief Push a new value into the ringbuffer
  * @param rb : A valid pointer to a rqueue_t structure
+ * @param value : The pointer to store in the ringbuffer
  * @return 0 on success, -1 on failure, -2 if the buffer is full
  *         and the mode is RQUEUE_MODE_BLOCKING
  */

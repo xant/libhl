@@ -85,6 +85,7 @@ int rbuf_find(rbuf_t *rbuf, u_char octet);
 /**
  * @brief Read until a specific byte is found or maxsize is reached
  * @param rbuf     : A valid pointer to a rbuf_t structure
+ * @param octet   : The byte to look for before stopping
  * @param out     : A valid pointer initialized to store the read data 
  * @param maxsize : The maximum amount of bytes that can be copied to
  *                  the memory pointed by 'out'
@@ -100,7 +101,7 @@ void rbuf_clear(rbuf_t *rbuf);
 
 /**
  * @brief Release all resources associated to the rbuf_t structure
- * @param rb : A valid pointer to a rbuf_t structure
+ * @param rbuf : A valid pointer to a rbuf_t structure
  */
 void rbuf_destroy(rbuf_t *rbuf);
 

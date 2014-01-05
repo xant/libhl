@@ -70,7 +70,7 @@ uint32_t queue_count(queue_t *q);
 /**
  * @brief Set the callback which must be called to release values stored in the queue
  * @param q : A valid pointer to a queue_t structure
- * @param cb : an free_value_callback_t function
+ * @param free_value_cb : an free_value_callback_t function
  */
 void queue_set_free_value_callback(queue_t *q, queue_free_value_callback_t free_value_cb);
 
@@ -118,7 +118,7 @@ void *queue_pop_position(queue_t *q, uint32_t pos);
  * @brief Push a new value at a specific position
  * @param q : A valid pointer to a queue_t structure
  * @param pos : The position where to insert the new item
- * @param val : The value to store in the tail of the queue
+ * @param value : The value to store in the tail of the queue
  * @return : 0 if success, -1 otherwise
  */
 int queue_push_position(queue_t *q, uint32_t pos, void *value);

@@ -239,7 +239,7 @@ int fbuf_read(fbuf_t *fbuf, int fd, unsigned int explen);
  * @note if nbytes is zero, all of fbuf is written.
  * @note data written is removed from the fbuf.
  */
-int fbuf_write(fbuf_t *fbuf, int fd, unsigned int explen);
+int fbuf_write(fbuf_t *fbuf, int fd, unsigned int nbytes);
 
 /**
  * @brief Remove bytes from the beginning of the buffer.

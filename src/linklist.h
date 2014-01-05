@@ -74,7 +74,7 @@ uint32_t list_count(linked_list_t *list);
 /**
  * @brief Set the callback which must be called to release values stored in the list
  * @param list : A valid pointer to a linked_list_t structure
- * @param cb : an free_value_callback_t function
+ * @param free_value_cb : an free_value_callback_t function
  */
 void set_free_value_callback(linked_list_t *list, free_value_callback_t free_value_cb);
 
@@ -194,8 +194,8 @@ int move_value(linked_list_t *list, uint32_t srcPos, uint32_t dstPos);
 /**
  * @brief Swap two values
  * @param list : A valid pointer to a linked_list_t structure
- * @pos1 : The position of the first value to swap with a second one
- * @pos2 : The position of the second value to swap with the first
+ * @param pos1 : The position of the first value to swap with a second one
+ * @param pos2 : The position of the second value to swap with the first
  * @return 0 if success, -1 otherwise
  */
 int swap_values(linked_list_t *list, uint32_t pos1, uint32_t pos2);
@@ -293,7 +293,7 @@ tagged_value_t *pop_tagged_value(linked_list_t *list);
  * @param tval: The new tagged value to store
  * @return 0 if success, -1 otherwise
  */
-int push_tagged_value(linked_list_t *list, tagged_value_t *tVal);
+int push_tagged_value(linked_list_t *list, tagged_value_t *tval);
 
 /**
  * @brief Same as unshift_value but when using the list to store tagged values
