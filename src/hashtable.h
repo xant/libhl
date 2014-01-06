@@ -79,6 +79,15 @@ void ht_destroy(hashtable_t *table);
 void *ht_get(hashtable_t *table, void *key, size_t klen, size_t *dlen);
 
 /**
+ * @brief Check if a key exists in the hashtable
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key   : The key to use
+ * @param klen  : The length of the key
+ * @return 1 If the key exists, 0 if it doesn't exist and -1 in case of error
+ */
+int ht_exists(hashtable_t *table, void *key, size_t klen);
+
+/**
  * @brief Get a copy of the value stored at a specific key
  * @param table : A valid pointer to an hashtable_t structure
  * @param key   : The key to use
