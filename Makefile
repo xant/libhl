@@ -66,3 +66,7 @@ install:
 	 cp -v libhl.$(SHAREDEXT) $(LIBDIR)/;\
 	 echo "Installing headers in $(INCDIR)"; \
 	 cp -v src/*.h $(INCDIR)/;
+
+.PHONY: docs
+docs:
+	@doxygen libhl.doxycfg

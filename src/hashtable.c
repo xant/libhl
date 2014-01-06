@@ -497,8 +497,6 @@ int ht_exists(hashtable_t *table, void *key, size_t klen)
 
     SPIN_LOCK(&list->lock);
 
-    void *data = NULL;
-
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
         if (/*ht_item->hash == arg->item.hash && */
