@@ -128,7 +128,7 @@ void *ht_get_deep_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen,
  * @param klen  : The length of the key
  * @param data  : A pointer to the data to store
  * @param dlen  : The size of the data
- * @return The previous value if any, NULL otherwise
+ * @return 0 on success, -1 otherwise
  */
 int ht_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen);
 
