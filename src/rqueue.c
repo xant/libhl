@@ -74,6 +74,11 @@ rqueue_t *rqueue_create(uint32_t size, rqueue_mode_t mode) {
         rb->tail = page;
     }
 
+    if (!rb->head || !rb->tail) {
+        free(rb);
+        return NULL;
+    }
+
     // close the ringbuffer
     rb->head->prev = rb->tail;
     rb->tail->next = rb->head;

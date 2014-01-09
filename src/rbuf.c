@@ -207,7 +207,6 @@ rbuf_read_until(rbuf_t *rb, u_char octet, u_char *out, int maxsize)
         for (i = 0; to_read > 0 && (size-to_read) < maxsize; i++) {
             to_read--;
             if(rb->buf[i] == octet) {
-                found = 1;
                 break;
             }
             else {

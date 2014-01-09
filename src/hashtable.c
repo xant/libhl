@@ -132,13 +132,14 @@ void ht_clear(hashtable_t *table) {
     SPIN_LOCK(&table->lock);
     for (i = 0; i < table->size; i++) {
         ht_item_t *item = NULL;
+        ht_item_t *tmp;
 
         ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
 
         if (!list)
             continue;
 
-        while((item = TAILQ_FIRST(&list->head))) {
+        TAILQ_FOREACH_SAFE(item, &list->head, next, tmp) {
             TAILQ_REMOVE(&list->head, item, next);
             if (table->free_item_cb)
                 table->free_item_cb(item->data);
@@ -245,6 +246,9 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
     uint32_t actual_size;
     void *prev = NULL;
     size_t plen = 0;
+
+    if (!klen)
+        return -1;
 
     PERL_HASH(hash, key, klen);
 
@@ -547,6 +551,8 @@ void *_ht_get_internal(hashtable_t *table, void *key, size_t klen,
             }
             if (dlen)
                 *dlen = item->dlen;
+
+            break;
         }
     }
 
