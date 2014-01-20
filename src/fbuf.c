@@ -450,7 +450,7 @@ fbuf_fread_ln(fbuf_t *fbuf, FILE *file)
 
     fbuf->used--;
     fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
-    if (fbuf->data[fbuf->skip + fbuf->used - 1] == '\r') {
+    if (fbuf->used && fbuf->data[fbuf->skip + fbuf->used - 1] == '\r') {
         fbuf->used--;
         fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
     }
@@ -497,7 +497,7 @@ fbuf_read_ln(fbuf_t *fbuf, int fd)
 
     fbuf->used--;
     fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
-    if (fbuf->data[fbuf->skip + fbuf->used - 1] == '\r') {
+    if (fbuf->used && fbuf->data[fbuf->skip + fbuf->used - 1] == '\r') {
         fbuf->used--;
         fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
     }
