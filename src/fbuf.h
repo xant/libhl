@@ -160,7 +160,7 @@ int fbuf_add(fbuf_t *fbuf, const char *data);
  *
  * @see fbuf_concat()
  */
-int fbuf_add_nl(fbuf_t *fbuf, const char *data);
+int fbuf_add_ln(fbuf_t *fbuf, const char *data);
 
 /**
  * @brief Prepend the string to the fbuf.
@@ -228,6 +228,9 @@ int fbuf_fread(fbuf_t *fbuf, FILE *file, unsigned int explen);
  * @returns number of characters added to fbuf on success; -1 otherwise.
  */
 int fbuf_read(fbuf_t *fbuf, int fd, unsigned int explen);
+
+int fbuf_read_ln(fbuf_t *fbuf, int fd);
+int fbuf_fread_ln(fbuf_t *fbuf, FILE *file);
 
 /**
  * @brief Write data from the fbuf to the file descriptor

@@ -289,7 +289,7 @@ int
 fbuf_prepend_binary(fbuf_t *fbuf, const char *data, int len)
 {
     if (len <= 0 || !data)
-	return 0; // nothing to be done
+        return 0; // nothing to be done
 
     if (fbuf->skip >= len) {
         memcpy(fbuf->data + fbuf->skip - len, data, len);
@@ -313,12 +313,12 @@ int
 fbuf_prepend(fbuf_t *fbuf, const char *data)
 {
     if (!data || data[0] == '\0')
-	return 0; // nothing to be done
+        return 0; // nothing to be done
     return fbuf_prepend_binary(fbuf, data, strlen(data));
 }
 
 int
-fbuf_add_nl(fbuf_t *fbuf, const char *data)
+fbuf_add_ln(fbuf_t *fbuf, const char *data)
 {
     int n1 = 0, n2 = 0;
 
@@ -431,6 +431,34 @@ fbuf_fread(fbuf_t *fbuf, FILE *file, unsigned int explen)
 }
 
 int
+fbuf_fread_ln(fbuf_t *fbuf, FILE *file)
+{
+    int initial = fbuf->used;
+
+    while(!fbuf->used || fbuf->data[fbuf->skip + fbuf->used - 1] != '\n')
+    {
+        if (!fbuf_extend(fbuf, fbuf->used + 1))
+            return -1;
+        int rb = fread(fbuf->data + fbuf->skip + fbuf->used, 1, 1, file);
+        if (rb > 0) {
+            fbuf->used++;
+        } else {
+            return -1;
+        }
+
+    }
+
+    fbuf->used--;
+    fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
+    if (fbuf->data[fbuf->skip + fbuf->used - 1] == '\r') {
+        fbuf->used--;
+        fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
+    }
+
+    return fbuf->used - initial;
+}
+
+int
 fbuf_read(fbuf_t *fbuf, int fd, unsigned int explen)
 {
     int n;
@@ -447,6 +475,34 @@ fbuf_read(fbuf_t *fbuf, int fd, unsigned int explen)
     fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
 
     return n;
+}
+
+int
+fbuf_read_ln(fbuf_t *fbuf, int fd)
+{
+    int initial = fbuf->used;
+
+    while(!fbuf->used || fbuf->data[fbuf->skip + fbuf->used - 1] != '\n')
+    {
+        if (!fbuf_extend(fbuf, fbuf->used + 1))
+            return -1;
+        int rb = read(fd, fbuf->data + fbuf->skip + fbuf->used, 1);
+        if (rb > 0) {
+            fbuf->used++;
+        } else {
+            return -1;
+        }
+
+    }
+
+    fbuf->used--;
+    fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
+    if (fbuf->data[fbuf->skip + fbuf->used - 1] == '\r') {
+        fbuf->used--;
+        fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
+    }
+
+    return fbuf->used - initial;
 }
 
 int
@@ -504,8 +560,8 @@ fbuf_rtrim(fbuf_t *fbuf)
     unsigned int i = 0;
 
     while (fbuf->used > 0 && isspace(fbuf->data[fbuf->skip + fbuf->used - 1])) {
-	fbuf->used -= 1;
-	i++;
+        fbuf->used -= 1;
+        i++;
     }
     fbuf->data[fbuf->skip + fbuf->used] = '\0';
 

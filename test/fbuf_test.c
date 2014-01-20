@@ -132,146 +132,146 @@ main(int argc, char **argv)
 {
     int i, n;
     unsigned int u;
-    fbuf_t *d1, *d2, *d3;
+    fbuf_t *fb1, *fb2, *fb3;
     int fd1, fd2;
     char *p;
 
     t_init();
 
     t_testing("fbuf_create(%d)", FBUFMAXLEN);
-    d1 = fbuf_create(FBUFMAXLEN);
-    validate(d1, NULL, FBUFMAXLEN, NO_FLAGS);
+    fb1 = fbuf_create(FBUFMAXLEN);
+    validate(fb1, NULL, FBUFMAXLEN, NO_FLAGS);
 
     t_testing("fbuf_create(%d)", FBUF_MAXLEN_NONE);
-    d2 = fbuf_create(FBUF_MAXLEN_NONE);
-    validate(d2, NULL, FBUFMAXLEN, NO_FLAGS);
+    fb2 = fbuf_create(FBUF_MAXLEN_NONE);
+    validate(fb2, NULL, FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_add(d1, \"Hello\")");
-    fbuf_add(d1, "Hello");
-    validate(d1, "Hello", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_add_binary(d1, \" World\", 2)");
-    fbuf_add_binary(d1, " World", 2);
-    validate(d1, "Hello W", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_add_binary(d1, \" World\", 0)");
-    fbuf_add_binary(d1, " World", 0);
-    validate(d1, "Hello W", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_add_binary(d1, \" World\", -1)");
-    fbuf_add_binary(d1, " World", -1);
-    validate(d1, "Hello W", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_add_nl(d1, \"orld!\")");
-    fbuf_add_nl(d1, "orld!");
-    validate(d1, "Hello World!\n", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_clear(d1)");
-    fbuf_clear(d1);
-    validate(d1, "", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_add(fb1, \"Hello\")");
+    fbuf_add(fb1, "Hello");
+    validate(fb1, "Hello", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_add_binary(fb1, \" World\", 2)");
+    fbuf_add_binary(fb1, " World", 2);
+    validate(fb1, "Hello W", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_add_binary(fb1, \" World\", 0)");
+    fbuf_add_binary(fb1, " World", 0);
+    validate(fb1, "Hello W", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_add_binary(fb1, \" World\", -1)");
+    fbuf_add_binary(fb1, " World", -1);
+    validate(fb1, "Hello W", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_add_ln(fb1, \"orld!\")");
+    fbuf_add_ln(fb1, "orld!");
+    validate(fb1, "Hello World!\n", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_clear(fb1)");
+    fbuf_clear(fb1);
+    validate(fb1, "", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_prepend(d1, \"bla\")");
-    fbuf_prepend(d1, "bla");
-    validate(d1, "bla", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_prepend(d1, \"Bla \")");
-    fbuf_prepend(d1, "Bla ");
-    validate(d1, "Bla bla", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_prepend(fb1, \"bla\")");
+    fbuf_prepend(fb1, "bla");
+    validate(fb1, "bla", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_prepend(fb1, \"Bla \")");
+    fbuf_prepend(fb1, "Bla ");
+    validate(fb1, "Bla bla", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_set(d1, \"Hello \")");
-    fbuf_set(d1, "Hello ");
-    validate(d1, "Hello ", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_set(fb1, \"Hello \")");
+    fbuf_set(fb1, "Hello ");
+    validate(fb1, "Hello ", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_set(d2, \"world\")");
-    fbuf_set(d2, "world");
-    validate(d2, "world", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_set(fb2, \"world\")");
+    fbuf_set(fb2, "world");
+    validate(fb2, "world", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_concat(d1, d2)");
-    fbuf_concat(d1, d2);
-    validate(d1, "Hello world", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_concat(fb1, fb2)");
+    fbuf_concat(fb1, fb2);
+    validate(fb1, "Hello world", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_move(d1, d2)");
-    fbuf_move(d1, d2);
-    validate(d2, "Hello world", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_move(fb1, fb2)");
+    fbuf_move(fb1, fb2);
+    validate(fb2, "Hello world", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_swap(d1, d2)");
-    fbuf_swap(d1, d2);
-    validate(d1, "Hello world", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_swap(d1, d2) (2)");
-    validate(d2, "", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_swap(fb1, fb2)");
+    fbuf_swap(fb1, fb2);
+    validate(fb1, "Hello world", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_swap(fb1, fb2) (2)");
+    validate(fb2, "", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_add(d1, \"<8>\") (honour prefmaxlen)");
+    t_testing("fbuf_add(fb1, \"<8>\") (honour prefmaxlen)");
     // prefmaxlen is 10, buflen is FBUF_MINLEN (16), and 11 bytes are used, so
     // adding 8 bytes exceeds the current buffer length and exceeds prefmaxlen,
     // so the buffer cannot be extended.
-    fbuf_add(d1, "12345678");
-    validate(d1, "Hello world", FBUFMAXLEN, NO_FLAGS);
+    fbuf_add(fb1, "12345678");
+    validate(fb1, "Hello world", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_data(d1)");
-    p = fbuf_data(d1);
+    t_testing("fbuf_data(fb1)");
+    p = fbuf_data(fb1);
     if (strcmp(p, "Hello world") != 0)
 	t_failure("'%s' should be 'Hello world'", p);
     else
 	t_success();
-    t_testing("fbuf_end(d1)");
-    if (strcmp(fbuf_end(d1)-strlen("world"), "world") != 0)
-	t_failure("'%s' should be 'd'", fbuf_end(d1)-strlen("world"));
+    t_testing("fbuf_end(fb1)");
+    if (strcmp(fbuf_end(fb1)-strlen("world"), "world") != 0)
+	t_failure("'%s' should be 'd'", fbuf_end(fb1)-strlen("world"));
     else
 	t_success();
 
-    t_testing("fbuf_printf(d2, \"%%s\", \"hello\")");
-    fbuf_printf(d2, "%s", "hello");
-    validate(d2, "hello", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_printf(d2, \"%%s%%c\", \"World\", '!')");
-    fbuf_printf(d2, " %s%c", "World", '!');
-    validate(d2, "hello World!", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_printf(fb2, \"%%s\", \"hello\")");
+    fbuf_printf(fb2, "%s", "hello");
+    validate(fb2, "hello", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_printf(fb2, \"%%s%%c\", \"World\", '!')");
+    fbuf_printf(fb2, " %s%c", "World", '!');
+    validate(fb2, "hello World!", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_remove(d2, 6)");
-    fbuf_remove(d2, 6);
-    validate(d2, "World!", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_remove(fb2, 6)");
+    fbuf_remove(fb2, 6);
+    validate(fb2, "World!", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_copy(d2, d1)");
-    fbuf_copy(d2, d1);
-    validate(d1, "World!", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_copy(fb2, fb1)");
+    fbuf_copy(fb2, fb1);
+    validate(fb1, "World!", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_duplicate(d1, d2)");
-    d3 = fbuf_duplicate(d1);
-    validate(d3, "World!", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_duplicate(fb1, fb2)");
+    fb3 = fbuf_duplicate(fb1);
+    validate(fb3, "World!", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_free(d3)");
-    fbuf_free(d3);
+    t_testing("fbuf_free(fb3)");
+    fbuf_free(fb3);
     t_success();
 
-    t_testing("fbuf_clear(d1)");
-    fbuf_clear(d1);
-    validate(d1, NULL, FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_clear(fb1)");
+    fbuf_clear(fb1);
+    validate(fb1, NULL, FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_trim(d2 == \"World!\")");
-    fbuf_trim(d2);
-    validate(d2, "World!", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_trim(d2 == \"\")");
-    fbuf_clear(d2);
-    fbuf_trim(d2);
-    validate(d2, "", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_trim(d2 == \" \\t Hello world!\")");
-    fbuf_set(d2, " \t Hello world!");
-    fbuf_trim(d2);
-    validate(d2, "Hello world!", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_trim(d2 == \"   \")");
-    fbuf_set(d2, "   ");
-    fbuf_trim(d2);
-    validate(d2, "", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_trim(fb2 == \"World!\")");
+    fbuf_trim(fb2);
+    validate(fb2, "World!", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_trim(fb2 == \"\")");
+    fbuf_clear(fb2);
+    fbuf_trim(fb2);
+    validate(fb2, "", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_trim(fb2 == \" \\t Hello world!\")");
+    fbuf_set(fb2, " \t Hello world!");
+    fbuf_trim(fb2);
+    validate(fb2, "Hello world!", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_trim(fb2 == \"   \")");
+    fbuf_set(fb2, "   ");
+    fbuf_trim(fb2);
+    validate(fb2, "", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_rtrim(d2 == \"World!\")");
-    fbuf_set(d2, "World!");
-    fbuf_rtrim(d2);
-    validate(d2, "World!", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_rtrim(d2 == \"\")");
-    fbuf_clear(d2);
-    fbuf_rtrim(d2);
-    validate(d2, "", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_rtrim(d2 == \"Hello world! \\t \")");
-    fbuf_set(d2, "Hello world! \t ");
-    fbuf_rtrim(d2);
-    validate(d2, "Hello world!", FBUFMAXLEN, NO_FLAGS);
-    t_testing("fbuf_rtrim(d2 == \"   \")");
-    fbuf_set(d2, "   ");
-    fbuf_rtrim(d2);
-    validate(d2, "", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_rtrim(fb2 == \"World!\")");
+    fbuf_set(fb2, "World!");
+    fbuf_rtrim(fb2);
+    validate(fb2, "World!", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_rtrim(fb2 == \"\")");
+    fbuf_clear(fb2);
+    fbuf_rtrim(fb2);
+    validate(fb2, "", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_rtrim(fb2 == \"Hello world! \\t \")");
+    fbuf_set(fb2, "Hello world! \t ");
+    fbuf_rtrim(fb2);
+    validate(fb2, "Hello world!", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_rtrim(fb2 == \"   \")");
+    fbuf_set(fb2, "   ");
+    fbuf_rtrim(fb2);
+    validate(fb2, "", FBUFMAXLEN, NO_FLAGS);
 
     fd1 = open(TESTFILENAME1, O_RDONLY);
     if (fd1 == -1)
@@ -280,89 +280,115 @@ main(int argc, char **argv)
     if (fd2 == -1)
 	err(1, "open(%s, O_RDONLY)", TESTFILENAME2);
 
-    t_testing("fbuf_read(d2, fd1, 5)");
-    fbuf_clear(d2);
-    fileopcheck(TESTFILENAME1, fbuf_read(d2, fd1, 5));
-	validate(d2, "First", 0, NO_FLAGS);
+    t_testing("fbuf_read(fb2, fd1, 5)");
+    fbuf_clear(fb2);
+    fileopcheck(TESTFILENAME1, fbuf_read(fb2, fd1, 5));
+	validate(fb2, "First", 0, NO_FLAGS);
 
-    t_testing("fbuf_write(d2, fd1, 100)");
-    fbuf_set(d2, "Hello world!");
-    fbuf_write(d2, fd2, 100);
+    t_testing("fbuf_write(fb2, fd1, 100)");
+    fbuf_set(fb2, "Hello world!");
+    fbuf_write(fb2, fd2, 100);
     lseek(fd2, 0, SEEK_SET);
-    fbuf_read(d2, fd2, 100);
-    validate(d2, "Hello world!", 0, NO_FLAGS);
+    fbuf_read(fb2, fd2, 100);
+    validate(fb2, "Hello world!", 0, NO_FLAGS);
 
-    t_testing("fbuf_printf(d2, \"%%d\") (100000x)");
-    fbuf_clear(d2);
+    lseek(fd1, 0, SEEK_SET);
+    fbuf_clear(fb1);
+    fbuf_read_ln(fb1, fd1);
+    t_testing("fbuf_read_ln(fb1, fd1)");
+    validate(fb1, "First line", 0, NO_FLAGS);
+
+    fbuf_clear(fb1);
+    fbuf_read_ln(fb1, fd1);
+    t_testing("fbuf_read_ln(fb1, fd1)");
+    validate(fb1, "Second line", 0, NO_FLAGS);
+
+    lseek(fd1, 0, SEEK_SET);
+
+    FILE *f1 = fdopen(fd1, "r");
+    fbuf_clear(fb1);
+    fbuf_fread_ln(fb1, f1);
+    t_testing("fbuf_fread_ln(fb1, fd1)");
+    validate(fb1, "First line", 0, NO_FLAGS);
+
+    fbuf_clear(fb1);
+    fbuf_fread_ln(fb1, f1);
+    t_testing("fbuf_fread_ln(fb1, fd1)");
+    validate(fb1, "Second line", 0, NO_FLAGS);
+
+    fclose(f1);
+
+    t_testing("fbuf_printf(fb2, \"%%d\") (100000x)");
+    fbuf_clear(fb2);
     for (i = 0; i < 10000; i++)
-	if (fbuf_printf(d2, "%d", i) == -1)
+	if (fbuf_printf(fb2, "%d", i) == -1)
 	    break;
     if (i < 10000) 
-	t_failure("fbuf_printf() failed: prefmaxlen = %d", fbuf_prefmaxlen(d2));
-    else if (d2->used != 38890)
-	t_failure("length %d, should be 38890 ('%s')", d2->used, fbuf_data(d2));
+	t_failure("fbuf_printf() failed: prefmaxlen = %d", fbuf_prefmaxlen(fb2));
+    else if (fb2->used != 38890)
+	t_failure("length %d, should be 38890 ('%s')", fb2->used, fbuf_data(fb2));
     else
 	t_success();
 
-    t_testing("fbuf_extend() after fbuf_set_prefmaxlen(d2, 10)");
-    fbuf_set_prefmaxlen(d2, 10);
-    n = fbuf_extend(d2, fbuf_len(d2)+1);
+    t_testing("fbuf_extend() after fbuf_set_prefmaxlen(fb2, 10)");
+    fbuf_set_prefmaxlen(fb2, 10);
+    n = fbuf_extend(fb2, fbuf_len(fb2)+1);
     if (n != 0)
 	t_failure("fbuf_extend() returned %d instead of -1", n);
     else
 	t_success();
 
-    fbuf_set_prefmaxlen(d2, 1000000);
+    fbuf_set_prefmaxlen(fb2, 1000000);
     fbuf_set_maxlen(10000);
     t_testing("fbuf_extend() after fbuf_maxlen(10000)");
-    n = fbuf_extend(d2, fbuf_len(d2)+1);
+    n = fbuf_extend(fb2, fbuf_len(fb2)+1);
     if (n != 0)
 	t_failure("fbuf_extend() returned %d instead of -1", n);
     else
 	t_success();
 
-    t_testing("fbuf_shrink(d2)");
-    u = fbuf_len(d2);
-    fbuf_set(d2, "Hello world!");
-    if (fbuf_shrink(d2) == u)
+    t_testing("fbuf_shrink(fb2)");
+    u = fbuf_len(fb2);
+    fbuf_set(fb2, "Hello world!");
+    if (fbuf_shrink(fb2) == u)
 	t_failure("buffer still %d bytes", u);
     else
-	validate(d2, NULL, FBUFMAXLEN, NO_FLAGS);
+	validate(fb2, NULL, FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_shrink(d2) after clear");
-    u = fbuf_len(d2);
-    fbuf_clear(d2);
-    if (fbuf_shrink(d2) == 0)
-	validate(d2, NULL, FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_shrink(fb2) after clear");
+    u = fbuf_len(fb2);
+    fbuf_clear(fb2);
+    if (fbuf_shrink(fb2) == 0)
+	validate(fb2, NULL, FBUFMAXLEN, NO_FLAGS);
     else
 	t_failure("buffer still %d bytes", u);
 
-    t_testing("fbuf_add(d2, \"LMOPQRSTVWXYZ\") after fbuf_set_prefmaxlen(d2, 5)");
-    fbuf_set(d2, "ABCDEFGHIJK");
-    fbuf_shrink(d2);
-    fbuf_set_prefmaxlen(d2, 5);
-    n = fbuf_add(d2, "LMOPQRSTVWXYZ");
+    t_testing("fbuf_add(fb2, \"LMOPQRSTVWXYZ\") after fbuf_set_prefmaxlen(fb2, 5)");
+    fbuf_set(fb2, "ABCDEFGHIJK");
+    fbuf_shrink(fb2);
+    fbuf_set_prefmaxlen(fb2, 5);
+    n = fbuf_add(fb2, "LMOPQRSTVWXYZ");
     if (n != -1)
 	t_failure("added while it should not have");
     else
-	validate(d2, "ABCDEFGHIJK", FBUFMAXLEN, NO_FLAGS);
+	validate(fb2, "ABCDEFGHIJK", FBUFMAXLEN, NO_FLAGS);
     
-    t_testing("fbuf_printf(d2, \"%%d%%s\", 1, \"LMOPQRSTVWXYZ\") after fbuf_set_prefmaxlen(d2, 5)");
-    fbuf_set(d2, "ABCDEFGHIJK");
-    fbuf_shrink(d2);
-    fbuf_set_prefmaxlen(d2, 5);
-    n = fbuf_printf(d2, "%d%s", 1, "KLMOPQRSTVWXYZ");
+    t_testing("fbuf_printf(fb2, \"%%d%%s\", 1, \"LMOPQRSTVWXYZ\") after fbuf_set_prefmaxlen(fb2, 5)");
+    fbuf_set(fb2, "ABCDEFGHIJK");
+    fbuf_shrink(fb2);
+    fbuf_set_prefmaxlen(fb2, 5);
+    n = fbuf_printf(fb2, "%d%s", 1, "KLMOPQRSTVWXYZ");
     if (n != -1)
 	t_failure("added while it should not have");
     else
-	validate(d2, "ABCDEFGHIJK", FBUFMAXLEN, NO_FLAGS);
+	validate(fb2, "ABCDEFGHIJK", FBUFMAXLEN, NO_FLAGS);
 
-    t_testing("fbuf_destroy(d1)");
-    fbuf_destroy(d1);
-    validate(d1, "", FBUFMAXLEN, NO_FLAGS);
+    t_testing("fbuf_destroy(fb1)");
+    fbuf_destroy(fb1);
+    validate(fb1, "", FBUFMAXLEN, NO_FLAGS);
     t_testing("fbuf_free(...)");
-    fbuf_free(d1);
-    fbuf_free(d2);
+    fbuf_free(fb1);
+    fbuf_free(fb2);
     t_success();
 
     t_summary();
