@@ -142,7 +142,7 @@ int ht_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen);
  * @param prev_data : If not NULL, the referenced pointer will be set to point to the previous data
  * @param prev_len  : If not NULL, the size of the previous data will be stored in the memory
  *                    pointed by prev_len
- * @return The previous value if any, NULL otherwise
+ * @return 0 on success, -1 otherwise
  * @note If prev_data is not NULL, the previous data will not be released using the free_value callback
  *       so the caller will be responsible of releasing the previous data once done with it
  */
