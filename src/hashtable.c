@@ -130,7 +130,8 @@ void ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
 void ht_clear(hashtable_t *table) {
     uint32_t i;
     SPIN_LOCK(&table->lock);
-    for (i = 0; i < table->size; i++) {
+    for (i = 0; i < table->size && __sync_fetch_and_add(&table->count, 0) > 0; i++)
+    {
         ht_item_t *item = NULL;
         ht_item_t *tmp;
 
