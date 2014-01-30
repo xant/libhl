@@ -27,7 +27,7 @@ main (int argc, char **argv)
 {
     u_char buffer1[16] = "0123456789ABCDEF";
     u_char buffer2[16] = "xxxxxxxxxxxxxxxx";
-    u_char test[16];
+    u_char test[32];
     rbuf_t *rb;
 
     t_init();
