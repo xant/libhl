@@ -695,16 +695,16 @@ void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uin
             break;
         } else if (rc == -1 || rc == -2) {
             list_entry_t *d = e;
-            if (list->head == list->tail && list->tail == e) {
+            e = e->next;
+            if (list->head == list->tail && list->tail == d) {
                 list->head = list->tail = NULL;
-            } else if (e == list->head) {
-                list->head = e->next;
+            } else if (d == list->head) {
+                list->head = d->next;
                 list->head->prev = NULL;
-            } else if (e == list->tail) {
-                list->tail = e->prev;
+            } else if (d == list->tail) {
+                list->tail = d->prev;
                 list->tail->next = NULL;
             } else {
-                e = e->next;
                 e->prev = d->prev;
                 e->prev->next = e;
             }
@@ -717,7 +717,6 @@ void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uin
             // -1 instead means that we still want to remove the item
             // but we also want to go ahead with the iteration
         }
-        e = e->next;
     }
     MUTEX_UNLOCK(&list->lock);
 }
