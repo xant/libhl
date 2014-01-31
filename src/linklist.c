@@ -693,7 +693,7 @@ void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uin
         int rc = item_handler(e->value, idx++, user);
         if (rc == 0) {
             break;
-        } else if (rc == -1) {
+        } else if (rc == -1 || rc == -2) {
             list_entry_t *d = e;
             if (list->head == list->tail && list->tail == e) {
                 list->head = list->tail = NULL;
@@ -712,10 +712,12 @@ void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uin
             list->length--;
             // the callback got the value and will take care of releasing it
             destroy_entry(d);
-            break;
-        } else {
-            e = e->next;
+            if (rc == -2) // -2 means : remove and stop the iteration
+                break;
+            // -1 instead means that we still want to remove the item
+            // but we also want to go ahead with the iteration
         }
+        e = e->next;
     }
     MUTEX_UNLOCK(&list->lock);
 }

@@ -203,6 +203,10 @@ int swap_values(linked_list_t *list, uint32_t pos1, uint32_t pos2);
 
 /**
  * @brief Callback for the value iterator
+ * @return 1 to go ahead with the iteration,
+ *         0 to stop the iteration,
+ *        -1 to remove the current item from the list and go ahead with the iteration
+ *        -2 to remove the current item from the list and stop the iteration
  */
 typedef int (*item_handler_t)(void *item, uint32_t idx, void *user);
 

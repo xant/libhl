@@ -32,12 +32,15 @@ TEST_EXEC_ORDER = fbuf_test rbuf_test linklist_test hashtable_test rqueue_test q
 
 all: objects static shared
 
+.PHONY: static
 static: objects
 	ar -r libhl.a src/*.o
 
+.PHONY: shared
 shared: objects
 	$(CC) $(LDFLAGS) $(SHAREDFLAGS) src/*.o -o libhl.$(SHAREDEXT)
 
+.PHONY: objects
 objects: CFLAGS += -fPIC -Isrc -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -g -O3
 objects: $(TARGETS)
 
@@ -51,14 +54,17 @@ clean:
 support/testing.o:
 	$(CC) $(CFLAGS) -Isrc -c support/testing.c -o support/testing.o
 
+.PHONY:tests
 tests: CFLAGS += -Isrc -Isupport -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -g -O3
-
 tests: support/testing.o static
 	@for i in $(TESTS); do\
 	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS) -lm";\
 	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a support/testing.o $(LDFLAGS) -lm;\
 	done;\
 	for i in $(TEST_EXEC_ORDER); do echo; test/$$i; echo; done
+
+.PHONY: test
+test: tests
 
 install:
 	 @echo "Installing libraries in $(LIBDIR)"; \
