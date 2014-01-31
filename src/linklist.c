@@ -716,6 +716,8 @@ void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uin
                 break;
             // -1 instead means that we still want to remove the item
             // but we also want to go ahead with the iteration
+        } else {
+            e = e->next;
         }
     }
     MUTEX_UNLOCK(&list->lock);
