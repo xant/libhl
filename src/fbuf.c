@@ -25,7 +25,7 @@
 #ifdef DEBUG_FBUF
 #define DEBUG_FBUF_INFO(fbuf, msg) \
     do { \
-        static int _debug = 0; \
+        __thread static int _debug = 0; \
         if (++_debug == 1) { \
             DBG("%s: %d: %s, len = %d, prefmaxlen = %d, used = %d\n", \
                    __FUNCTION__, fbuf->id, msg, fbuf->len, fbuf->prefmaxlen, fbuf->used); \
@@ -46,7 +46,7 @@
 #define FBUF_WRITE_EST    10240   //!< default value for fbuf_write()
 
 static int fbuf_count = 0;
-static unsigned int globalMaxLen = 0; //!< hard limit for size of all buffers
+static unsigned int global_max_len = 0; //!< hard limit for size of all buffers
 
 fbuf_t *
 fbuf_create(unsigned int prefmaxlen)
@@ -54,7 +54,7 @@ fbuf_create(unsigned int prefmaxlen)
     fbuf_t *fbuf = (fbuf_t *)calloc(1, sizeof(fbuf_t));
     if (fbuf) {
         DEBUG_FBUF_INFO(fbuf, "creating");
-        fbuf->id = fbuf_count++;
+        fbuf->id = __sync_fetch_and_add(&fbuf_count, 1);
         fbuf->prefmaxlen = prefmaxlen;
     }
 
@@ -69,7 +69,7 @@ fbuf_move(fbuf_t *fbufsrc, fbuf_t *fbufdst)
     fbuf_destroy(fbufdst);
     bcopy(fbufsrc, fbufdst, sizeof(fbuf_t));
     bzero(fbufsrc, sizeof(fbuf_t));
-    fbufsrc->id = fbuf_count++;
+    fbufsrc->id = __sync_fetch_and_add(&fbuf_count, 1);
 }
 
 void
@@ -131,7 +131,8 @@ fbuf_extend(fbuf_t *fbuf, unsigned int newlen)
 
     // We may only extend the buffer if the new length is less then the global
     // hard limit on fbuf buffer lengths.
-    if (globalMaxLen && newlen > globalMaxLen) {
+    unsigned int max_len = __sync_fetch_and_add(&global_max_len, 0);
+    if (max_len && newlen > max_len) {
         // If a prefmax is set for this buffer assume that the code can handle
         // errors. Otherwise exit with an error.
         if (fbuf->prefmaxlen != FBUF_MAXLEN_NONE) {
@@ -155,8 +156,8 @@ fbuf_extend(fbuf_t *fbuf, unsigned int newlen)
         else
             fbuf->len += FBUF_SLOWGROWSIZE;
     }
-    if (globalMaxLen && fbuf->len > globalMaxLen)
-        fbuf->len = globalMaxLen;
+    if (max_len && fbuf->len > max_len)
+        fbuf->len = max_len;
 
     if (fbuf->skip) {
         p = (char *)malloc(fbuf->len);
@@ -622,11 +623,15 @@ fbuf_prefmaxlen(fbuf_t *fbuf)
 unsigned int
 fbuf_set_maxlen(unsigned int maxlen)
 {
-    return (globalMaxLen = maxlen);
+    int old_max_len;
+    do {
+        old_max_len = __sync_fetch_and_add(&global_max_len, 0);
+    } while (!__sync_bool_compare_and_swap(&global_max_len, old_max_len, maxlen));
+    return 1;
 }
 
 unsigned int
 fbuf_maxlen(void)
 {
-    return globalMaxLen;
+    return __sync_fetch_and_add(&global_max_len, 0);
 }
