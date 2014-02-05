@@ -32,8 +32,12 @@ int check_item(hashtable_t *table, void *key, size_t klen, void *value, size_t v
     sprintf(test, "test%d", num+1);
     if (strcmp(test, value) == 0)
         (*check_item_count)++;
-    if((*check_item_count/1000) % 10 == 0)
-        ut_progress(*check_item_count/1000);
+    static int last_count = 0;
+    int count = *check_item_count/1000;
+    if(count % 10 == 0 && count != last_count) { 
+        ut_progress(count);
+        last_count = count;
+    }
     return 1;
 }
 
@@ -42,8 +46,12 @@ static int free_count = 0;
 void free_item(void *item) {
     free(item);
     free_count++;
-    if((free_count/1000) % 10 == 0)
-        ut_progress(free_count/1000);
+    static int last_count = 0;
+    int count = free_count/1000;
+    if(count % 10 == 0 && count != last_count) { 
+        ut_progress(count);
+        last_count = count;
+    }
 }
 
 int main(int argc, char **argv) {
