@@ -52,7 +52,7 @@ clean:
 
 .PHONY: libut
 libut:
-	@if [ ! -f support/libut/Makefile ]; then git submodule update; fi; make -C support/libut
+	@if [ ! -f support/libut/Makefile ]; then git submodule init; git submodule update; fi; make -C support/libut
 
 .PHONY:tests
 tests: CFLAGS += -Isrc -Isupport/libut/src -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -g -O3
