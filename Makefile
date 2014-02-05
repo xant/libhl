@@ -49,17 +49,17 @@ clean:
 	rm -f test/*_test
 	rm -f libhl.a
 	rm -f libhl.$(SHAREDEXT)
-	rm -f support/testing.o
 
-support/testing.o:
-	$(CC) $(CFLAGS) -Isrc -c support/testing.c -o support/testing.o
+.PHONY: libut
+libut:
+	@cd support/libut; make
 
 .PHONY:tests
-tests: CFLAGS += -Isrc -Isupport -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -g -O3
-tests: support/testing.o static
+tests: CFLAGS += -Isrc -Isupport/libut/src -Wall -Werror -Wno-parentheses -Wno-pointer-sign -DTHREAD_SAFE -g -O3
+tests: libut static
 	@for i in $(TESTS); do\
 	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS) -lm";\
-	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a support/testing.o $(LDFLAGS) -lm;\
+	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a support/libut/libut.a $(LDFLAGS) -lm;\
 	done;\
 	for i in $(TEST_EXEC_ORDER); do echo; test/$$i; echo; done
 

@@ -1,0 +1,3 @@
+[submodule "support/libut"]
+	path = support/libut
+	url = https://github.com/xant/libut.git

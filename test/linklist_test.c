@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <testing.h>
+#include <ut.h>
 #include <linklist.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <libgen.h>
 
 
 typedef struct {
@@ -36,7 +37,7 @@ int iterator_callback(void *item, uint32_t idx, void *user) {
     char test[100];
     sprintf(test, "test%u", idx+1);
     if (strcmp(test, val) != 0) {
-        t_failure("Value at index %d doesn't match %s  (%s)", idx, test, val);
+        ut_failure("Value at index %d doesn't match %s  (%s)", idx, test, val);
         *failed = 1;
         return 0;
     }
@@ -63,131 +64,131 @@ void *queue_worker(void *user) {
 }
 
 int main(int argc, char **argv) {
-    t_init();
+    ut_init(basename(argv[0]));
 
-    t_testing("Create list");
+    ut_testing("Create list");
     linked_list_t *list = create_list();
-    t_result(list != NULL, "Can't create a new list");
+    ut_result(list != NULL, "Can't create a new list");
 
-    t_testing("push_value() return value on success");
-    t_result(push_value(list, strdup("test1")) == 0, "Can't push value");
+    ut_testing("push_value() return value on success");
+    ut_result(push_value(list, strdup("test1")) == 0, "Can't push value");
 
     push_value(list, strdup("test2"));
     push_value(list, strdup("test3"));
 
-    t_testing("list_count() after push");
-    t_result(list_count(list) == 3, "Length is not 3 (but %d) after 3 pushes", list_count(list));
+    ut_testing("list_count() after push");
+    ut_result(list_count(list) == 3, "Length is not 3 (but %d) after 3 pushes", list_count(list));
 
-    t_testing("pick_value()");
-    t_validate_string(pick_value(list, 1), "test2");
+    ut_testing("pick_value()");
+    ut_validate_string(pick_value(list, 1), "test2");
 
-    t_testing("shift_value()");
+    ut_testing("shift_value()");
     char *v = shift_value(list);
-    t_validate_string(v, "test1"); 
+    ut_validate_string(v, "test1"); 
 
-    t_testing("list_count() after shift");
-    t_result(list_count(list) == 2, "Length is not 2 after shifting one value");
+    ut_testing("list_count() after shift");
+    ut_result(list_count(list) == 2, "Length is not 2 after shifting one value");
 
-    t_testing("unshift_value()");
+    ut_testing("unshift_value()");
     unshift_value(list, v);
-    t_validate_string(pick_value(list, 0), "test1"); 
+    ut_validate_string(pick_value(list, 0), "test1"); 
 
-    t_testing("push_value() accepts NULL");
-    t_result(push_value(list, NULL) == 0, "push_value didn't accept a NULL value");
+    ut_testing("push_value() accepts NULL");
+    ut_result(push_value(list, NULL) == 0, "push_value didn't accept a NULL value");
 
-    t_testing("length updated after pushing NULL");
-    t_result(list_count(list) == 4, "Length is not 4 after pushing the NULL value");
+    ut_testing("length updated after pushing NULL");
+    ut_result(list_count(list) == 4, "Length is not 4 after pushing the NULL value");
 
-    t_testing("pop_value()");
+    ut_testing("pop_value()");
     v = pop_value(list);
-    t_result(list_count(list) == 3, "Length is not 3 after popping a value from the list");
-    t_testing("pop_value() returned last element");
-    t_result(v == NULL, "Value is not NULL");
+    ut_result(list_count(list) == 3, "Length is not 3 after popping a value from the list");
+    ut_testing("pop_value() returned last element");
+    ut_result(v == NULL, "Value is not NULL");
 
-    t_testing("still pop_value() return value");
+    ut_testing("still pop_value() return value");
     v = pop_value(list);
-    t_validate_string(v, "test3");
+    ut_validate_string(v, "test3");
 
     push_value(list, v);
-    t_testing("list_count() consistent");
-    t_result(list_count(list) == 3, "Length is not 3 after pushing back the 'test3' value");
+    ut_testing("list_count() consistent");
+    ut_result(list_count(list) == 3, "Length is not 3 after pushing back the 'test3' value");
 
-    t_testing("pushing 100 values to the list");
+    ut_testing("pushing 100 values to the list");
     int i;
     for (i = 4; i <= 100; i++) {
         char *val = malloc(100);
         sprintf(val, "test%d", i);
         push_value(list, val);
     }
-    t_result(list_count(list) == 100, "Length is not 100"); 
+    ut_result(list_count(list) == 100, "Length is not 100"); 
 
-    t_testing("Order is preserved");
+    ut_testing("Order is preserved");
     int failed = 0;
     for (i = 0; i < 100; i++) {
         char test[100];
         sprintf(test, "test%d", i+1);
         char *val = pick_value(list, i);
         if (strcmp(val, test) != 0) {
-            t_failure("Value at index %d doesn't match %s  (%s)", i, test, val);
+            ut_failure("Value at index %d doesn't match %s  (%s)", i, test, val);
             failed = 1;
             break;
         }
     }
     if (!failed)
-        t_success();
+        ut_success();
 
-    t_testing("Value iterator");
+    ut_testing("Value iterator");
     failed = 0;
     foreach_list_value(list, iterator_callback, &failed);
     if (!failed)
-        t_success();
+        ut_success();
     else
-        t_failure("Order is wrong");
+        ut_failure("Order is wrong");
 
-    t_testing("set_value() overrides previous value (and returns it)");
+    ut_testing("set_value() overrides previous value (and returns it)");
     // Note: we need to copy the string because the value will be released from our free callback
     char *test_value = strdup("blah");
     char *old_value = set_value(list, 5, test_value);
     char *new_value = pick_value(list, 5);
     if (strcmp(old_value, "test6") != 0) {
-        t_failure("Old value is wrong ('%s' should have been 'test6', old_value)", old_value);
+        ut_failure("Old value is wrong ('%s' should have been 'test6', old_value)", old_value);
     } else if (strcmp(new_value, test_value) != 0) {
-        t_failure("New value is wrong ('%s' should have been '%s', old_value)", new_value, test_value);
+        ut_failure("New value is wrong ('%s' should have been '%s', old_value)", new_value, test_value);
     } else {
-        t_success();
+        ut_success();
     }
     free(old_value);
 
-    t_testing("swap_values()");
+    ut_testing("swap_values()");
     swap_values(list, 9, 19);
     char *v1 = pick_value(list, 9);
     char *v2 = pick_value(list, 19);
     if (strcmp(v1, "test20") != 0) {
-        t_failure("Value at position 9 (%s) should have been equal to 'test20'", v1);
+        ut_failure("Value at position 9 (%s) should have been equal to 'test20'", v1);
     } else if (strcmp(v2, "test10") != 0) {
-        t_failure("Value at position 19 (%s) should have been equal to 'test10'", v2);
+        ut_failure("Value at position 19 (%s) should have been equal to 'test10'", v2);
     } else {
-        t_success();
+        ut_success();
     }
 
-    t_testing("move_value()");
+    ut_testing("move_value()");
     old_value = pick_value(list, 45);
     move_value(list, 45, 67);
-    t_validate_string(pick_value(list, 67), old_value);
+    ut_validate_string(pick_value(list, 67), old_value);
 
     set_free_value_callback(list, free_value);
 
-    t_testing("clear_list()");
+    ut_testing("clear_list()");
     clear_list(list);
-    t_result(list_count(list) == 0, "List count is not 0 after clear_list()");
+    ut_result(list_count(list) == 0, "List count is not 0 after clear_list()");
 
-    t_testing("free value callback");
-    t_result(free_count == 100, "Free count is not 100 after clear_list() (%d)", free_count);
+    ut_testing("free value callback");
+    ut_result(free_count == 100, "Free count is not 100 after clear_list() (%d)", free_count);
 
     int num_parallel_threads = 5;
     int num_parallel_items = 10000;
 
-    t_testing("Parallel insert (%d items)", num_parallel_items);
+    ut_testing("Parallel insert (%d items)", num_parallel_items);
 
     parallel_insert_arg args[num_parallel_threads];
     pthread_t threads[num_parallel_threads];
@@ -201,20 +202,20 @@ int main(int argc, char **argv) {
     for (i = 0; i < num_parallel_threads; i++) {
         pthread_join(threads[i], NULL);
     }
-    t_result(list_count(list) == num_parallel_items, "Count is not %d after parallel insert (%d)", num_parallel_items, list_count(list));
+    ut_result(list_count(list) == num_parallel_items, "Count is not %d after parallel insert (%d)", num_parallel_items, list_count(list));
 
-    t_testing("Order after parallel insertion");
+    ut_testing("Order after parallel insertion");
     failed = 0;
     foreach_list_value(list, iterator_callback, &failed);
     if (!failed)
-        t_success();
+        ut_success();
     else
-        t_failure("Order is wrong");
+        ut_failure("Order is wrong");
 
     free_count = 0;
-    t_testing("destroy_list()");
+    ut_testing("destroy_list()");
     destroy_list(list);
-    t_result(free_count == num_parallel_items, "Free count is not %d after destroy_list() (%d)", num_parallel_items, free_count);
+    ut_result(free_count == num_parallel_items, "Free count is not %d after destroy_list() (%d)", num_parallel_items, free_count);
 
     queue_worker_arg arg = {
         .list = create_list(),
@@ -222,7 +223,7 @@ int main(int argc, char **argv) {
     };
 
     int num_queued_items = 10000;
-    t_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
+    ut_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
               num_parallel_threads, num_queued_items);
 
     for (i = 0; i < num_parallel_threads; i++) {
@@ -243,7 +244,7 @@ int main(int argc, char **argv) {
         pthread_join(threads[i], NULL);
     }
 
-    t_result(arg.count == num_queued_items, "Handled items should have been %d (was %d)", num_queued_items, arg.count);
+    ut_result(arg.count == num_queued_items, "Handled items should have been %d (was %d)", num_queued_items, arg.count);
 
     destroy_list(arg.list);
 
@@ -257,13 +258,13 @@ int main(int argc, char **argv) {
         push_tagged_value(tagged_list, tv1);
     }
 
-    t_testing("get_tagged_value()");
+    ut_testing("get_tagged_value()");
     tagged_value_t *test_tagged_value = get_tagged_value(tagged_list, "key10");
-    t_validate_string(test_tagged_value->value, "value10");
+    ut_validate_string(test_tagged_value->value, "value10");
 
     destroy_list(tagged_list);
 
-    t_summary();
+    ut_summary();
 
-    exit(t_failed);
+    exit(ut_failed);
 }

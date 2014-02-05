@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <testing.h>
+#include <ut.h>
 #include <queue.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <libgen.h>
 
 
 typedef struct {
@@ -53,20 +54,20 @@ void *queue_worker(void *user) {
 int main(int argc, char **argv) {
     int i;
 
-    t_init();
+    ut_init(basename(argv[0]));
 
-    t_testing("Create queue");
+    ut_testing("Create queue");
     queue_t *q = queue_create();
-    t_result(q != NULL, "Can't create a new queue");
+    ut_result(q != NULL, "Can't create a new queue");
 
-    t_testing("queue_push_right() return value on success");
-    t_result(queue_push_right(q, strdup("test1")) == 0, "Can't push value");
+    ut_testing("queue_push_right() return value on success");
+    ut_result(queue_push_right(q, strdup("test1")) == 0, "Can't push value");
 
     queue_push_right(q, strdup("test2"));
     queue_push_right(q, strdup("test3"));
 
-    t_testing("queue_count() after push");
-    t_result(queue_count(q) == 3, "Length is not 3 (but %d) after 3 pushes", queue_count(q));
+    ut_testing("queue_count() after push");
+    ut_result(queue_count(q) == 3, "Length is not 3 (but %d) after 3 pushes", queue_count(q));
 
     queue_set_free_value_callback(q, free_value);
     queue_clear(q);
@@ -88,24 +89,24 @@ int main(int argc, char **argv) {
     for (i = 0; i < num_parallel_threads; i++) {
         pthread_join(threads[i], NULL);
     }
-    t_testing("Parallel insert (%d items)", num_parallel_items);
-    t_result(queue_count(q) == num_parallel_items, "Count is not %d after parallel insert (%d)", num_parallel_items, queue_count(q));
+    ut_testing("Parallel insert (%d items)", num_parallel_items);
+    ut_result(queue_count(q) == num_parallel_items, "Count is not %d after parallel insert (%d)", num_parallel_items, queue_count(q));
 
     /*
-    t_testing("Order after parallel insertion");
+    ut_testing("Order after parallel insertion");
     failed = 0;
     foreach_list_value(list, iterator_callback, &failed);
     if (!failed)
-        t_success();
+        ut_success();
     else
-        t_failure("Order is wrong");
+        ut_failure("Order is wrong");
     */
 
     queue_set_free_value_callback(q, free_value);
     free_count = 0;
-    t_testing("destroy_list()");
+    ut_testing("destroy_list()");
     queue_destroy(q);
-    t_result(free_count == num_parallel_items, "Free count is not %d after destroy_list() (%d)", num_parallel_items, free_count);
+    ut_result(free_count == num_parallel_items, "Free count is not %d after destroy_list() (%d)", num_parallel_items, free_count);
 
     queue_worker_arg arg = {
         .queue = queue_create(),
@@ -113,7 +114,7 @@ int main(int argc, char **argv) {
     };
 
     int num_queued_items = 10000;
-    t_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
+    ut_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
               num_parallel_threads, num_queued_items);
 
     for (i = 0; i < num_parallel_threads; i++) {
@@ -134,11 +135,11 @@ int main(int argc, char **argv) {
         pthread_join(threads[i], NULL);
     }
 
-    t_result(arg.count == num_queued_items, "Handled items should have been %d (was %d)", num_queued_items, arg.count);
+    ut_result(arg.count == num_queued_items, "Handled items should have been %d (was %d)", num_queued_items, arg.count);
 
     queue_destroy(arg.queue);
 
-    t_summary();
+    ut_summary();
 
-    exit(t_failed);
+    exit(ut_failed);
 }

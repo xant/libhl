@@ -1,10 +1,11 @@
 #include <rqueue.h>
-#include <testing.h>
+#include <ut.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <libgen.h>
 
 static int reads_count = 0;
 
@@ -85,16 +86,16 @@ static void wait_for_readers(int num_readers, pthread_t *th) {
 int main(int argc, char **argv) {
 
     do_free = 1;
-    t_init();
+    ut_init(basename(argv[0]));
 
     int rqueue_size = 100000;
 
-    t_testing("Create a new ringbuffer (size: %d)", rqueue_size);
+    ut_testing("Create a new ringbuffer (size: %d)", rqueue_size);
     rqueue_t *rb = rqueue_create(rqueue_size, RQUEUE_MODE_BLOCKING);
-    t_result(rb != NULL, "Can't create a new ringbuffer");
+    ut_result(rb != NULL, "Can't create a new ringbuffer");
 
 
-    t_testing("Multi-threaded producer/consumer (%d items, parallel reads/writes)", rqueue_size);
+    ut_testing("Multi-threaded producer/consumer (%d items, parallel reads/writes)", rqueue_size);
 
     int num_readers = 4;
     pthread_t reader_th[num_readers];
@@ -107,7 +108,7 @@ int main(int argc, char **argv) {
     wait_for_writers(num_writers, writer_th);
     wait_for_readers(num_readers, reader_th);
 
-    t_result(rqueue_write_count(rb) == reads_count && reads_count == rqueue_size, "Number of reads and/or writes doesn't match the ringbuffer size "
+    ut_result(rqueue_write_count(rb) == reads_count && reads_count == rqueue_size, "Number of reads and/or writes doesn't match the ringbuffer size "
              "reads: %d, writes: %d, size: %d", reads_count, rqueue_write_count(rb), rqueue_size);
 
     if (reads_count < rqueue_size) {
@@ -116,7 +117,7 @@ int main(int argc, char **argv) {
         free(stats);
     }
 
-    t_testing("Multi-threaded producer/consumer (%d items, buffer prefilled before starting readers)", rqueue_size);
+    ut_testing("Multi-threaded producer/consumer (%d items, buffer prefilled before starting readers)", rqueue_size);
 
     reads_count = 0;
 
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
     start_readers(num_readers, reader_th, rb);
     wait_for_readers(num_readers, reader_th);
 
-    t_result(rqueue_write_count(rb) / 2 == reads_count && reads_count == rqueue_size, "Number of reads and/or writes doesn't match the ringbuffer size "
+    ut_result(rqueue_write_count(rb) / 2 == reads_count && reads_count == rqueue_size, "Number of reads and/or writes doesn't match the ringbuffer size "
              "reads: %d, writes: %d, size: %d", reads_count, rqueue_write_count(rb), rqueue_size);
 
     if (reads_count < rqueue_size) {
@@ -135,7 +136,7 @@ int main(int argc, char **argv) {
         free(stats);
     }
 
-    t_testing("rqueue_set_free_value_callback()");
+    ut_testing("rqueue_set_free_value_callback()");
 
     do_free = 0;
 
@@ -144,10 +145,10 @@ int main(int argc, char **argv) {
     filler(rb);
     rqueue_destroy(rb);
 
-    t_result(free_count == rqueue_size/num_writers, "free_count (%d) doesn't match %d", free_count, rqueue_size/num_writers);
+    ut_result(free_count == rqueue_size/num_writers, "free_count (%d) doesn't match %d", free_count, rqueue_size/num_writers);
 
 
-    t_testing("Write fails if ringbuffer is full (RQUEUE_MODE_BLOCKING)");
+    ut_testing("Write fails if ringbuffer is full (RQUEUE_MODE_BLOCKING)");
 
     do_free = 0;
 
@@ -155,20 +156,20 @@ int main(int argc, char **argv) {
     rqueue_write(rb, "1");
     rqueue_write(rb, "2");
 
-    t_result(rqueue_write(rb, "must_fail") == -2, "Write didn't fail with return-code -2");
+    ut_result(rqueue_write(rb, "must_fail") == -2, "Write didn't fail with return-code -2");
 
-    t_testing("Write overwrites if ringbuffer is full (RQUEUE_MODE_OVERWRITE)");
+    ut_testing("Write overwrites if ringbuffer is full (RQUEUE_MODE_OVERWRITE)");
 
     rqueue_set_mode(rb, RQUEUE_MODE_OVERWRITE);
     
     int rc = rqueue_write(rb, "3");
-    t_result(rc == 0, "Write failed with return-code %d", rc);
-    t_testing("First value is the overwritten one");
-    t_validate_string(rqueue_read(rb), "3");
+    ut_result(rc == 0, "Write failed with return-code %d", rc);
+    ut_testing("First value is the overwritten one");
+    ut_validate_string(rqueue_read(rb), "3");
 
     rqueue_destroy(rb);
 
-    t_summary();
+    ut_summary();
 
-    exit(t_failed);
+    exit(ut_failed);
 }
