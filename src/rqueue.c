@@ -13,8 +13,8 @@
 
 #define RQUEUE_MAX_RETRIES 500
 
-#define ATOMIC_INCREMENT(__i, __cnt) __sync_fetch_and_add(&__i, __cnt);
-#define ATOMIC_DECREMENT(__i, __cnt) __sync_fetch_and_sub(&__i, __cnt);
+#define ATOMIC_INCREMENT(__i, __cnt) (void)__sync_fetch_and_add(&__i, __cnt);
+#define ATOMIC_DECREMENT(__i, __cnt) (void)__sync_fetch_and_sub(&__i, __cnt);
 #define ATOMIC_READ(__p) __sync_fetch_and_add(&__p, 0)
 #define ATOMIC_CMPXCHG(__p, __v1, __v2) __sync_bool_compare_and_swap(&__p, __v1, __v2)
 #define ATOMIC_CMPXCHG_RETURN(__p, __v1, __v2) __sync_val_compare_and_swap(&__p, __v1, __v2)
