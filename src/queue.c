@@ -8,6 +8,11 @@
 #include "queue.h"
 #include "refcnt.h"
 
+#define ATOMIC_READ REFCNT_ATOMIC_READ
+#define ATOMIC_INCREMENT REFCNT_ATOMIC_INCREMENT
+#define ATOMIC_DECREMENT REFCNT_ATOMIC_DECREMENT
+#define ATOMIC_CMPXCHG REFCNT_ATOMIC_CMPXCHG
+
 typedef struct __queue_entry {
     refcnt_t *refcnt;
     refcnt_node_t *node;

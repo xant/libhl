@@ -50,7 +50,7 @@ static void gc(refcnt_t *refcnt, int force) {
             break;
 
         if (refcnt->free_node_ptr_cb) {
-            refcnt->free_node_ptr_cb(ATOMIC_READ(ref->ptr));
+            refcnt->free_node_ptr_cb(REFCNT_ATOMIC_READ(ref->ptr));
         }
         free(ref);
     } while (rqueue_write_count(refcnt->free_list) - rqueue_read_count(refcnt->free_list) > limit);
@@ -64,7 +64,7 @@ void refcnt_destroy(refcnt_t *refcnt) {
 
 refcnt_node_t *deref_link_internal(refcnt_t *refcnt, refcnt_node_t **link, int skip_deleted) {
     while (1) {
-        refcnt_node_t *node = ATOMIC_READ(*link);
+        refcnt_node_t *node = REFCNT_ATOMIC_READ(*link);
         if (node == REFCNT_MARK_ON(node)) {
             if (skip_deleted)
                 return NULL;
@@ -72,7 +72,7 @@ refcnt_node_t *deref_link_internal(refcnt_t *refcnt, refcnt_node_t **link, int s
                 node = REFCNT_MARK_OFF(node);
         }
         if (node) {
-            ATOMIC_INCREMENT(node->count, 1);
+            REFCNT_ATOMIC_INCREMENT(node->count, 1);
             return node;
         }
     }
@@ -92,15 +92,15 @@ void release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
     if (!refcnt)
         return;
 
-    if (ATOMIC_READ(ref->count) > 0)
-        ATOMIC_DECREMENT(ref->count, 1);
-    if (ATOMIC_CMPXCHG(ref->delete, 0, 1)) {
-        if (ATOMIC_READ(ref->count) == 0) {
+    if (REFCNT_ATOMIC_READ(ref->count) > 0)
+        REFCNT_ATOMIC_DECREMENT(ref->count, 1);
+    if (REFCNT_ATOMIC_CMPXCHG(ref->delete, 0, 1)) {
+        if (REFCNT_ATOMIC_READ(ref->count) == 0) {
             if (refcnt->terminate_node_cb)
                 refcnt->terminate_node_cb(ref, 0);
             rqueue_write(refcnt->free_list, ref);
         } else {
-            ATOMIC_CMPXCHG(ref->delete, 1, 0);
+            REFCNT_ATOMIC_CMPXCHG(ref->delete, 1, 0);
         }
     }
     if (rqueue_write_count(refcnt->free_list) - rqueue_read_count(refcnt->free_list) > refcnt->gc_threshold)
@@ -112,10 +112,10 @@ int compare_and_swap_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *
 
     if (__sync_bool_compare_and_swap(link, old, ref)) {
         if (ref != NULL) {
-            ATOMIC_INCREMENT(ref->count, 1);
+            REFCNT_ATOMIC_INCREMENT(ref->count, 1);
         }
         if (old != NULL) {
-            ATOMIC_DECREMENT(old->count, 1);
+            REFCNT_ATOMIC_DECREMENT(old->count, 1);
         }
         return 1;
     }
@@ -126,7 +126,7 @@ void store_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *ref) {
     if (refcnt) { } // suppress warnings
 
     refcnt_node_t *old = REFCNT_MARK_OFF(*link);
-    ATOMIC_CMPXCHG(*link, old, ref);
+    REFCNT_ATOMIC_CMPXCHG(*link, old, ref);
     if (ref != NULL) {
         retain_ref(refcnt, ref);
     }
@@ -143,13 +143,13 @@ void retain_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
 refcnt_node_t *new_node(refcnt_t *refcnt, void *ptr) {
     refcnt_node_t *node = calloc(1, sizeof(refcnt_node_t));
     node->ptr = ptr;
-    ATOMIC_INCREMENT(node->count, 1);
+    REFCNT_ATOMIC_INCREMENT(node->count, 1);
     return node;
 }
 
 void *get_node_ptr(refcnt_node_t *node) {
     if (node)
-        return ATOMIC_READ(node->ptr);
+        return REFCNT_ATOMIC_READ(node->ptr);
     return NULL;
 }
 
