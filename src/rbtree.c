@@ -29,12 +29,12 @@ typedef struct __rbtree_node_s {
 
 struct __rbtree_s {
     rbtree_node_t *root;
-    rbtree_cmp_key_callback cmp_key_cb;
+    rbtree_cmp_keys_callback cmp_key_cb;
     rbtree_free_value_callback free_value_cb;
 };
 
 rbtree_t *
-rbtree_create(rbtree_cmp_key_callback cmp_key_cb,
+rbtree_create(rbtree_cmp_keys_callback cmp_key_cb,
               rbtree_free_value_callback free_value_cb)
 {
     rbtree_t *rbt = calloc(1, sizeof(rbtree_t));

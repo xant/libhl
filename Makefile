@@ -26,7 +26,7 @@ endif
 
 #CC = gcc
 TARGETS = $(patsubst %.c, %.o, $(wildcard src/*.c))
-TESTS = $(patsubst %.c, %, $(wildcard test/*.c))
+TESTS = $(patsubst %.c, %, $(wildcard test/*_test.c))
 
 TEST_EXEC_ORDER = fbuf_test rbuf_test linklist_test hashtable_test rqueue_test queue_test rbtree_test
 
