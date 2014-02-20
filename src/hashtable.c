@@ -292,16 +292,11 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
                 }
             }
         }
+        SPIN_LOCK(&list->lock);
         SPIN_UNLOCK(&table->lock);
+    } else {
+        SPIN_LOCK(&list->lock);
     }
-
-    // we want to lock the list now to avoid it being destroyed
-    // by a concurrent ht_delete() call. 
-    // Note that inserting/removing values from the list is thread-safe. 
-    // The problem would exist if the list is destroyed while we are 
-    // still accessing it so we need to lock it for this purpose
-
-    SPIN_LOCK(&list->lock);
 
     // we can anyway unlock the table to allow operations which 
     // don't involve the actual linklist
