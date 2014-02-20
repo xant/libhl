@@ -32,7 +32,7 @@ main(int argc, char **argv)
     ut_init(basename(argv[0]));
 
     ut_testing("rbtree_create(free)");
-    rbtree_t *rbt = rbtree_create(free);
+    rbtree_t *rbt = rbtree_create(NULL, free);
     if (rbt)
         ut_success();
     else
@@ -53,4 +53,7 @@ main(int argc, char **argv)
     ut_testing("root is '7'");
     rbtree_walk(rbt, get_root, &v);
     ut_validate_int(*((int *)v), 7);
+    ut_summary();
+
+    return ut_failed;
 }
