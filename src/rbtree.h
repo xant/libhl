@@ -16,12 +16,12 @@ typedef void (*rbtree_free_value_callback)(void *v);
  * @brief Callback that, if provided, will be used to compare node keys.
  *        If not defined memcmp() will be used in the following way :
  *
- *        @note If integers bigger than 8 bits are being used as keys
- *              an integer comparator should be used (either a custom comparator or
- *              one of the rbtree_cmp_keys_int16() rbtree_cmp_keys_int32() rbtree_cmp_keys_int64()
- *              should be used) since if on little endian architecture memcmp() is not going to do
- *              the right thing but values need to be compared as integers and not comparing the
- *              memory directly)
+ * @note If integers bigger than 8 bits are being used as keys
+ *       an integer comparator should be used (either a custom comparator or
+ *       one of the rbtree_cmp_keys_int16() rbtree_cmp_keys_int32() rbtree_cmp_keys_int64()
+ *       should be used) since if on little endian architecture memcmp() is not going to do
+ *       the right thing but values need to be compared as integers and not comparing the
+ *       memory directly)
  */
 typedef int (*rbtree_cmp_keys_callback)(void *k1, size_t k1size, void *k2, size_t k2size);
 
