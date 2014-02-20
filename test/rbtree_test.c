@@ -5,8 +5,17 @@
 #include <ut.h>
 #include "rbtree.h"
 
+/*
 static int
 print_value(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+{
+    printf("%d\n", *((int *)value));
+    return 0;
+}
+*/
+
+static int
+sum_value(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
 {
     int *vsum = (int *)priv;
     *vsum += *((int *)value);
@@ -47,12 +56,33 @@ main(int argc, char **argv)
         sum += i;
     }
     int vsum = 0;
-    rbtree_walk(rbt, print_value, &vsum);
+    rbtree_walk(rbt, sum_value, &vsum);
     ut_validate_int(vsum, sum);
 
     ut_testing("root is '7'");
     rbtree_walk(rbt, get_root, &v);
     ut_validate_int(*((int *)v), 7);
+    
+    /*
+    rbtree_walk(rbt, print_value, NULL);
+    printf("\n---------\n\n");
+    */
+
+    ut_testing("Removing '7'");
+    i = 7;
+    rbtree_remove(rbt, &i, sizeof(int));
+    vsum = 0;
+    rbtree_walk(rbt, sum_value, &vsum);
+    ut_validate_int(vsum, sum - 7);
+
+    ut_testing("root is '6'");
+    rbtree_walk(rbt, get_root, &v);
+    ut_validate_int(*((int *)v), 6);
+
+    /*
+    rbtree_walk(rbt, print_value, NULL);
+    */
+    
     ut_summary();
 
     return ut_failed;
