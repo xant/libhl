@@ -7,6 +7,9 @@
 #define IS_BLACK(__n) (!(__n) || (__n)->color == RBTREE_COLOR_BLACK)
 #define IS_RED(__n) ((__n) && (__n)->color == RBTREE_COLOR_RED)
 
+#define PAINT_BLACK(__n) { if (__n) (__n)->color = RBTREE_COLOR_BLACK; }
+#define PAINT_RED(__n) { if (__n) (__n)->color = RBTREE_COLOR_RED; }
+
 typedef enum {
     RBTREE_COLOR_RED = 0,
     RBTREE_COLOR_BLACK,
@@ -240,7 +243,7 @@ rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
     node->value = v;
     node->vsize = vsize;
     if (!rbt->root) {
-        node->color = RBTREE_COLOR_BLACK;
+        PAINT_BLACK(node);
         rbt->root = node;
     } else {
         int rc = _rbtree_add_internal(rbt, rbt->root, node);
@@ -248,15 +251,15 @@ rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
             return rc;
         
         if (!node->parent) { // case 1
-            node->color = RBTREE_COLOR_BLACK;
+            PAINT_BLACK(node);
             rbt->root = node;
         } else if (IS_BLACK(node->parent)) {
             return 0;
         } else {
             rbtree_node_t *uncle = rbtree_uncle(node);
             if (IS_RED(uncle) && IS_RED(node->parent)) {
-                node->parent->color = RBTREE_COLOR_BLACK;
-                uncle->color = RBTREE_COLOR_BLACK;
+                PAINT_BLACK(node->parent);
+                PAINT_BLACK(uncle);
                 rbtree_node_t *grandparent = rbtree_grandparent(node);
                 if (grandparent) {
                     rbtree_add(rbt, grandparent->key, grandparent->ksize, grandparent->value, grandparent->vsize);
@@ -271,12 +274,14 @@ rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
                         rbtree_rotate_right(rbt, node->parent);
                         node = node->right;
                     }
-                    node->parent->color = RBTREE_COLOR_BLACK;
-                    grandparent->color = RBTREE_COLOR_RED;
-                    if (node == node->parent->left)
-                        rbtree_rotate_right(rbt, grandparent);
-                    else
-                        rbtree_rotate_left(rbt, grandparent);
+                    if (node->parent) {
+                        PAINT_BLACK(node->parent);
+                        PAINT_RED(grandparent);
+                        if (node == node->parent->left)
+                            rbtree_rotate_right(rbt, grandparent);
+                        else
+                            rbtree_rotate_left(rbt, grandparent);
+                    }
                 }
             }
         }
@@ -372,8 +377,8 @@ rbtree_repaint_onremove(rbtree_t *rbt, rbtree_node_t *node)
         // delete case 2
         rbtree_node_t *sibling = rbtree_sibling(node);
         if (IS_RED(sibling)) {
-            node->parent->color = RBTREE_COLOR_RED;
-            sibling->color = RBTREE_COLOR_BLACK;
+            PAINT_RED(node->parent);
+            PAINT_BLACK(sibling);
             if (node == node->parent->left) {
                 rbtree_rotate_left(rbt, node->parent);
             } else {
@@ -388,7 +393,7 @@ rbtree_repaint_onremove(rbtree_t *rbt, rbtree_node_t *node)
             IS_BLACK(sibling->left) &&
             IS_BLACK(sibling->right))
         {
-            sibling->color = RBTREE_COLOR_RED;
+            PAINT_RED(sibling);
             rbtree_repaint_onremove(rbt, node->parent);
         } else {
             // delete case 4
@@ -398,10 +403,8 @@ rbtree_repaint_onremove(rbtree_t *rbt, rbtree_node_t *node)
                 IS_BLACK(sibling->left) &&
                 IS_BLACK(sibling->right))
             {
-                if (sibling)
-                    sibling->color = RBTREE_COLOR_RED;
-                if (node->parent)
-                    node->parent->color = RBTREE_COLOR_BLACK;
+                PAINT_RED(sibling);
+                PAINT_BLACK(node->parent);
             } else {
                 // delete case 5
                 if (IS_BLACK(sibling)) {
@@ -410,30 +413,31 @@ rbtree_repaint_onremove(rbtree_t *rbt, rbtree_node_t *node)
                         IS_BLACK(sibling->right) &&
                         IS_RED(sibling->left))
                     {
-                        sibling->color = RBTREE_COLOR_RED;
-                        if (sibling->left)
-                            sibling->left->color = RBTREE_COLOR_BLACK;
+                        PAINT_RED(sibling);
+                        PAINT_BLACK(sibling->left);
                         rbtree_rotate_right(rbt, sibling);
                     } else if (node == node->parent->right &&
                                sibling &&
                                IS_BLACK(sibling->left) &&
                                IS_RED(sibling->right))
                     {
-                        sibling->color = RBTREE_COLOR_RED;
-                        if (sibling->right)
-                            sibling->right->color = RBTREE_COLOR_BLACK;
+                        PAINT_RED(sibling);
+                        PAINT_BLACK(sibling->right);
                         rbtree_rotate_left(rbt, sibling);
 
                     }
                 }
                 // delete case 6
-                sibling->color = node->parent->color;
-                node->parent->color = RBTREE_COLOR_BLACK;
+                if (sibling)
+                    sibling->color = node->parent->color;
+                PAINT_BLACK(node->parent);
                 if (node == node->parent->left) {
-                    sibling->right->color = RBTREE_COLOR_BLACK;
+                    if (sibling)
+                        PAINT_BLACK(sibling->right);
                     rbtree_rotate_left(rbt, node->parent);
                 } else {
-                    sibling->left->color = RBTREE_COLOR_BLACK;
+                    if (sibling)
+                        PAINT_BLACK(sibling->left);
                     rbtree_rotate_right(rbt, node->parent);
                 }
             }
@@ -499,7 +503,7 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize)
             }
             if (IS_BLACK(node)) {
                 if (IS_RED(child)) {
-                    child->color = RBTREE_COLOR_BLACK;
+                    PAINT_BLACK(child);
                 } else {
                     rbtree_repaint_onremove(rbt, child);
                 }
