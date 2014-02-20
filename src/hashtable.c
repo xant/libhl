@@ -286,9 +286,6 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
         SPIN_LOCK(list->lock);
     }
 
-    // we can anyway unlock the table to allow operations which 
-    // don't involve the actual linklist
-
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
         if (/*ht_item->hash == arg->item.hash && */
