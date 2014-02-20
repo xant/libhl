@@ -24,12 +24,20 @@
 #include "bsd_queue.h"
 
 #ifdef THREAD_SAFE
+#define MUTEX_INIT(__mutex) pthread_mutex_init(&(__mutex), 0)
+#define MUTEX_DESTROY(__mutex) pthread_mutex_destroy(&(__mutex))
+#define MUTEX_LOCK(__mutex) pthread_mutex_lock(&(__mutex))
+#define MUTEX_UNLOCK(__mutex) pthread_mutex_unlock(&(__mutex))
 #ifdef __MACH__
-#define SPIN_LOCK(__mutex) OSSpinLockLock(__mutex)
-#define SPIN_UNLOCK(__mutex) OSSpinLockUnlock(__mutex)
+#define SPIN_INIT(__mutex) ((__mutex) = 0)
+#define SPIN_DESTROY(__mutex)
+#define SPIN_LOCK(__mutex) OSSpinLockLock(&(__mutex))
+#define SPIN_UNLOCK(__mutex) OSSpinLockUnlock(&(__mutex))
 #else
-#define SPIN_LOCK(__mutex) pthread_spin_lock(__mutex)
-#define SPIN_UNLOCK(__mutex) pthread_spin_unlock(__mutex)
+#define SPIN_INIT(__mutex) pthread_spin_init(&(__mutex), 0)
+#define SPIN_DESTROY(__mutex) pthread_spin_destroy(&(__mutex))
+#define SPIN_LOCK(__mutex) pthread_spin_lock(&(__mutex))
+#define SPIN_UNLOCK(__mutex) pthread_spin_unlock(&(__mutex))
 #endif
 #else
 #define SPIN_LOCK(__mutex)
@@ -77,11 +85,7 @@ struct __hashtable {
     int growing;
     ht_items_list_t **items;
 #ifdef THREAD_SAFE
-#ifdef __MACH__
-    OSSpinLock lock;
-#else
-    pthread_spinlock_t lock;
-#endif
+    pthread_mutex_t lock;
 #endif
     ht_free_item_callback_t free_item_cb;
 };
@@ -114,11 +118,7 @@ void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_fr
 
     if (table->items) {
 #ifdef THREAD_SAFE
-#ifdef __MACH__
-        table->lock = 0;
-#else
-        pthread_spin_init(&table->lock, 0);
-#endif
+        MUTEX_INIT(table->lock);
 #endif
     }
     ht_set_free_item_callback(table, cb);
@@ -134,7 +134,7 @@ void ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
 
 void ht_clear(hashtable_t *table) {
     uint32_t i;
-    SPIN_LOCK(&table->lock);
+    MUTEX_LOCK(table->lock);
     for (i = 0; i < table->size; i++)
     {
         ht_item_t *item = NULL;
@@ -156,22 +156,18 @@ void ht_clear(hashtable_t *table) {
 
         __sync_bool_compare_and_swap(&table->items[i], list, NULL);
 #ifdef THREAD_SAFE
-#ifndef __MACH__
-        pthread_spin_destroy(&list->lock);
-#endif
+        SPIN_DESTROY(list->lock);
 #endif
         free(list);
     }
-    SPIN_UNLOCK(&table->lock);
+    MUTEX_UNLOCK(table->lock);
 }
 
 void ht_destroy(hashtable_t *table) {
     ht_clear(table);
     free(table->items);
 #ifdef THREAD_SAFE
-#ifndef __MACH__
-    pthread_spin_destroy(&table->lock);
-#endif
+    MUTEX_DESTROY(table->lock);
 #endif
     free(table);
 }
@@ -179,11 +175,11 @@ void ht_destroy(hashtable_t *table) {
 void ht_grow_table(hashtable_t *table) {
     // if we need to extend the table, better locking it globally
     // preventing any operation on the actual one
-    SPIN_LOCK(&table->lock);
+    MUTEX_LOCK(table->lock);
     ATOMIC_INCREMENT(table->growing);
 
     if (table->max_size && ATOMIC_READ(table->size) >= table->max_size) {
-        SPIN_UNLOCK(&table->lock);
+        MUTEX_UNLOCK(table->lock);
         ATOMIC_DECREMENT(table->growing);
         return;
     }
@@ -216,7 +212,7 @@ void ht_grow_table(hashtable_t *table) {
         if (!list)
             continue;
 
-        SPIN_LOCK(&list->lock);
+        SPIN_LOCK(list->lock);
         while((item = TAILQ_FIRST(&list->head))) {
             TAILQ_REMOVE(&list->head, item, next);
             ht_items_list_t *new_list = items_list[item->hash%newSize];
@@ -224,20 +220,14 @@ void ht_grow_table(hashtable_t *table) {
                 new_list = malloc(sizeof(ht_items_list_t));
                 TAILQ_INIT(&new_list->head);
 #ifdef THREAD_SAFE
-#ifdef __MACH__
-                new_list->lock = 0;
-#else
-                pthread_spin_init(&new_list->lock, 0);
-#endif
+                SPIN_INIT(new_list->lock);
 #endif
                 items_list[item->hash%newSize] = new_list;
             }
             TAILQ_INSERT_TAIL(&new_list->head, item, next);
         }
-        SPIN_UNLOCK(&list->lock);
-#ifndef __MACH__
-        pthread_spin_destroy(&list->lock);
-#endif
+        SPIN_UNLOCK(list->lock);
+        SPIN_DESTROY(list->lock);
         free(list);
     }
     ht_items_list_t **old_items = ATOMIC_READ(table->items);
@@ -249,7 +239,7 @@ void ht_grow_table(hashtable_t *table) {
         old_size = ATOMIC_READ(table->size);
 
     ATOMIC_DECREMENT(table->growing);
-    SPIN_UNLOCK(&table->lock);
+    MUTEX_UNLOCK(table->lock);
     //fprintf(stderr, "Done growing table\n");
 }
 
@@ -268,17 +258,13 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
     ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
 
     if (ATOMIC_READ(table->growing) || !list) {
-        SPIN_LOCK(&table->lock);
+        MUTEX_LOCK(table->lock);
         list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
         if (!list) {
             list = malloc(sizeof(ht_items_list_t));
 
 #ifdef THREAD_SAFE
-#ifdef __MACH__
-            list->lock = 0;
-#else
-            pthread_spin_init(&list->lock, 0);
-#endif
+            SPIN_INIT(list->lock);
 #endif
             TAILQ_INIT(&list->head);
 
@@ -286,9 +272,7 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
                 ht_items_list_t *l = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
                 if (l) {
 #ifdef THREAD_SAFE
-#ifndef __MACH__
-                    pthread_spin_destroy(&list->lock);
-#endif
+                    SPIN_DESTROY(list->lock);
 #endif
                     free(list);
                     list = l;
@@ -296,10 +280,10 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
                 }
             }
         }
-        SPIN_LOCK(&list->lock);
-        SPIN_UNLOCK(&table->lock);
+        SPIN_LOCK(list->lock);
+        MUTEX_UNLOCK(table->lock);
     } else {
-        SPIN_LOCK(&list->lock);
+        SPIN_LOCK(list->lock);
     }
 
     // we can anyway unlock the table to allow operations which 
@@ -329,7 +313,7 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
         ht_item_t *item = (ht_item_t *)calloc(1, sizeof(ht_item_t));
         if (!item) {
             //fprintf(stderr, "Can't create new item: %s\n", strerror(errno));
-            SPIN_UNLOCK(&list->lock);
+            SPIN_UNLOCK(list->lock);
             return -1;
         }
         item->hash = hash;
@@ -337,7 +321,7 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
         item->key = malloc(klen);
         if (!item->key) {
             //fprintf(stderr, "Can't copy key: %s\n", strerror(errno));
-            SPIN_UNLOCK(&list->lock);
+            SPIN_UNLOCK(list->lock);
             free(item);
             return -1;
         }
@@ -359,7 +343,7 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
         ATOMIC_INCREMENT(table->count);
     }
 
-    SPIN_UNLOCK(&list->lock);
+    SPIN_UNLOCK(list->lock);
 
     if (ht_count(table) > ATOMIC_READ(table->size) + HT_GROW_THRESHOLD && 
         (!table->max_size || ATOMIC_READ(table->size) < table->max_size))
@@ -406,9 +390,7 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
         return -1;
 
     // TODO : maybe this lock is not necessary
-    SPIN_LOCK(&list->lock);
-
-
+    SPIN_LOCK(list->lock);
 
     void *prev = NULL;
     size_t plen = 0;
@@ -428,7 +410,7 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
         }
     }
 
-    SPIN_UNLOCK(&list->lock);
+    SPIN_UNLOCK(list->lock);
 
     if (prev) {
         if (prev_data)
@@ -451,11 +433,10 @@ int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size
 
     ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
 
-    if (!list) {
+    if (!list)
         return ret;
-    }
 
-    SPIN_LOCK(&list->lock);
+    SPIN_LOCK(list->lock);
 
     void *prev = NULL;
     size_t plen = 0;
@@ -478,7 +459,7 @@ int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size
         }
     }
 
-    SPIN_UNLOCK(&list->lock);
+    SPIN_UNLOCK(list->lock);
 
     if (prev) {
         if (prev_data)
@@ -505,7 +486,7 @@ int ht_exists(hashtable_t *table, void *key, size_t klen)
     if (!list)
         return 0;
 
-    SPIN_LOCK(&list->lock);
+    SPIN_LOCK(list->lock);
 
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
@@ -514,12 +495,12 @@ int ht_exists(hashtable_t *table, void *key, size_t klen)
             item->klen == klen &&
             memcmp(item->key, key, klen) == 0)
         {
-            SPIN_UNLOCK(&list->lock);
+            SPIN_UNLOCK(list->lock);
             return 1;
         }
     }
 
-    SPIN_UNLOCK(&list->lock);
+    SPIN_UNLOCK(list->lock);
     return 0;
 }
 
@@ -534,7 +515,7 @@ void *_ht_get_internal(hashtable_t *table, void *key, size_t klen,
     if (!list)
         return NULL;
 
-    SPIN_LOCK(&list->lock);
+    SPIN_LOCK(list->lock);
 
     void *data = NULL;
 
@@ -562,7 +543,7 @@ void *_ht_get_internal(hashtable_t *table, void *key, size_t klen,
         }
     }
 
-    SPIN_UNLOCK(&list->lock);
+    SPIN_UNLOCK(list->lock);
 
     return data;
 }
@@ -599,7 +580,7 @@ linked_list_t *ht_get_all_keys(hashtable_t *table) {
             continue;
         }
 
-        SPIN_LOCK(&list->lock);
+        SPIN_LOCK(list->lock);
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
@@ -611,7 +592,7 @@ linked_list_t *ht_get_all_keys(hashtable_t *table) {
             push_value(output, key);
         }
 
-        SPIN_UNLOCK(&list->lock);
+        SPIN_UNLOCK(list->lock);
     }
     return output;
 }
@@ -628,7 +609,7 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
             continue;
         }
 
-        SPIN_LOCK(&list->lock);
+        SPIN_LOCK(list->lock);
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
@@ -638,7 +619,7 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
             push_value(output, v);
         }
 
-        SPIN_UNLOCK(&list->lock);
+        SPIN_UNLOCK(list->lock);
     }
     return output;
 }
@@ -656,7 +637,7 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
         // Note: once we acquired the linklist, we don't need to lock the whole
         // table anymore. We need to lock the list though to prevent it from
         // being destroyed while we are still accessing it (or iterating over)
-        SPIN_LOCK(&list->lock);
+        SPIN_LOCK(list->lock);
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
@@ -665,7 +646,7 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
                 break;
         }
 
-        SPIN_UNLOCK(&list->lock);
+        SPIN_UNLOCK(list->lock);
     }
 }
 
@@ -682,7 +663,7 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
         // Note: once we acquired the linklist, we don't need to lock the whole
         // table anymore. We need to lock the list though to prevent it from
         // being destroyed while we are still accessing it (or iterating over)
-        SPIN_LOCK(&list->lock);
+        SPIN_LOCK(list->lock);
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
@@ -691,7 +672,7 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
                 break;
         }
 
-        SPIN_UNLOCK(&list->lock);
+        SPIN_UNLOCK(list->lock);
     }
 }
 
@@ -708,7 +689,7 @@ void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *u
         // Note: once we acquired the linklist, we don't need to lock the whole
         // table anymore. We need to lock the list though to prevent it from
         // being destroyed while we are still accessing it (or iterating over)
-        SPIN_LOCK(&list->lock);
+        SPIN_LOCK(list->lock);
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
@@ -717,7 +698,7 @@ void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *u
                 break;
         }
 
-        SPIN_UNLOCK(&list->lock);
+        SPIN_UNLOCK(list->lock);
     }
 }
 
