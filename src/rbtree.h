@@ -20,4 +20,8 @@ typedef int (*rbtree_walk_callback)(rbtree_t *rbt, void *key, size_t ksize, void
 
 int rbtree_walk(rbtree_t *rbt, rbtree_walk_callback cb, void *priv);
 
+#ifdef DEBUG_RBTREE
+void rbtree_print(rbtree_t *rbt);
+#endif
+
 #endif

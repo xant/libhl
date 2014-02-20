@@ -2,6 +2,7 @@
 #include <string.h>
 #include <sys/param.h>
 #include <sys/types.h>
+#include <stdio.h>
 #include "rbtree.h"
 
 #define IS_BLACK(__n) (!(__n) || (__n)->color == RBTREE_COLOR_BLACK)
@@ -530,3 +531,73 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize)
     return 0;
 }
 
+#ifdef DEBUG_RBTREE
+int _rbtree_print_internal(rbtree_node_t *node, int is_left, int offset, int depth, char s[20][255])
+{
+    char b[20];
+    memset(b, 0, sizeof(b));
+    int width = 7;
+
+    if (!node) return 0;
+
+    sprintf(b, "(%03d %C)", *((int *)node->value), node->color ? 'B' : 'R');
+
+    int left  = _rbtree_print_internal(node->left,  1, offset,                depth + 1, s);
+    int right = _rbtree_print_internal(node->right, 0, offset + left + width, depth + 1, s);
+
+#ifdef DEBUG_RBTREE_COMPACT
+    for (int i = 0; i < width; i++)
+        s[depth][offset + left + i] = b[i];
+
+    if (depth && is_left) {
+
+        for (int i = 0; i < width + right; i++)
+            s[depth - 1][offset + left + width/2 + i] = '-';
+
+        s[depth - 1][offset + left + width/2] = '.';
+
+    } else if (depth && !is_left) {
+
+        for (int i = 0; i < left + width; i++)
+            s[depth - 1][offset - width/2 + i] = '-';
+
+        s[depth - 1][offset + left + width/2] = '.';
+    }
+#else
+    for (int i = 0; i < width; i++)
+        s[2 * depth][offset + left + i] = b[i];
+
+    if (depth && is_left) {
+
+        for (int i = 0; i < width + right; i++)
+            s[2 * depth - 1][offset + left + width/2 + i] = '-';
+
+        s[2 * depth - 1][offset + left + width/2] = '+';
+        s[2 * depth - 1][offset + left + width + right + width/2] = '+';
+
+    } else if (depth && !is_left) {
+
+        for (int i = 0; i < left + width; i++)
+            s[2 * depth - 1][offset - width/2 + i] = '-';
+
+        s[2 * depth - 1][offset + left + width/2] = '+';
+        s[2 * depth - 1][offset - width/2 - 1] = '+';
+    }
+#endif
+
+    return left + width + right;
+}
+
+void rbtree_print(rbtree_t *rbt)
+{
+    char s[20][255];
+    memset(s, 0, sizeof(s));
+    for (int i = 0; i < 20; i++)
+        sprintf(s[i], "%120s", " ");
+
+    _rbtree_print_internal(rbt->root, 0, 0, 0, s);
+
+    for (int i = 0; i < 20; i++)
+        printf("%s\n", s[i]);
+}
+#endif
