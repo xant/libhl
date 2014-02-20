@@ -1,6 +1,8 @@
 #ifndef __RBTREE_H__
 #define __RBTREE_H__
 
+#include <stdint.h>
+
 /**
  * @brief Opaque structure representing the tree
  */
