@@ -176,18 +176,18 @@ void ht_grow_table(hashtable_t *table) {
     // preventing any operation on the actual one
     SPIN_LOCK(&table->lock);
 
-    if (table->max_size && table->size >= table->max_size) {
+    if (table->max_size && __sync_fetch_and_add(&table->size, 0) >= table->max_size) {
         SPIN_UNLOCK(&table->lock);
         return;
     }
 
     uint32_t i;
-    uint32_t newSize = table->size << 1;
+    uint32_t newSize = __sync_fetch_and_add(&table->size, 0) << 1;
 
     if (table->max_size && newSize > table->max_size)
         newSize = table->max_size;
 
-    //fprintf(stderr, "Growing table from %u to %u\n", table->size, newSize);
+    fprintf(stderr, "Growing table from %u to %u\n", __sync_fetch_and_add(&table->size, 0), newSize);
 
     ht_items_list_t **items_list = 
         (ht_items_list_t **)calloc(newSize, sizeof(ht_items_list_t *));
@@ -199,7 +199,7 @@ void ht_grow_table(hashtable_t *table) {
 
     ht_item_t *item = NULL;
 
-    for (i = 0; i < table->size; i++) {
+    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
         ht_items_list_t *list = NULL;
         do {
             list = __sync_fetch_and_add(&table->items[i], 0);
@@ -233,18 +233,21 @@ void ht_grow_table(hashtable_t *table) {
         free(list);
     }
     ht_items_list_t **old_items = __sync_fetch_and_add(&table->items, 0);
-    __sync_bool_compare_and_swap(&table->items, old_items, items_list);
-    free(old_items);
+    while (!__sync_bool_compare_and_swap(&table->items, old_items, items_list))
+        old_items = __sync_fetch_and_add(&table->items, 0);
 
-    table->size = newSize;
+    uint32_t old_size = __sync_fetch_and_add(&table->size, 0);
+    while (!__sync_bool_compare_and_swap(&table->size, old_size, newSize))
+        old_size = __sync_fetch_and_add(&table->size, 0);
+
     SPIN_UNLOCK(&table->lock);
+    fprintf(stderr, "DONE\n");
 }
 
 int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
         void *data, size_t dlen, void **prev_data, size_t *prev_len, int copy)
 {
     uint32_t hash;
-    uint32_t actual_size;
     void *prev = NULL;
     size_t plen = 0;
 
@@ -253,13 +256,11 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 
     PERL_HASH(hash, key, klen);
 
-    actual_size = table->size;
-
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
 
     if (!list) {
         SPIN_LOCK(&table->lock);
-        list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+        list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
         if (!list) {
             list = malloc(sizeof(ht_items_list_t));
 
@@ -272,8 +273,8 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 #endif
             TAILQ_INIT(&list->head);
 
-            while (!__sync_bool_compare_and_swap(&table->items[hash%table->size], NULL, list)) {
-                ht_items_list_t *l = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+            while (!__sync_bool_compare_and_swap(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], NULL, list)) {
+                ht_items_list_t *l = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
                 if (l) {
 #ifdef THREAD_SAFE
 #ifndef __MACH__
@@ -356,8 +357,8 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 
     SPIN_UNLOCK(&list->lock);
 
-    if (ht_count(table) > actual_size + HT_GROW_THRESHOLD && 
-        (!table->max_size || actual_size < table->max_size))
+    if (ht_count(table) > __sync_fetch_and_add(&table->size, 0) + HT_GROW_THRESHOLD && 
+        (!table->max_size || __sync_fetch_and_add(&table->size, 0) < table->max_size))
     {
         ht_grow_table(table);
     }
@@ -395,7 +396,7 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
     PERL_HASH(hash, key, klen);
 
 
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
 
     if (!list)
         return -1;
@@ -444,7 +445,7 @@ int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size
 
     PERL_HASH(hash, key, klen);
 
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
 
     if (!list) {
         return ret;
@@ -495,7 +496,7 @@ int ht_exists(hashtable_t *table, void *key, size_t klen)
     uint32_t hash = 0;
 
     PERL_HASH(hash, key, klen);
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
 
     if (!list)
         return 0;
@@ -524,7 +525,7 @@ void *_ht_get_internal(hashtable_t *table, void *key, size_t klen,
     uint32_t hash = 0;
 
     PERL_HASH(hash, key, klen);
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%table->size], 0);
+    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
 
     if (!list)
         return NULL;
@@ -587,7 +588,7 @@ linked_list_t *ht_get_all_keys(hashtable_t *table) {
     linked_list_t *output = create_list();
     set_free_value_callback(output, (free_value_callback_t)free_key);
 
-    for (i = 0; i < table->size; i++) {
+    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
         ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
 
         if (!list) {
@@ -616,7 +617,7 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
 
     linked_list_t *output = create_list();
 
-    for (i = 0; i < table->size; i++) {
+    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
         ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
 
         if (!list) {
@@ -641,7 +642,7 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
 void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user) {
     uint32_t i;
 
-    for (i = 0; i < table->size; i++) {
+    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
         ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
 
         if (!list) {
@@ -667,7 +668,7 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
 void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user) {
     uint32_t i;
 
-    for (i = 0; i < table->size; i++) {
+    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
         ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
 
         if (!list) {
@@ -693,7 +694,7 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
 void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user) {
     uint32_t i;
 
-    for (i = 0; i < table->size; i++) {
+    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
         ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
 
         if (!list) {
