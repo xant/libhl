@@ -181,6 +181,9 @@ rbtree_rotate_right(rbtree_t *rbt, rbtree_node_t *node)
     if (p)
         p->right = node;
 
+    if (node->left)
+        node->left->parent = node;
+
     rbtree_node_t *parent = node->parent;
     node->parent = p;
     if (p) {
@@ -206,6 +209,9 @@ rbtree_rotate_left(rbtree_t *rbt, rbtree_node_t *node)
     node->right = p ? p->left : NULL;
     if (p) 
         p->left = node;
+
+    if (node->right)
+        node->right->parent = node;
 
     rbtree_node_t *parent = node->parent;
     node->parent = p;
@@ -323,7 +329,7 @@ rbtree_sibling(rbtree_node_t *node)
 static int
 is_leaf(rbtree_node_t *node)
 {
-    return (node->left || node->right);
+    return (!node->left && !node->right);
 }
 
 
@@ -463,7 +469,7 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize)
                     n->parent->right = n->left;
                 }
                 if (n->left) {
-                    n->left->parent = n->parent;
+                    n->left->parent = node;
                 }
             } else {
                 if (n == node->right) {
@@ -472,7 +478,7 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize)
                     n->parent->left = n->right;
                 }
                 if (n->right) {
-                    n->right->parent = n->parent;
+                    n->right->parent = node;
                 }
             }
             free(n->key);
@@ -498,6 +504,11 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize)
                     rbtree_repaint_onremove(rbt, child);
                 }
             }
+            if (rbt->free_value_cb)
+                rbt->free_value_cb(node->value);
+            free(node->key);
+            free(node);
+            return 0;
         }
     }
 
