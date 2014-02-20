@@ -3,6 +3,7 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <stdio.h>
+#include <sys/ioctl.h>
 #include "rbtree.h"
 
 #define IS_BLACK(__n) (!(__n) || (__n)->color == RBTREE_COLOR_BLACK)
@@ -29,16 +30,17 @@ typedef struct __rbtree_node_s {
 
 struct __rbtree_s {
     rbtree_node_t *root;
-    rbtree_cmp_keys_callback cmp_key_cb;
+    rbtree_cmp_keys_callback cmp_keys_cb;
     rbtree_free_value_callback free_value_cb;
 };
 
 rbtree_t *
-rbtree_create(rbtree_cmp_keys_callback cmp_key_cb,
+rbtree_create(rbtree_cmp_keys_callback cmp_keys_cb,
               rbtree_free_value_callback free_value_cb)
 {
     rbtree_t *rbt = calloc(1, sizeof(rbtree_t));
     rbt->free_value_cb = free_value_cb;
+    rbt->cmp_keys_cb = cmp_keys_cb;
     return rbt;
 }
 
@@ -115,8 +117,8 @@ static int
 rbtree_compare_keys(rbtree_t *rbt, void *k1, size_t k1size, void *k2, size_t k2size)
 {
     int rc;
-    if (rbt->cmp_key_cb) {
-        rc = rbt->cmp_key_cb(k1, k1size, k2, k2size);
+    if (rbt->cmp_keys_cb) {
+        rc = rbt->cmp_keys_cb(k1, k1size, k2, k2size);
     } else {
         if (k1size != k2size) {
             if (k2size > k1size) {
@@ -536,11 +538,11 @@ int _rbtree_print_internal(rbtree_node_t *node, int is_left, int offset, int dep
 {
     char b[20];
     memset(b, 0, sizeof(b));
-    int width = 7;
 
     if (!node) return 0;
 
-    sprintf(b, "(%03d %C)", *((int *)node->value), node->color ? 'B' : 'R');
+    sprintf(b, "(%d %C)", *((int *)node->value), node->color ? 'B' : 'R');
+    int width = strlen(b);
 
     int left  = _rbtree_print_internal(node->left,  1, offset,                depth + 1, s);
     int right = _rbtree_print_internal(node->right, 0, offset + left + width, depth + 1, s);
@@ -592,8 +594,14 @@ void rbtree_print(rbtree_t *rbt)
 {
     char s[20][255];
     memset(s, 0, sizeof(s));
+
+    struct ttysize ts;
+    ioctl(0, TIOCGSIZE, &ts);
+
+    char format[16];
+    snprintf(format, sizeof(format), "%%%ds", ts.ts_cols);
     for (int i = 0; i < 20; i++)
-        sprintf(s[i], "%120s", " ");
+        sprintf(s[i], format, " ");
 
     _rbtree_print_internal(rbt->root, 0, 0, 0, s);
 
