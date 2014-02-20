@@ -36,6 +36,10 @@
 #define SPIN_UNLOCK(__mutex)
 #endif
 
+#define ATOMIC_READ(__v) __sync_fetch_and_add(&(__v), 0)
+#define ATOMIC_INCREMENT(__v) (void)__sync_add_and_fetch(&(__v), 1)
+#define ATOMIC_DECREMENT(__v) (void)__sync_sub_and_fetch(&(__v), 1)
+
 #define HT_GROW_THRESHOLD 16
 
 typedef struct __ht_item {
@@ -124,7 +128,7 @@ void ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
 {
     ht_free_item_callback_t ocb = NULL;
     do {
-         ocb = __sync_fetch_and_add(&table->free_item_cb, 0);
+         ocb = ATOMIC_READ(table->free_item_cb);
     } while(!__sync_bool_compare_and_swap(&table->free_item_cb, ocb, cb));
 }
 
@@ -136,7 +140,7 @@ void ht_clear(hashtable_t *table) {
         ht_item_t *item = NULL;
         ht_item_t *tmp;
 
-        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
 
         if (!list)
             continue;
@@ -147,7 +151,7 @@ void ht_clear(hashtable_t *table) {
                 table->free_item_cb(item->data);
             free(item->key);
             free(item);
-            __sync_sub_and_fetch(&table->count, 1);
+            ATOMIC_DECREMENT(table->count);
         }
 
         __sync_bool_compare_and_swap(&table->items[i], list, NULL);
@@ -176,16 +180,16 @@ void ht_grow_table(hashtable_t *table) {
     // if we need to extend the table, better locking it globally
     // preventing any operation on the actual one
     SPIN_LOCK(&table->lock);
-    __sync_add_and_fetch(&table->growing, 1);
+    ATOMIC_INCREMENT(table->growing);
 
-    if (table->max_size && __sync_fetch_and_add(&table->size, 0) >= table->max_size) {
+    if (table->max_size && ATOMIC_READ(table->size) >= table->max_size) {
         SPIN_UNLOCK(&table->lock);
-        __sync_sub_and_fetch(&table->growing, 1);
+        ATOMIC_DECREMENT(table->growing);
         return;
     }
 
     uint32_t i;
-    uint32_t newSize = __sync_fetch_and_add(&table->size, 0) << 1;
+    uint32_t newSize = ATOMIC_READ(table->size) << 1;
 
     if (table->max_size && newSize > table->max_size)
         newSize = table->max_size;
@@ -197,16 +201,16 @@ void ht_grow_table(hashtable_t *table) {
 
     if (!items_list) {
         //fprintf(stderr, "Can't create new items array list: %s\n", strerror(errno));
-        __sync_sub_and_fetch(&table->growing, 1);
+        ATOMIC_DECREMENT(table->growing);
         return;
     }
 
     ht_item_t *item = NULL;
 
-    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
+    for (i = 0; i < ATOMIC_READ(table->size); i++) {
         ht_items_list_t *list = NULL;
         do {
-            list = __sync_fetch_and_add(&table->items[i], 0);
+            list = ATOMIC_READ(table->items[i]);
         } while (!__sync_bool_compare_and_swap(&table->items[i], list, NULL));
 
         if (!list)
@@ -236,15 +240,15 @@ void ht_grow_table(hashtable_t *table) {
 #endif
         free(list);
     }
-    ht_items_list_t **old_items = __sync_fetch_and_add(&table->items, 0);
+    ht_items_list_t **old_items = ATOMIC_READ(table->items);
     while (!__sync_bool_compare_and_swap(&table->items, old_items, items_list))
-        old_items = __sync_fetch_and_add(&table->items, 0);
+        old_items = ATOMIC_READ(table->items);
 
-    uint32_t old_size = __sync_fetch_and_add(&table->size, 0);
+    uint32_t old_size = ATOMIC_READ(table->size);
     while (!__sync_bool_compare_and_swap(&table->size, old_size, newSize))
-        old_size = __sync_fetch_and_add(&table->size, 0);
+        old_size = ATOMIC_READ(table->size);
 
-    __sync_sub_and_fetch(&table->growing, 1);
+    ATOMIC_DECREMENT(table->growing);
     SPIN_UNLOCK(&table->lock);
     //fprintf(stderr, "Done growing table\n");
 }
@@ -261,11 +265,11 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 
     PERL_HASH(hash, key, klen);
 
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
+    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
 
-    if (__sync_fetch_and_add(&table->growing, 0) || !list) {
+    if (ATOMIC_READ(table->growing) || !list) {
         SPIN_LOCK(&table->lock);
-        list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
+        list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
         if (!list) {
             list = malloc(sizeof(ht_items_list_t));
 
@@ -278,8 +282,8 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 #endif
             TAILQ_INIT(&list->head);
 
-            while (!__sync_bool_compare_and_swap(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], NULL, list)) {
-                ht_items_list_t *l = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
+            while (!__sync_bool_compare_and_swap(&table->items[hash%ATOMIC_READ(table->size)], NULL, list)) {
+                ht_items_list_t *l = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
                 if (l) {
 #ifdef THREAD_SAFE
 #ifndef __MACH__
@@ -352,13 +356,13 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
         item->dlen = dlen;
 
         TAILQ_INSERT_TAIL(&list->head, item, next);
-        __sync_add_and_fetch(&table->count, 1);
+        ATOMIC_INCREMENT(table->count);
     }
 
     SPIN_UNLOCK(&list->lock);
 
-    if (ht_count(table) > __sync_fetch_and_add(&table->size, 0) + HT_GROW_THRESHOLD && 
-        (!table->max_size || __sync_fetch_and_add(&table->size, 0) < table->max_size))
+    if (ht_count(table) > ATOMIC_READ(table->size) + HT_GROW_THRESHOLD && 
+        (!table->max_size || ATOMIC_READ(table->size) < table->max_size))
     {
         ht_grow_table(table);
     }
@@ -396,7 +400,7 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
     PERL_HASH(hash, key, klen);
 
 
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
+    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
 
     if (!list)
         return -1;
@@ -445,7 +449,7 @@ int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size
 
     PERL_HASH(hash, key, klen);
 
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
+    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
 
     if (!list) {
         return ret;
@@ -469,7 +473,7 @@ int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size
             TAILQ_REMOVE(&list->head, item, next);
             free(item->key);
             free(item);
-            __sync_sub_and_fetch(&table->count, 1);
+            ATOMIC_DECREMENT(table->count);
             break;
         }
     }
@@ -496,7 +500,7 @@ int ht_exists(hashtable_t *table, void *key, size_t klen)
     uint32_t hash = 0;
 
     PERL_HASH(hash, key, klen);
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
+    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
 
     if (!list)
         return 0;
@@ -525,7 +529,7 @@ void *_ht_get_internal(hashtable_t *table, void *key, size_t klen,
     uint32_t hash = 0;
 
     PERL_HASH(hash, key, klen);
-    ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
+    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
 
     if (!list)
         return NULL;
@@ -588,8 +592,8 @@ linked_list_t *ht_get_all_keys(hashtable_t *table) {
     linked_list_t *output = create_list();
     set_free_value_callback(output, (free_value_callback_t)free_key);
 
-    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
-        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+    for (i = 0; i < ATOMIC_READ(table->size); i++) {
+        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
 
         if (!list) {
             continue;
@@ -617,8 +621,8 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
 
     linked_list_t *output = create_list();
 
-    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
-        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+    for (i = 0; i < ATOMIC_READ(table->size); i++) {
+        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
 
         if (!list) {
             continue;
@@ -642,8 +646,8 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
 void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user) {
     uint32_t i;
 
-    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
-        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+    for (i = 0; i < ATOMIC_READ(table->size); i++) {
+        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
 
         if (!list) {
             continue;
@@ -668,8 +672,8 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
 void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user) {
     uint32_t i;
 
-    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
-        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+    for (i = 0; i < ATOMIC_READ(table->size); i++) {
+        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
 
         if (!list) {
             continue;
@@ -694,8 +698,8 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
 void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user) {
     uint32_t i;
 
-    for (i = 0; i < __sync_fetch_and_add(&table->size, 0); i++) {
-        ht_items_list_t *list = __sync_fetch_and_add(&table->items[i], 0);
+    for (i = 0; i < ATOMIC_READ(table->size); i++) {
+        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
 
         if (!list) {
             continue;
@@ -718,6 +722,6 @@ void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *u
 }
 
 uint32_t ht_count(hashtable_t *table) {
-    return __sync_add_and_fetch(&table->count, 0);
+    return ATOMIC_READ(table->count);
 }
 
