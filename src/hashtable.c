@@ -70,6 +70,7 @@ struct __hashtable {
     uint32_t size;
     uint32_t max_size;
     uint32_t count;
+    int growing;
     ht_items_list_t **items;
 #ifdef THREAD_SAFE
 #ifdef __MACH__
@@ -175,9 +176,11 @@ void ht_grow_table(hashtable_t *table) {
     // if we need to extend the table, better locking it globally
     // preventing any operation on the actual one
     SPIN_LOCK(&table->lock);
+    __sync_add_and_fetch(&table->growing, 1);
 
     if (table->max_size && __sync_fetch_and_add(&table->size, 0) >= table->max_size) {
         SPIN_UNLOCK(&table->lock);
+        __sync_sub_and_fetch(&table->growing, 1);
         return;
     }
 
@@ -187,13 +190,14 @@ void ht_grow_table(hashtable_t *table) {
     if (table->max_size && newSize > table->max_size)
         newSize = table->max_size;
 
-    fprintf(stderr, "Growing table from %u to %u\n", __sync_fetch_and_add(&table->size, 0), newSize);
+    //fprintf(stderr, "Growing table from %u to %u\n", __sync_fetch_and_add(&table->size, 0), newSize);
 
     ht_items_list_t **items_list = 
         (ht_items_list_t **)calloc(newSize, sizeof(ht_items_list_t *));
 
     if (!items_list) {
         //fprintf(stderr, "Can't create new items array list: %s\n", strerror(errno));
+        __sync_sub_and_fetch(&table->growing, 1);
         return;
     }
 
@@ -240,8 +244,9 @@ void ht_grow_table(hashtable_t *table) {
     while (!__sync_bool_compare_and_swap(&table->size, old_size, newSize))
         old_size = __sync_fetch_and_add(&table->size, 0);
 
+    __sync_sub_and_fetch(&table->growing, 1);
     SPIN_UNLOCK(&table->lock);
-    fprintf(stderr, "DONE\n");
+    //fprintf(stderr, "Done growing table\n");
 }
 
 int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
@@ -258,7 +263,7 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 
     ht_items_list_t *list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
 
-    if (!list) {
+    if (__sync_fetch_and_add(&table->growing, 0) || !list) {
         SPIN_LOCK(&table->lock);
         list = __sync_fetch_and_add(&table->items[hash%__sync_fetch_and_add(&table->size, 0)], 0);
         if (!list) {
