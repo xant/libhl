@@ -1,6 +1,6 @@
 /*
  * build using:
- * cc -DDEBUG_RBTREE -Isrc src/rbtree.c test/rbtree_debug.c -o test/rbtree_debug
+ * cc -DDEBUG_RBTREE -DDEBUG_RBTREE_COMPACT -Isrc src/rbtree.c test/rbtree_debug.c -o test/rbtree_debug
  */
 #include <stdlib.h>
 #include <unistd.h>
@@ -24,40 +24,31 @@ main(int argc, char **argv)
     int *v;
     int i;
 
-    srandom(time(NULL));
-
-
-    rbtree_t *rbt = rbtree_create(NULL, free);
-    int sum = 0;
-    for (i = 0; i < 18; i++) {
-        printf("\e[1;1H\e[2J");
-        v = malloc(sizeof(int));
-        *v = i;
-        rbtree_add(rbt, v, sizeof(int), v, sizeof(int));
-        sum += i;
-
-        rbtree_print(rbt);
-        sleep(2);
+    char buf[256];
+    int c;
+    int ofx = 0;
+    rbtree_t *rbt = rbtree_create(rbtree_cmp_keys_int32, free);
+    printf("\e[1;1H\e[2J");
+    printf("Enter an integer number: ");
+    for(;;) {
+        while((c = getchar())) {
+            if (c == '\n') {
+                buf[ofx] = 0;
+                int *num = malloc(sizeof(int));
+                *num = strtol(buf, NULL, 10);
+                printf("Added node: %d\n\n", *num);
+                rbtree_add(rbt, num, sizeof(int), num, sizeof(int));
+                printf("\e[1;1H\e[2J");
+                rbtree_print(rbt);
+                ofx = 0;
+                printf("Enter an integer number: ");
+            } else {
+                buf[ofx++] = c;
+            }
+            if (ofx == 255) {
+                fprintf(stderr, "input too long, discarding\n");
+                ofx = 0;
+            }
+        }
     }
-
-    printf("Removing '7'\n");
-    i = 7;
-    rbtree_remove(rbt, &i, sizeof(int));
-    printf("\e[1;1H\e[2J");
-    rbtree_print(rbt);
-    sleep(2);
-
-    i = 16;
-    rbtree_remove(rbt, &i, sizeof(int));
-    printf("\e[1;1H\e[2J");
-    rbtree_print(rbt);
-    sleep(2);
-
-    i = 17;
-    rbtree_remove(rbt, &i, sizeof(int));
-    printf("\e[1;1H\e[2J");
-    rbtree_print(rbt);
-    rbtree_destroy(rbt);
-
-    return 0;
 }
