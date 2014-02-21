@@ -40,6 +40,12 @@
 #define SPIN_UNLOCK(__mutex) pthread_spin_unlock(&(__mutex))
 #endif
 #else
+#define MUTEX_INIT(__mutex)
+#define MUTEX_DESTROY(__mutex)
+#define MUTEX_LOCK(__mutex)
+#define MUTEX_UNLOCK(__mutex)
+#define SPIN_INIT(__mutex)
+#define SPIN_DESTROY(__mutex)
 #define SPIN_LOCK(__mutex)
 #define SPIN_UNLOCK(__mutex)
 #endif
@@ -47,6 +53,53 @@
 #define ATOMIC_READ(__v) __sync_fetch_and_add(&(__v), 0)
 #define ATOMIC_INCREMENT(__v) (void)__sync_add_and_fetch(&(__v), 1)
 #define ATOMIC_DECREMENT(__v) (void)__sync_sub_and_fetch(&(__v), 1)
+
+#define ATOMIC_SET(__v, __n) {\
+    int __b = 0;\
+    do {\
+        __b = __sync_bool_compare_and_swap(&(__v), ATOMIC_READ(__v), __n);\
+    } while (!__b);\
+}
+
+
+#define ATOMIC_GETLIST(__t, __h, __l) \
+{ \
+    uint32_t __i = (__h)%ATOMIC_READ((__t)->size); \
+    __l = ATOMIC_READ((__t)->items[__i]); \
+    if (__l) { \
+        SPIN_LOCK((__l)->lock); \
+    } \
+    if (ATOMIC_READ((__t)->growing) > __i) { \
+        if (__l) {\
+            SPIN_UNLOCK((__l)->lock); \
+        } \
+        MUTEX_LOCK((__t)->lock); \
+        __l = ATOMIC_READ((__t)->items[__i]); \
+        MUTEX_UNLOCK((__t)->lock); \
+    } \
+}
+
+#define ATOMIC_SETLIST(__t, __h, __l) \
+{ \
+    (__l) = malloc(sizeof(ht_items_list_t)); \
+    SPIN_INIT((__l)->lock); \
+    TAILQ_INIT(&(__l)->head); \
+    SPIN_LOCK((__l)->lock); \
+    MUTEX_LOCK((__t)->lock); \
+    while (!__sync_bool_compare_and_swap(&(__t)->items[(__h)%ATOMIC_READ((__t)->size)], NULL, __l)) \
+    { \
+        ht_items_list_t *l = ATOMIC_READ((__t)->items[(__h)%ATOMIC_READ((__t)->size)]); \
+        if (l) { \
+            SPIN_UNLOCK(__l->lock); \
+            SPIN_DESTROY(__l->lock); \
+            free(__l); \
+            __l = l; \
+            break; \
+        } \
+    } \
+    MUTEX_UNLOCK((__t)->lock); \
+}
+
 
 #define HT_GROW_THRESHOLD 16
 
@@ -82,7 +135,7 @@ struct __hashtable {
     uint32_t size;
     uint32_t max_size;
     uint32_t count;
-    int growing;
+    uint32_t growing;
     ht_items_list_t **items;
 #ifdef THREAD_SAFE
     pthread_mutex_t lock;
@@ -116,20 +169,15 @@ void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_fr
     table->max_size = max_size;
     table->items = (ht_items_list_t **)calloc(table->size, sizeof(ht_items_list_t *));
 
-    if (table->items) {
-#ifdef THREAD_SAFE
+    if (table->items)
         MUTEX_INIT(table->lock);
-#endif
-    }
+
     ht_set_free_item_callback(table, cb);
 }
 
 void ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
 {
-    ht_free_item_callback_t ocb = NULL;
-    do {
-         ocb = ATOMIC_READ(table->free_item_cb);
-    } while(!__sync_bool_compare_and_swap(&table->free_item_cb, ocb, cb));
+    ATOMIC_SET(table->free_item_cb, cb);
 }
 
 void ht_clear(hashtable_t *table) {
@@ -154,10 +202,8 @@ void ht_clear(hashtable_t *table) {
             ATOMIC_DECREMENT(table->count);
         }
 
-        __sync_bool_compare_and_swap(&table->items[i], list, NULL);
-#ifdef THREAD_SAFE
+        ATOMIC_SET(table->items[i], NULL);
         SPIN_DESTROY(list->lock);
-#endif
         free(list);
     }
     MUTEX_UNLOCK(table->lock);
@@ -166,9 +212,7 @@ void ht_clear(hashtable_t *table) {
 void ht_destroy(hashtable_t *table) {
     ht_clear(table);
     free(table->items);
-#ifdef THREAD_SAFE
     MUTEX_DESTROY(table->lock);
-#endif
     free(table);
 }
 
@@ -176,28 +220,25 @@ void ht_grow_table(hashtable_t *table) {
     // if we need to extend the table, better locking it globally
     // preventing any operation on the actual one
     MUTEX_LOCK(table->lock);
-    ATOMIC_INCREMENT(table->growing);
 
     if (table->max_size && ATOMIC_READ(table->size) >= table->max_size) {
         MUTEX_UNLOCK(table->lock);
-        ATOMIC_DECREMENT(table->growing);
         return;
     }
 
     uint32_t i;
-    uint32_t newSize = ATOMIC_READ(table->size) << 1;
+    uint32_t new_size = ATOMIC_READ(table->size) << 1;
 
-    if (table->max_size && newSize > table->max_size)
-        newSize = table->max_size;
+    if (table->max_size && new_size > table->max_size)
+        new_size = table->max_size;
 
-    //fprintf(stderr, "Growing table from %u to %u\n", __sync_fetch_and_add(&table->size, 0), newSize);
+    //fprintf(stderr, "Growing table from %u to %u\n", __sync_fetch_and_add(&table->size, 0), new_size);
 
     ht_items_list_t **items_list = 
-        (ht_items_list_t **)calloc(newSize, sizeof(ht_items_list_t *));
+        (ht_items_list_t **)calloc(new_size, sizeof(ht_items_list_t *));
 
     if (!items_list) {
         //fprintf(stderr, "Can't create new items array list: %s\n", strerror(errno));
-        ATOMIC_DECREMENT(table->growing);
         return;
     }
 
@@ -209,20 +250,20 @@ void ht_grow_table(hashtable_t *table) {
             list = ATOMIC_READ(table->items[i]);
         } while (!__sync_bool_compare_and_swap(&table->items[i], list, NULL));
 
+        ATOMIC_INCREMENT(table->growing);
+
         if (!list)
             continue;
 
         SPIN_LOCK(list->lock);
         while((item = TAILQ_FIRST(&list->head))) {
             TAILQ_REMOVE(&list->head, item, next);
-            ht_items_list_t *new_list = items_list[item->hash%newSize];
+            ht_items_list_t *new_list = items_list[item->hash%new_size];
             if (!new_list) {
                 new_list = malloc(sizeof(ht_items_list_t));
                 TAILQ_INIT(&new_list->head);
-#ifdef THREAD_SAFE
                 SPIN_INIT(new_list->lock);
-#endif
-                items_list[item->hash%newSize] = new_list;
+                items_list[item->hash%new_size] = new_list;
             }
             TAILQ_INSERT_TAIL(&new_list->head, item, next);
         }
@@ -230,15 +271,13 @@ void ht_grow_table(hashtable_t *table) {
         SPIN_DESTROY(list->lock);
         free(list);
     }
-    ht_items_list_t **old_items = ATOMIC_READ(table->items);
-    while (!__sync_bool_compare_and_swap(&table->items, old_items, items_list))
-        old_items = ATOMIC_READ(table->items);
 
-    uint32_t old_size = ATOMIC_READ(table->size);
-    while (!__sync_bool_compare_and_swap(&table->size, old_size, newSize))
-        old_size = ATOMIC_READ(table->size);
+    ATOMIC_SET(table->items, items_list);
 
-    ATOMIC_DECREMENT(table->growing);
+    ATOMIC_SET(table->size, new_size);
+
+    ATOMIC_SET(table->growing, 0);
+
     MUTEX_UNLOCK(table->lock);
     //fprintf(stderr, "Done growing table\n");
 }
@@ -255,35 +294,12 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 
     PERL_HASH(hash, key, klen);
 
-    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
+    ht_items_list_t *list;
 
-    if (ATOMIC_READ(table->growing) || !list) {
-        MUTEX_LOCK(table->lock);
-        list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
-        if (!list) {
-            list = malloc(sizeof(ht_items_list_t));
+    ATOMIC_GETLIST(table, hash, list);
 
-#ifdef THREAD_SAFE
-            SPIN_INIT(list->lock);
-#endif
-            TAILQ_INIT(&list->head);
-
-            while (!__sync_bool_compare_and_swap(&table->items[hash%ATOMIC_READ(table->size)], NULL, list)) {
-                ht_items_list_t *l = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
-                if (l) {
-#ifdef THREAD_SAFE
-                    SPIN_DESTROY(list->lock);
-#endif
-                    free(list);
-                    list = l;
-                    break;
-                }
-            }
-        }
-        SPIN_LOCK(list->lock);
-        MUTEX_UNLOCK(table->lock);
-    } else {
-        SPIN_LOCK(list->lock);
+    if (!list) {
+        ATOMIC_SETLIST(table, hash, list);
     }
 
     ht_item_t *item = NULL;
@@ -382,13 +398,11 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
     PERL_HASH(hash, key, klen);
 
 
-    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
+    ht_items_list_t *list;
+    ATOMIC_GETLIST(table, hash, list);
 
     if (!list)
         return -1;
-
-    // TODO : maybe this lock is not necessary
-    SPIN_LOCK(list->lock);
 
     void *prev = NULL;
     size_t plen = 0;
@@ -429,12 +443,11 @@ int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size
 
     PERL_HASH(hash, key, klen);
 
-    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
+    ht_items_list_t *list;
+    ATOMIC_GETLIST(table, hash, list);
 
     if (!list)
         return ret;
-
-    SPIN_LOCK(list->lock);
 
     void *prev = NULL;
     size_t plen = 0;
@@ -479,12 +492,11 @@ int ht_exists(hashtable_t *table, void *key, size_t klen)
     uint32_t hash = 0;
 
     PERL_HASH(hash, key, klen);
-    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
+    ht_items_list_t *list;
+    ATOMIC_GETLIST(table, hash, list);
 
     if (!list)
         return 0;
-
-    SPIN_LOCK(list->lock);
 
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
@@ -508,12 +520,11 @@ void *_ht_get_internal(hashtable_t *table, void *key, size_t klen,
     uint32_t hash = 0;
 
     PERL_HASH(hash, key, klen);
-    ht_items_list_t *list = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
+    ht_items_list_t *list;
+    ATOMIC_GETLIST(table, hash, list);
 
     if (!list)
         return NULL;
-
-    SPIN_LOCK(list->lock);
 
     void *data = NULL;
 
