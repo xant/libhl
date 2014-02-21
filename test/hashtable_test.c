@@ -28,9 +28,12 @@ static void *parallel_insert(void *user) {
 int check_item(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user) {
     int *check_item_count = (int *)user;
     char test[25];
-    int num = atoi((char *)key);
+    char keystr[klen+1];
+    memcpy(keystr, key, klen);
+    keystr[klen] = 0;
+    int num = atoi(keystr);
     sprintf(test, "test%d", num+1);
-    if (strcmp(test, value) == 0)
+    if (strlen(test) == vlen && memcmp(test, value, vlen) == 0)
         (*check_item_count)++;
     static int last_count = 0;
     int count = *check_item_count/1000;
