@@ -67,7 +67,9 @@ void rbtree_destroy(rbtree_t *rbt);
  * @param ksize The size of the key
  * @param v     The new value to store
  * @param vsize The size of the value
- * @return 0 on success; -1 otherwise
+ * @return 0 if a new node has been created successfully;
+ *         1 if an existing node has been found and the value has been updated;
+ *         -1 otherwise
  */
 int rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize);
 

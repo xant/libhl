@@ -141,6 +141,7 @@ _rbtree_add_internal(rbtree_t *rbt, rbtree_node_t *cur_node, rbtree_node_t *new_
     if (rc == 0) {
         // key matches, just set the new value
         new_node->parent = cur_node->parent;
+        new_node->color = cur_node->color;
         if (new_node->parent) {
             if (new_node->parent->left == cur_node)
                 new_node->parent->left = new_node;
@@ -161,6 +162,7 @@ _rbtree_add_internal(rbtree_t *rbt, rbtree_node_t *cur_node, rbtree_node_t *new_
 
         free(cur_node->key);
         free(cur_node);
+        return 1;
     } else if (rc > 0) {
         if (cur_node->left) {
             return _rbtree_add_internal(rbt, cur_node->left, new_node);
@@ -239,6 +241,7 @@ rbtree_rotate_left(rbtree_t *rbt, rbtree_node_t *node)
 int
 rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
 {
+    int rc = 0;
     rbtree_node_t *node = calloc(1, sizeof(rbtree_node_t));
     node->key = malloc(ksize);
     memcpy(node->key, k, ksize);
@@ -249,9 +252,18 @@ rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
         PAINT_BLACK(node);
         rbt->root = node;
     } else {
-        int rc = _rbtree_add_internal(rbt, rbt->root, node);
-        if (rc != 0)
-            return rc;
+        rc = _rbtree_add_internal(rbt, rbt->root, node);
+
+        if (IS_BLACK(node)) {
+            // if the node just added is now black it means
+            // it was already existing and this was only a value update
+            if (!node->parent) {
+                // we need to check also if the root pointer
+                // should be updated as well
+                rbt->root = node;
+            }
+            return 1;
+        }
         
         if (!node->parent) {
             // case 1
@@ -259,7 +271,7 @@ rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
             rbt->root = node;
         } else if (IS_BLACK(node->parent)) {
             // case 2
-            return 0;
+            return rc;
         } else {
             // case 3
             rbtree_node_t *uncle = rbtree_uncle(node);
@@ -292,11 +304,12 @@ rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
                         rbtree_rotate_left(rbt, grandparent);
                 } else {
                     fprintf(stderr, "Corrupted tree\n");
+                    return -1;
                 }
             }
         }
     }
-    return 0;
+    return rc;
 }
 
 static rbtree_node_t *
