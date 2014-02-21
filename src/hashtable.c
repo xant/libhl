@@ -343,7 +343,8 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
     SPIN_UNLOCK(list->lock);
 
     if (ht_count(table) > ATOMIC_READ(table->size) + HT_GROW_THRESHOLD && 
-        (!table->max_size || ATOMIC_READ(table->size) < table->max_size))
+        (!table->max_size || ATOMIC_READ(table->size) < table->max_size) &&
+        !ATOMIC_READ(table->growing))
     {
         ht_grow_table(table);
     }
