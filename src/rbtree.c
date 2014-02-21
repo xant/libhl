@@ -560,31 +560,33 @@ int _rbtree_print_internal(rbtree_node_t *node, int is_left, int offset, int dep
     int left  = _rbtree_print_internal(node->left,  1, offset,                depth + 1, s);
     int right = _rbtree_print_internal(node->right, 0, offset + left + width, depth + 1, s);
 
+    int i;
+
 #ifdef DEBUG_RBTREE_COMPACT
-    for (int i = 0; i < width; i++)
+    for (i = 0; i < width; i++)
         s[depth][offset + left + i] = b[i];
 
     if (depth && is_left) {
 
-        for (int i = 0; i < width + right; i++)
+        for (i = 0; i < width + right; i++)
             s[depth - 1][offset + left + width/2 + i] = '-';
 
         s[depth - 1][offset + left + width/2] = '.';
 
     } else if (depth && !is_left) {
 
-        for (int i = 0; i < left + width; i++)
+        for (i = 0; i < left + width; i++)
             s[depth - 1][offset - width/2 + i] = '-';
 
         s[depth - 1][offset + left + width/2] = '.';
     }
 #else
-    for (int i = 0; i < width; i++)
+    for (i = 0; i < width; i++)
         s[2 * depth][offset + left + i] = b[i];
 
     if (depth && is_left) {
 
-        for (int i = 0; i < width + right; i++)
+        for (i = 0; i < width + right; i++)
             s[2 * depth - 1][offset + left + width/2 + i] = '-';
 
         s[2 * depth - 1][offset + left + width/2] = '+';
@@ -592,7 +594,7 @@ int _rbtree_print_internal(rbtree_node_t *node, int is_left, int offset, int dep
 
     } else if (depth && !is_left) {
 
-        for (int i = 0; i < left + width; i++)
+        for (i = 0; i < left + width; i++)
             s[2 * depth - 1][offset - width/2 + i] = '-';
 
         s[2 * depth - 1][offset + left + width/2] = '+';
@@ -605,20 +607,21 @@ int _rbtree_print_internal(rbtree_node_t *node, int is_left, int offset, int dep
 
 void rbtree_print(rbtree_t *rbt)
 {
+    int i;
     char s[20][255];
     memset(s, 0, sizeof(s));
 
-    struct ttysize ts;
-    ioctl(0, TIOCGSIZE, &ts);
+    struct winsize w;
+    ioctl(0, TIOCGWINSZ, &w);
 
     char format[16];
-    snprintf(format, sizeof(format), "%%%ds", ts.ts_cols);
-    for (int i = 0; i < 20; i++)
+    snprintf(format, sizeof(format), "%%%ds", w.ws_col);
+    for (i = 0; i < 20; i++)
         sprintf(s[i], format, " ");
 
     _rbtree_print_internal(rbt->root, 0, 0, 0, s);
 
-    for (int i = 0; i < 20; i++)
+    for (i = 0; i < 20; i++)
         printf("%s\n", s[i]);
 }
 #endif
