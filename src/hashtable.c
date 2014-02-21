@@ -155,7 +155,9 @@ typedef struct __ht_collector_arg {
     uint32_t count;
 } ht_collector_arg_t;
 
-hashtable_t *ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb) {
+hashtable_t *
+ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb)
+{
     hashtable_t *table = (hashtable_t *)calloc(1, sizeof(hashtable_t));
 
     if (table)
@@ -164,7 +166,12 @@ hashtable_t *ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_ca
     return table;
 }
 
-void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb) {
+void
+ht_init(hashtable_t *table,
+        uint32_t initial_size,
+        uint32_t max_size,
+        ht_free_item_callback_t cb)
+{
     table->size = initial_size > 256 ? initial_size : 256;
     table->max_size = max_size;
     table->items = (ht_items_list_t **)calloc(table->size, sizeof(ht_items_list_t *));
@@ -175,12 +182,15 @@ void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_fr
     ht_set_free_item_callback(table, cb);
 }
 
-void ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
+void
+ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
 {
     ATOMIC_SET(table->free_item_cb, cb);
 }
 
-void ht_clear(hashtable_t *table) {
+void
+ht_clear(hashtable_t *table)
+{
     uint32_t i;
     MUTEX_LOCK(table->lock);
     for (i = 0; i < table->size; i++)
@@ -209,14 +219,18 @@ void ht_clear(hashtable_t *table) {
     MUTEX_UNLOCK(table->lock);
 }
 
-void ht_destroy(hashtable_t *table) {
+void
+ht_destroy(hashtable_t *table)
+{
     ht_clear(table);
     free(table->items);
     MUTEX_DESTROY(table->lock);
     free(table);
 }
 
-void ht_grow_table(hashtable_t *table) {
+void
+ht_grow_table(hashtable_t *table)
+{
     // if we need to extend the table, better locking it globally
     // preventing any operation on the actual one
     MUTEX_LOCK(table->lock);
@@ -282,20 +296,26 @@ void ht_grow_table(hashtable_t *table) {
     //fprintf(stderr, "Done growing table\n");
 }
 
-int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
-        void *data, size_t dlen, void **prev_data, size_t *prev_len, int copy)
+int
+_ht_set_internal(hashtable_t *table,
+                 void *key,
+                 size_t klen,
+                 void *data,
+                 size_t dlen,
+                 void **prev_data,
+                 size_t *prev_len,
+                 int copy)
 {
-    uint32_t hash;
     void *prev = NULL;
     size_t plen = 0;
 
     if (!klen)
         return -1;
 
+    uint32_t hash;
     PERL_HASH(hash, key, klen);
 
     ht_items_list_t *list;
-
     ATOMIC_GETLIST(table, hash, list);
 
     if (!list)
@@ -379,21 +399,44 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
     return 0;
 }
 
-int ht_set(hashtable_t *table, void *key, size_t len, void *data, size_t dlen) {
+int
+ht_set(hashtable_t *table, void *key, size_t len, void *data, size_t dlen)
+{
     return _ht_set_internal(table, key, len, data, dlen, NULL, 0, 0);
 }
 
-int ht_get_and_set(hashtable_t *table, void *key, size_t len, void *data, size_t dlen, void **prev_data, size_t *prev_len) {
+int
+ht_get_and_set(hashtable_t *table,
+               void *key,
+               size_t len,
+               void *data,
+               size_t dlen,
+               void **prev_data,
+               size_t *prev_len)
+{
     return _ht_set_internal(table, key, len, data, dlen, prev_data, prev_len, 0);
 }
 
-int ht_set_copy(hashtable_t *table, void *key, size_t len, void *data, size_t dlen, void **prev_data, size_t *prev_len) {
+int
+ht_set_copy(hashtable_t *table,
+            void *key,
+            size_t len,
+            void *data,
+            size_t dlen,
+            void **prev_data,
+            size_t *prev_len)
+{
     return _ht_set_internal(table, key, len, data, dlen, prev_data, prev_len, 1);
 }
 
-int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_t *prev_len) {
+int
+ht_unset(hashtable_t *table,
+         void *key,
+         size_t klen,
+         void **prev_data,
+         size_t *prev_len)
+{
     uint32_t hash;
-
     PERL_HASH(hash, key, klen);
 
 
@@ -436,10 +479,16 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
     return 0;
 }
 
-int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size_t *prev_len) {
-    uint32_t hash;
+int
+ht_delete(hashtable_t *table,
+          void *key,
+          size_t klen,
+          void **prev_data,
+          size_t *prev_len)
+{
     int ret = -1;
 
+    uint32_t hash;
     PERL_HASH(hash, key, klen);
 
     ht_items_list_t *list;
@@ -486,11 +535,12 @@ int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size
     return ret;
 }
 
-int ht_exists(hashtable_t *table, void *key, size_t klen)
+int
+ht_exists(hashtable_t *table, void *key, size_t klen)
 {
     uint32_t hash = 0;
-
     PERL_HASH(hash, key, klen);
+
     ht_items_list_t *list;
     ATOMIC_GETLIST(table, hash, list);
 
@@ -513,12 +563,17 @@ int ht_exists(hashtable_t *table, void *key, size_t klen)
     return 0;
 }
 
-void *_ht_get_internal(hashtable_t *table, void *key, size_t klen,
-        size_t *dlen, int copy, ht_deep_copy_callback_t copy_cb)
+void
+*_ht_get_internal(hashtable_t *table,
+                  void *key,
+                  size_t klen,
+                  size_t *dlen,
+                  int copy,
+                  ht_deep_copy_callback_t copy_cb)
 {
     uint32_t hash = 0;
-
     PERL_HASH(hash, key, klen);
+
     ht_items_list_t *list;
     ATOMIC_GETLIST(table, hash, list);
 
@@ -556,26 +611,35 @@ void *_ht_get_internal(hashtable_t *table, void *key, size_t klen,
     return data;
 }
 
-void *ht_get(hashtable_t *table, void *key, size_t klen, size_t *dlen) {
+void
+*ht_get(hashtable_t *table, void *key, size_t klen, size_t *dlen)
+{
     return _ht_get_internal(table, key, klen, dlen, 0, NULL);
 }
 
-void *ht_get_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen) {
+void
+*ht_get_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen)
+{
     return _ht_get_internal(table, key, klen, dlen, 1, NULL);
 }
 
-void *ht_get_deep_copy(hashtable_t *table, void *key, size_t klen,
+void
+*ht_get_deep_copy(hashtable_t *table, void *key, size_t klen,
         size_t *dlen, ht_deep_copy_callback_t copy_cb)
 {
     return _ht_get_internal(table, key, klen, dlen, 1, copy_cb);
 }
 
-static void free_key(hashtable_key_t *key) {
+static void
+free_key(hashtable_key_t *key)
+{
     free(key->data);
     free(key);
 }
 
-linked_list_t *ht_get_all_keys(hashtable_t *table) {
+linked_list_t *
+ht_get_all_keys(hashtable_t *table)
+{
     uint32_t i;
 
     linked_list_t *output = create_list();
@@ -605,7 +669,9 @@ linked_list_t *ht_get_all_keys(hashtable_t *table) {
     return output;
 }
 
-linked_list_t *ht_get_all_values(hashtable_t *table) {
+linked_list_t *
+ht_get_all_values(hashtable_t *table)
+{
     uint32_t i;
 
     linked_list_t *output = create_list();
@@ -632,7 +698,9 @@ linked_list_t *ht_get_all_values(hashtable_t *table) {
     return output;
 }
 
-void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user) {
+void
+ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user)
+{
     uint32_t i;
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
@@ -658,7 +726,9 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
     }
 }
 
-void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user) {
+void
+ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user)
+{
     uint32_t i;
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
@@ -684,15 +754,16 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
     }
 }
 
-void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user) {
+void
+ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
+{
     uint32_t i;
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
         ht_items_list_t *list = ATOMIC_READ(table->items[i]);
 
-        if (!list) {
+        if (!list)
             continue;
-        }
 
         // Note: once we acquired the linklist, we don't need to lock the whole
         // table anymore. We need to lock the list though to prevent it from
@@ -710,7 +781,9 @@ void ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *u
     }
 }
 
-uint32_t ht_count(hashtable_t *table) {
+uint32_t
+ht_count(hashtable_t *table)
+{
     return ATOMIC_READ(table->count);
 }
 
