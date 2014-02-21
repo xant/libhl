@@ -245,12 +245,12 @@ void ht_grow_table(hashtable_t *table) {
     ht_item_t *item = NULL;
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
+        ATOMIC_INCREMENT(table->growing);
+
         ht_items_list_t *list = NULL;
         do {
             list = ATOMIC_READ(table->items[i]);
         } while (!__sync_bool_compare_and_swap(&table->items[i], list, NULL));
-
-        ATOMIC_INCREMENT(table->growing);
 
         if (!list)
             continue;
@@ -298,9 +298,8 @@ int _ht_set_internal(hashtable_t *table, void *key, size_t klen,
 
     ATOMIC_GETLIST(table, hash, list);
 
-    if (!list) {
+    if (!list)
         ATOMIC_SETLIST(table, hash, list);
-    }
 
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
