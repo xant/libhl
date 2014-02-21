@@ -188,7 +188,7 @@ rbtree_rotate_right(rbtree_t *rbt, rbtree_node_t *node)
         p->right = node;
 
     if (node->left)
-        node->left->parent = node;
+         node->left->parent = node;
 
     rbtree_node_t *parent = node->parent;
     node->parent = p;
@@ -253,43 +253,48 @@ rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
         if (rc != 0)
             return rc;
         
-        if (!node->parent) { // case 1
+        if (!node->parent) {
+            // case 1
             PAINT_BLACK(node);
             rbt->root = node;
         } else if (IS_BLACK(node->parent)) {
+            // case 2
             return 0;
         } else {
+            // case 3
             rbtree_node_t *uncle = rbtree_uncle(node);
-            if (IS_RED(uncle) && IS_RED(node->parent)) {
+            rbtree_node_t *grandparent = rbtree_grandparent(node);
+
+            if (IS_RED(uncle)) {
                 PAINT_BLACK(node->parent);
                 PAINT_BLACK(uncle);
-                rbtree_node_t *grandparent = rbtree_grandparent(node);
                 if (grandparent) {
+                    PAINT_RED(grandparent);
                     rbtree_add(rbt, grandparent->key, grandparent->ksize, grandparent->value, grandparent->vsize);
                 }
-            } else {
-                rbtree_node_t *grandparent = rbtree_grandparent(node);
-                if (grandparent) {
-                    if (node == node->parent->right && node->parent == grandparent->left) {
-                        rbtree_rotate_left(rbt, node->parent);
-                        node = node->left;
-                    } else if (node == node->parent->left && node->parent == grandparent->right) {
-                        rbtree_rotate_right(rbt, node->parent);
-                        node = node->right;
-                    }
-                    if (node->parent) {
-                        PAINT_BLACK(node->parent);
-                        PAINT_RED(grandparent);
-                        if (node == node->parent->left)
-                            rbtree_rotate_right(rbt, grandparent);
-                        else
-                            rbtree_rotate_left(rbt, grandparent);
-                    }
+            } else if (grandparent) {
+                // case 4
+                if (node == node->parent->right && node->parent == grandparent->left) {
+                    rbtree_rotate_left(rbt, node->parent);
+                    node = node->left;
+                } else if (node == node->parent->left && node->parent == grandparent->right) {
+                    rbtree_rotate_right(rbt, node->parent);
+                    node = node->right;
+                }
+                // case 5
+                grandparent = rbtree_grandparent(node);
+                if (node->parent) {
+                    PAINT_BLACK(node->parent);
+                    PAINT_RED(grandparent);
+                    if (node == node->parent->left)
+                        rbtree_rotate_right(rbt, grandparent);
+                    else
+                        rbtree_rotate_left(rbt, grandparent);
+                } else {
+                    fprintf(stderr, "Corrupted tree\n");
                 }
             }
         }
-
-        
     }
     return 0;
 }
@@ -334,13 +339,6 @@ rbtree_sibling(rbtree_node_t *node)
            : node->parent->left;
 }
 
-static int
-is_leaf(rbtree_node_t *node)
-{
-    return (!node->left && !node->right);
-}
-
-
 static rbtree_node_t *
 rbtree_find_next(rbtree_t *rbt, rbtree_node_t *node)
 {
@@ -370,7 +368,7 @@ rbtree_find_prev(rbtree_t *rbt, rbtree_node_t *node)
 }
 
 void
-rbtree_repaint_onremove(rbtree_t *rbt, rbtree_node_t *node)
+rbtree_paint_onremove(rbtree_t *rbt, rbtree_node_t *node)
 {
     if (!node)
         return;
@@ -397,7 +395,7 @@ rbtree_repaint_onremove(rbtree_t *rbt, rbtree_node_t *node)
             IS_BLACK(sibling->right))
         {
             PAINT_RED(sibling);
-            rbtree_repaint_onremove(rbt, node->parent);
+            rbtree_paint_onremove(rbt, node->parent);
         } else {
             // delete case 4
             if (IS_RED(node->parent) &&
@@ -455,7 +453,9 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize)
     if (!node)
         return -1;
 
-    if (!is_leaf(node)) {
+    if (node->left || node->right) {
+        // the node is not a leaf
+        // now check if it has two children or just one
         if (node->left && node->right) {
             // two children case
             rbtree_node_t *n = NULL;
@@ -508,7 +508,7 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize)
                 if (IS_RED(child)) {
                     PAINT_BLACK(child);
                 } else {
-                    rbtree_repaint_onremove(rbt, child);
+                    rbtree_paint_onremove(rbt, child);
                 }
             }
             if (rbt->free_value_cb)
