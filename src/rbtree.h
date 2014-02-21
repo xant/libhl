@@ -1,3 +1,12 @@
+/**
+ * @file rbtree.h
+ *
+ * @brief Red/Black Tree
+ *
+ * Red/Black Tree implementation to store/access arbitrary data
+ *
+ */
+
 #ifndef __RBTREE_H__
 #define __RBTREE_H__
 
@@ -8,13 +17,13 @@
  */
 typedef struct __rbtree_s rbtree_t;
 
-/*
+/**
  * @brief Callback that, if provided, will be called to release the value resources
  *        when an item is being overwritten or when removed from the tree
  */
 typedef void (*rbtree_free_value_callback)(void *v);
 
-/*
+/**
  * @brief Callback that, if provided, will be used to compare node keys.
  *        If not defined memcmp() will be used in the following way :
  * @param k1     The first key to compare
@@ -36,7 +45,7 @@ typedef void (*rbtree_free_value_callback)(void *v);
  */
 typedef int (*rbtree_cmp_keys_callback)(void *k1, size_t k1size, void *k2, size_t k2size);
 
-/*
+/**
  * @brief Create a new red/black tree
  * @param cmp_key_cb    The comparator callback to use when comparing keys (defaults to memcmp())
  * @param free_value_cb The callback used to release values when a node is removed or overwritten
@@ -45,15 +54,15 @@ typedef int (*rbtree_cmp_keys_callback)(void *k1, size_t k1size, void *k2, size_
 rbtree_t *rbtree_create(rbtree_cmp_keys_callback cmp_key_cb,
                         rbtree_free_value_callback free_value_cb);
 
-/*
+/**
  * @brief Release all the resources used by a red/black tree
- * @param rbt A valid ponter to an initialized rbtree_t structure
+ * @param rbt A valid pointer to an initialized rbtree_t structure
  */
 void rbtree_destroy(rbtree_t *rbt);
 
-/*
+/**
  * @brief Add a new value into the tree
- * @param rbt   A valid ponter to an initialized rbtree_t structure
+ * @param rbt   A valid pointer to an initialized rbtree_t structure
  * @param k     The key of the node where to store the new value
  * @param ksize The size of the key
  * @param v     The new value to store
@@ -63,18 +72,18 @@ void rbtree_destroy(rbtree_t *rbt);
 int rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize);
 
 
-/*
+/**
  * @brief Remove a node from the tree
- * @param rbt   A valid ponter to an initialized rbtree_t structure
+ * @param rbt   A valid pointer to an initialized rbtree_t structure
  * @param k     The key of the node to remove
  * @param ksize The size of the key
  * @return 0 on success; -1 otherwise
  */
 int rbtree_remove(rbtree_t *rbt, void *k, size_t ksize);
 
-/*
+/**
  * @brief Find the value stored in the node node matching a specific key (if any)
- * @param rbt   A valid ponter to an initialized rbtree_t structure
+ * @param rbt   A valid pointer to an initialized rbtree_t structure
  * @param k     The key of the node where to store the new value
  * @param ksize The size of the key
  * @param v     A reference to the pointer which will set to point to the actual value if found
@@ -84,9 +93,9 @@ int rbtree_remove(rbtree_t *rbt, void *k, size_t ksize);
  */
 int rbtree_find(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize);
 
-/*
+/**
  * @brief Callback called for each node when walking the tree
- * @param rbt   A valid ponter to an initialized rbtree_t structure
+ * @param rbt   A valid pointer to an initialized rbtree_t structure
  * @param k     The key of the node where to store the new value
  * @param ksize The size of the key
  * @param v     The new value to store
@@ -94,9 +103,9 @@ int rbtree_find(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize);
  */
 typedef int (*rbtree_walk_callback)(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv);
 
-/*
+/**
  * @brief Walk the entire tree and call the provided callback for each visited node
- * @param rbt  A valid ponter to an initialized rbtree_t structure
+ * @param rbt  A valid pointer to an initialized rbtree_t structure
  * @param cb   The callback to call for each visited node
  * @param priv A pointer to private data provided passed as argument to the callback
  *             when invoked.
