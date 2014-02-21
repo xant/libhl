@@ -41,7 +41,7 @@ main(int argc, char **argv)
     ut_init(basename(argv[0]));
 
     ut_testing("rbtree_create(free)");
-    rbtree_t *rbt = rbtree_create(NULL, free);
+    rbtree_t *rbt = rbtree_create(rbtree_cmp_keys_int16, free);
     if (rbt)
         ut_success();
     else

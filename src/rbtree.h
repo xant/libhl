@@ -17,13 +17,22 @@ typedef void (*rbtree_free_value_callback)(void *v);
 /*
  * @brief Callback that, if provided, will be used to compare node keys.
  *        If not defined memcmp() will be used in the following way :
+ * @param k1     The first key to compare
+ * @param k1size The size of the first key to compare
+ * @param k2     The second key to compare
+ * @param k2size The size of the second key to compare
+ * @return The distance between the two keys. If the size is different
+ *         0 will be returned if the keys match (both size and value);
+ *         "k1size - k2size" will be returned if the two sizes don't match;
+ *         The difference between the two keys is returned if the two sizes match
+ *         but the value doesn't
+ * @note By default memcmp() is be used to compare the value, a custom comparator can be
+ *       registered at creation time (as parameter of rbtree_create())
+ * @note If integers bigger than 8 bits are going to be used as keys,
+ *       an integer comparator should be used instead of the default one
+ *       (either a custom comparator or one of the rbtree_cmp_keys_int16(), rbtree_cmp_keys_int32()
+ *       and rbtree_cmp_keys_int64() helpers provided by the library).
  *
- * @note If integers bigger than 8 bits are being used as keys
- *       an integer comparator should be used (either a custom comparator or
- *       one of the rbtree_cmp_keys_int16() rbtree_cmp_keys_int32() rbtree_cmp_keys_int64()
- *       should be used) since if on little endian architecture memcmp() is not going to do
- *       the right thing but values need to be compared as integers and not comparing the
- *       memory directly)
  */
 typedef int (*rbtree_cmp_keys_callback)(void *k1, size_t k1size, void *k2, size_t k2size);
 
@@ -49,14 +58,22 @@ void rbtree_destroy(rbtree_t *rbt);
  * @param ksize The size of the key
  * @param v     The new value to store
  * @param vsize The size of the value
+ * @return 0 on success; -1 otherwise
  */
 int rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize);
 
 
+/*
+ * @brief Remove a node from the tree
+ * @param rbt   A valid ponter to an initialized rbtree_t structure
+ * @param k     The key of the node to remove
+ * @param ksize The size of the key
+ * @return 0 on success; -1 otherwise
+ */
 int rbtree_remove(rbtree_t *rbt, void *k, size_t ksize);
 
 /*
- * @brief Find the value stored in the node node matching a specific k (if any)
+ * @brief Find the value stored in the node node matching a specific key (if any)
  * @param rbt   A valid ponter to an initialized rbtree_t structure
  * @param k     The key of the node where to store the new value
  * @param ksize The size of the key
@@ -88,8 +105,8 @@ int rbtree_walk(rbtree_t *rbt, rbtree_walk_callback cb, void *priv);
 
 #define RBTREE_CMP_KEYS_TYPE(__type, __k1, __k1s, __k2, __k2s) \
 { \
-    if (__k1s != sizeof(__type) || __k2s != sizeof(__type)) \
-        return 0; \
+    if (__k1s < sizeof(__type) || __k2s < sizeof(__type) || __k1s != __k2s) \
+        return __k1s - __k2s; \
     __type __k1i = *((__type *)__k1); \
     __type __k2i = *((__type *)__k2); \
     return __k1i - __k2i; \
@@ -125,6 +142,16 @@ static inline int rbtree_cmp_keys_uint32(void *k1, size_t k1size, void *k2, size
 static inline int rbtree_cmp_keys_uint64(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     RBTREE_CMP_KEYS_TYPE(uint64_t, k1, k1size, k2, k2size);
+}
+
+static inline int rbtree_cmp_keys_float(void *k1, size_t k1size, void *k2, size_t k2size)
+{
+    RBTREE_CMP_KEYS_TYPE(float, k1, k1size, k2, k2size);
+}
+
+static inline int rbtree_cmp_keys_double(void *k1, size_t k1size, void *k2, size_t k2size)
+{
+    RBTREE_CMP_KEYS_TYPE(double, k1, k1size, k2, k2size);
 }
 
 #ifdef DEBUG_RBTREE
