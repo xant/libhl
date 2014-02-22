@@ -1,7 +1,8 @@
 libhl
 =====
 
-Tiny C library implementing an API to manage some basic datatypes such as hashtables, linked lists, queues, trees, ringbuffers
+Tiny C library implementing a set of APIs to efficiently manage some basic data structures
+such as : hashtables, linked lists, queues, trees, ringbuffers
 
 The provided APIs are :
 
@@ -9,7 +10,7 @@ The provided APIs are :
 - linklist.[ch]   :  Thread-safe double linked lists (with also a tag-based API)
 - rbtree.[ch]     :  A generic red/black tree implementation
 - fbuf.[ch]       :  Dynamically-growing flat buffers
-- queue.[ch]      :  A lock-free thread-safe flat queue implementation
-- rqueue.[ch]     :  A lock-free thread-safe ring queue implementation (vaule-oriented ringbuffers)
+- queue.[ch]      :  A lock-free thread-safe flat (dynamically growing) queue implementation
+- rqueue.[ch]     :  A lock-free thread-safe circular (fixed size) queue implementation (aka: vaule-oriented ringbuffers)
 - rbuf.[ch]       :  Byte-oriented ringbuffers
 - refcnt.[ch]     :  Reference-count memory manager
