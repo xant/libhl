@@ -23,6 +23,19 @@ sum_value(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, voi
 }
 
 static int
+check_sort(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+{
+    int *check = (int *)priv;
+    int v = *((int *)value);
+
+    if (v != *check)
+        return -1;
+
+    (*check)++;
+    return 0;
+}
+
+static int
 get_root(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
 {
     void **p = (void **)priv;
@@ -63,10 +76,10 @@ main(int argc, char **argv)
     rbtree_walk(rbt, get_root, &v);
     ut_validate_int(*((int *)v), 7);
     
-    /*
-    rbtree_walk(rbt, print_value, NULL);
-    printf("\n---------\n\n");
-    */
+    ut_testing("rbtree_walk_sorted()");
+    int check = 0;
+    rbtree_walk_sorted(rbt, check_sort, &check);
+    ut_validate_int(check, 18);
 
     ut_testing("Removing '7'");
     i = 7;

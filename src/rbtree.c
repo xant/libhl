@@ -70,27 +70,65 @@ rbtree_destroy(rbtree_t *rbt)
 }
 
 int
-_rbtree_walk_internal(rbtree_t *rbt, rbtree_node_t *node, rbtree_walk_callback cb, void *priv)
+_rbtree_walk_internal(rbtree_t *rbt, rbtree_node_t *node, int sorted, rbtree_walk_callback cb, void *priv)
 {
     if (!node)
         return 0;
 
-    int rc = cb(rbt, node->key, node->ksize, node->value, node->vsize, priv);
-    if (rc != 0)
-        return 0;
+    int rc = 1;
 
-    return 1 + _rbtree_walk_internal(rbt, node->left, cb, priv)
-             + _rbtree_walk_internal(rbt, node->right, cb, priv);
+    if (!sorted) {
+        if (cb(rbt, node->key, node->ksize, node->value, node->vsize, priv) != 0)
+            return 0;
+    }
+
+    if (node->left) {
+        int rrc = _rbtree_walk_internal(rbt, node->left, sorted, cb, priv);
+        if (rrc == 0)
+            return rc;
+        rc += rrc;
+    }
+
+    if (sorted) {
+        if (cb(rbt, node->key, node->ksize, node->value, node->vsize, priv) != 0)
+            return 0;
+
+        if (node->right) {
+            int rrc = _rbtree_walk_internal(rbt, node->right, sorted, cb, priv);
+            if (rrc == 0)
+                return rc;
+            rc += rrc;
+        }
+    } else {
+        if (node->right) {
+            int rrc = _rbtree_walk_internal(rbt, node->right, sorted, cb, priv);
+            if (rrc == 0)
+                return rc;
+            rc += rrc;
+        }
+    }
+
+    return rc;
 }
 
 int
 rbtree_walk(rbtree_t *rbt, rbtree_walk_callback cb, void *priv)
 {
     if (rbt->root)
-        return _rbtree_walk_internal(rbt, rbt->root, cb, priv);
+        return _rbtree_walk_internal(rbt, rbt->root, 0, cb, priv);
 
     return 0;
 }
+
+int
+rbtree_walk_sorted(rbtree_t *rbt, rbtree_walk_callback cb, void *priv)
+{
+    if (rbt->root)
+        return _rbtree_walk_internal(rbt, rbt->root, 1, cb, priv);
+
+    return 0;
+}
+
 
 static rbtree_node_t *
 rbtree_grandparent(rbtree_node_t *node)

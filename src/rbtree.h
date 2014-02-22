@@ -132,6 +132,17 @@ typedef int (*rbtree_walk_callback)(rbtree_t *rbt,
  */
 int rbtree_walk(rbtree_t *rbt, rbtree_walk_callback cb, void *priv);
 
+/**
+ * @brief Walk the entire tree visiting nodes in ascending order and call the callback
+ *        for each visited node
+ * @param rbt  A valid pointer to an initialized rbtree_t structure
+ * @param cb   The callback to call for each visited node
+ * @param priv A pointer to private data provided passed as argument to the
+ *             callback when invoked.
+ * @return The number of visited nodes
+ */
+int rbtree_walk_sorted(rbtree_t *rbt, rbtree_walk_callback cb, void *priv);
+
 #define RBTREE_CMP_KEYS_TYPE(__type, __k1, __k1s, __k2, __k2s) \
 { \
     if (__k1s < sizeof(__type) || __k2s < sizeof(__type) || __k1s != __k2s) \
