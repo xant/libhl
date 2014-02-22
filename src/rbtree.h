@@ -102,6 +102,8 @@ int rbtree_find(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize);
  * @param ksize The size of the key
  * @param v     The new value to store
  * @param vsize The size of the value
+ * @return 0 If the walker can go ahead visiting the next node,
+ *         any NON-ZERO integer if the walker should stop and return
  */
 typedef int (*rbtree_walk_callback)(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv);
 
@@ -111,6 +113,7 @@ typedef int (*rbtree_walk_callback)(rbtree_t *rbt, void *key, size_t ksize, void
  * @param cb   The callback to call for each visited node
  * @param priv A pointer to private data provided passed as argument to the callback
  *             when invoked.
+ * @return The number of visited nodes
  */
 int rbtree_walk(rbtree_t *rbt, rbtree_walk_callback cb, void *priv);
 
@@ -123,49 +126,76 @@ int rbtree_walk(rbtree_t *rbt, rbtree_walk_callback cb, void *priv);
     return __k1i - __k2i; \
 }
 
+/**
+ * @brief 16bit signed integers comparator
+ */
 static inline int
 rbtree_cmp_keys_int16(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     RBTREE_CMP_KEYS_TYPE(int16_t, k1, k1size, k2, k2size);
 }
 
+/**
+ * @brief 32bit signed integers comparator
+ */
 static inline int rbtree_cmp_keys_int32(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     RBTREE_CMP_KEYS_TYPE(int32_t, k1, k1size, k2, k2size);
 }
 
+/**
+ * @brief 64bit signed integers comparator
+ */
 static inline int rbtree_cmp_keys_int64(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     RBTREE_CMP_KEYS_TYPE(int64_t, k1, k1size, k2, k2size);
 }
 
+/**
+ * @brief 16bit unsigned integers comparator
+ */
 static inline int
 rbtree_cmp_keys_uint16(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     RBTREE_CMP_KEYS_TYPE(uint16_t, k1, k1size, k2, k2size);
 }
 
+/**
+ * @brief 32bit unsigned integers comparator
+ */
 static inline int rbtree_cmp_keys_uint32(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     RBTREE_CMP_KEYS_TYPE(uint32_t, k1, k1size, k2, k2size);
 }
 
+/**
+ * @brief 64bit unsigned integers comparator
+ */
 static inline int rbtree_cmp_keys_uint64(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     RBTREE_CMP_KEYS_TYPE(uint64_t, k1, k1size, k2, k2size);
 }
 
+/**
+ * @brief float comparator
+ */
 static inline int rbtree_cmp_keys_float(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     RBTREE_CMP_KEYS_TYPE(float, k1, k1size, k2, k2size);
 }
 
+/**
+ * @brief double comparator
+ */
 static inline int rbtree_cmp_keys_double(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     RBTREE_CMP_KEYS_TYPE(double, k1, k1size, k2, k2size);
 }
 
 #ifdef DEBUG_RBTREE
+/**
+ * @brief Print out the whole tree on stdout (for debugging purposes only)
+ */
 void rbtree_print(rbtree_t *rbt);
 #endif
 
