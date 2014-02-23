@@ -69,8 +69,11 @@ main(int argc, char **argv)
         sum += i;
     }
     int vsum = 0;
-    rbtree_walk(rbt, sum_value, &vsum);
+    int rc = rbtree_walk(rbt, sum_value, &vsum);
     ut_validate_int(vsum, sum);
+
+    ut_testing("rbtree_walk() return value");
+    ut_validate_int(rc, 18);
 
     ut_testing("root is '7'");
     rbtree_walk(rbt, get_root, &v);
@@ -78,8 +81,11 @@ main(int argc, char **argv)
     
     ut_testing("rbtree_walk_sorted()");
     int check = 0;
-    rbtree_walk_sorted(rbt, check_sort, &check);
+    rc = rbtree_walk_sorted(rbt, check_sort, &check);
     ut_validate_int(check, 18);
+
+    ut_testing("rbtree_walk_sorted() return value");
+    ut_validate_int(rc, 18);
 
     ut_testing("Removing '7'");
     i = 7;

@@ -85,7 +85,7 @@ _rbtree_walk_internal(rbtree_t *rbt, rbtree_node_t *node, int sorted, rbtree_wal
     if (node->left) {
         int rrc = _rbtree_walk_internal(rbt, node->left, sorted, cb, priv);
         if (rrc == 0)
-            return rc;
+            return rc + 1;
         rc += rrc;
     }
 
@@ -96,14 +96,14 @@ _rbtree_walk_internal(rbtree_t *rbt, rbtree_node_t *node, int sorted, rbtree_wal
         if (node->right) {
             int rrc = _rbtree_walk_internal(rbt, node->right, sorted, cb, priv);
             if (rrc == 0)
-                return rc;
+                return rc + 1;
             rc += rrc;
         }
     } else {
         if (node->right) {
             int rrc = _rbtree_walk_internal(rbt, node->right, sorted, cb, priv);
             if (rrc == 0)
-                return rc;
+                return rc + 1;
             rc += rrc;
         }
     }
