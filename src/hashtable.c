@@ -748,7 +748,6 @@ void
 ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user)
 {
     uint32_t i;
-    int stop = 0;
     uint32_t count = 0;
     int rc = 0;
 
@@ -767,10 +766,8 @@ ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
             rc = cb(table, item->data, item->dlen, user);
-            if (rc == 0) {
-                stop = 1;
+            if (rc == 0)
                 break;
-            }
         }
 
         if (rc == 0 || ++count >= __sync_add_and_fetch(&table->count, 0)) {
@@ -797,7 +794,6 @@ void
 ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
 {
     uint32_t i;
-    int stop = 0;
     uint32_t count = 0;
     int rc = 0;
 
@@ -815,10 +811,8 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
             rc = cb(table, item->key, item->klen, item->data, item->dlen, user);
-            if (rc == 0) {
-                stop = 1;
+            if (rc == 0)
                 break;
-            }
         }
 
         if (rc == 0 || ++count >= __sync_add_and_fetch(&table->count, 0)) {
