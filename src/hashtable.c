@@ -702,6 +702,8 @@ void
 ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user)
 {
     uint32_t i;
+    uint32_t count = 0;
+    int rc = 0;
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
         ht_items_list_t *list = ATOMIC_READ(table->items[i]);
@@ -717,11 +719,27 @@ ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user)
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
-            int rc = cb(table, item->key, item->klen, user);
-            if (rc == 0)
+            rc = cb(table, item->key, item->klen, user);
+            if (rc <= 0)
                 break;
         }
 
+        if (rc == 0 || ++count >= __sync_add_and_fetch(&table->count, 0)) {
+            SPIN_UNLOCK(list->lock);
+            break;
+        } else if (rc < 0) {
+            TAILQ_REMOVE(&list->head, item, next);
+            if (table->free_item_cb)
+                table->free_item_cb(item->data);
+            free(item->key);
+            free(item);
+            ATOMIC_DECREMENT(table->count);
+            if (rc == -2) {
+                SPIN_UNLOCK(list->lock);
+                break;
+            }
+            count--;
+        }
         SPIN_UNLOCK(list->lock);
     }
 }
@@ -730,6 +748,9 @@ void
 ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user)
 {
     uint32_t i;
+    int stop = 0;
+    uint32_t count = 0;
+    int rc = 0;
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
         ht_items_list_t *list = ATOMIC_READ(table->items[i]);
@@ -745,11 +766,29 @@ ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
-            int rc = cb(table, item->data, item->dlen, user);
-            if (rc == 0)
+            rc = cb(table, item->data, item->dlen, user);
+            if (rc == 0) {
+                stop = 1;
                 break;
+            }
         }
 
+        if (rc == 0 || ++count >= __sync_add_and_fetch(&table->count, 0)) {
+            SPIN_UNLOCK(list->lock);
+            break;
+        } else if (rc < 0) {
+            TAILQ_REMOVE(&list->head, item, next);
+            if (table->free_item_cb)
+                table->free_item_cb(item->data);
+            free(item->key);
+            free(item);
+            ATOMIC_DECREMENT(table->count);
+            if (rc == -2) {
+                SPIN_UNLOCK(list->lock);
+                break;
+            }
+            count--;
+        }
         SPIN_UNLOCK(list->lock);
     }
 }
@@ -758,6 +797,9 @@ void
 ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
 {
     uint32_t i;
+    int stop = 0;
+    uint32_t count = 0;
+    int rc = 0;
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
         ht_items_list_t *list = ATOMIC_READ(table->items[i]);
@@ -772,11 +814,29 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
-            int rc = cb(table, item->key, item->klen, item->data, item->dlen, user);
-            if (rc == 0)
+            rc = cb(table, item->key, item->klen, item->data, item->dlen, user);
+            if (rc == 0) {
+                stop = 1;
                 break;
+            }
         }
 
+        if (rc == 0 || ++count >= __sync_add_and_fetch(&table->count, 0)) {
+            SPIN_UNLOCK(list->lock);
+            break;
+        } else if (rc < 0) {
+            TAILQ_REMOVE(&list->head, item, next);
+            if (table->free_item_cb)
+                table->free_item_cb(item->data);
+            free(item->key);
+            free(item);
+            ATOMIC_DECREMENT(table->count);
+            if (rc == -2) {
+                SPIN_UNLOCK(list->lock);
+                break;
+            }
+            count--;
+        }
         SPIN_UNLOCK(list->lock);
     }
 }

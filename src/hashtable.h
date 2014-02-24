@@ -234,6 +234,10 @@ linked_list_t *ht_get_all_values(hashtable_t *table);
 
 /**
  * @brief Callback for the key iterator
+ * @return 1 to go ahead with the iteration,
+ *         0 to stop the iteration,
+ *        -1 to remove the current item from the table and go ahead with the iteration
+ *        -2 to remove the current item from the table and stop the iteration
  */
 typedef int (*ht_key_iterator_callback_t)(hashtable_t *table, void *key, size_t klen, void *user);
 
@@ -247,6 +251,10 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
 
 /**
  * @brief Callback for the value iterator
+ * @return 1 to go ahead with the iteration,
+ *         0 to stop the iteration,
+ *        -1 to remove the current item from the table and go ahead with the iteration
+ *        -2 to remove the current item from the table and stop the iteration
  */
 typedef int (*ht_value_iterator_callback_t)(hashtable_t *table, void *value, size_t vlen, void *user);
 
@@ -260,6 +268,10 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
 
 /**
  * @brief Callback for the pair iterator
+ * @return 1 to go ahead with the iteration,
+ *         0 to stop the iteration,
+ *        -1 to remove the current item from the table and go ahead with the iteration
+ *        -2 to remove the current item from the table and stop the iteration
  */
 typedef int (*ht_pair_iterator_callback_t)(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user);
 
