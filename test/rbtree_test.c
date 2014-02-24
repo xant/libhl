@@ -19,7 +19,7 @@ sum_value(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, voi
 {
     int *vsum = (int *)priv;
     *vsum += *((int *)value);
-    return 0;
+    return 1;
 }
 
 static int
@@ -29,10 +29,10 @@ check_sort(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, vo
     int v = *((int *)value);
 
     if (v != *check)
-        return -1;
+        return 0;
 
     (*check)++;
-    return 0;
+    return 1;
 }
 
 static int
@@ -40,7 +40,7 @@ get_root(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void
 {
     void **p = (void **)priv;
     *p = value;
-    return -1;
+    return 0;
 }
 
 int

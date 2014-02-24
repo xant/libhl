@@ -76,36 +76,52 @@ _rbtree_walk_internal(rbtree_t *rbt, rbtree_node_t *node, int sorted, rbtree_wal
         return 0;
 
     int rc = 1;
+    int cbrc = 0;
 
-    if (!sorted) {
-        if (cb(rbt, node->key, node->ksize, node->value, node->vsize, priv) != 0)
-            return 0;
-    }
-
-    if (node->left) {
+    if (sorted && node->left) {
         int rrc = _rbtree_walk_internal(rbt, node->left, sorted, cb, priv);
         if (rrc == 0)
             return rc + 1;
         rc += rrc;
     }
 
-    if (sorted) {
-        if (cb(rbt, node->key, node->ksize, node->value, node->vsize, priv) != 0)
+    cbrc = cb(rbt, node->key, node->ksize, node->value, node->vsize, priv);
+    switch(cbrc) {
+        case -2:
+            rbtree_remove(rbt, node->key, node->ksize);
             return 0;
+        case -1:
+            {
+                if (node->left && node->right) {
+                    rbtree_remove(rbt, node->key, node->ksize);
+                    return _rbtree_walk_internal(rbt, node, sorted, cb, priv);
+                } else if (node->left || node->right) {
+                    return _rbtree_walk_internal(rbt, node->left ? node->left : node->right, sorted, cb, priv);
+                }
+                // this node was a leaf
+                return 1;
+            }
+        case 0:
+            return 0;
+        case 1:
+            break;
+        default:
+            // TODO - Error Messages
+            break;
+    }
 
-        if (node->right) {
-            int rrc = _rbtree_walk_internal(rbt, node->right, sorted, cb, priv);
-            if (rrc == 0)
-                return rc + 1;
-            rc += rrc;
-        }
-    } else {
-        if (node->right) {
-            int rrc = _rbtree_walk_internal(rbt, node->right, sorted, cb, priv);
-            if (rrc == 0)
-                return rc + 1;
-            rc += rrc;
-        }
+    if (!sorted && node->left) {
+        int rrc = _rbtree_walk_internal(rbt, node->left, sorted, cb, priv);
+        if (rrc == 0)
+            return rc + 1;
+        rc += rrc;
+    }
+
+    if (node->right) {
+        int rrc = _rbtree_walk_internal(rbt, node->right, sorted, cb, priv);
+        if (rrc == 0)
+            return rc + 1;
+        rc += rrc;
     }
 
     return rc;
