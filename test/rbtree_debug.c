@@ -30,25 +30,26 @@ main(int argc, char **argv)
     rbtree_t *rbt = rbtree_create(rbtree_cmp_keys_int32, free);
     printf("\e[1;1H\e[2J");
     printf("Enter an integer number: ");
-    for(;;) {
-        while((c = getchar())) {
-            if (c == '\n') {
-                buf[ofx] = 0;
-                int *num = malloc(sizeof(int));
-                *num = strtol(buf, NULL, 10);
-                printf("Added node: %d\n\n", *num);
-                rbtree_add(rbt, num, sizeof(int), num, sizeof(int));
-                printf("\e[1;1H\e[2J");
-                rbtree_print(rbt);
-                ofx = 0;
-                printf("Enter an integer number: ");
-            } else {
-                buf[ofx++] = c;
-            }
-            if (ofx == 255) {
-                fprintf(stderr, "input too long, discarding\n");
-                ofx = 0;
-            }
+    while((c = getchar())) {
+        if (c == EOF)
+            break;
+        if (c == '\n') {
+            buf[ofx] = 0;
+            int *num = malloc(sizeof(int));
+            *num = strtol(buf, NULL, 10);
+            printf("Added node: %d\n\n", *num);
+            rbtree_add(rbt, num, sizeof(int), num, sizeof(int));
+            printf("\e[1;1H\e[2J");
+            rbtree_print(rbt);
+            ofx = 0;
+            printf("Enter an integer number: ");
+        } else {
+            buf[ofx++] = c;
+        }
+        if (ofx == 255) {
+            fprintf(stderr, "input too long, discarding\n");
+            ofx = 0;
         }
     }
+    printf("\n");
 }

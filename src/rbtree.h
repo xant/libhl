@@ -53,13 +53,13 @@ typedef int (*rbtree_cmp_keys_callback)(void *k1,
 
 /**
  * @brief Create a new red/black tree
- * @param cmp_key_cb    The comparator callback to use when comparing
+ * @param cmp_keys_cb   The comparator callback to use when comparing
  *                      keys (defaults to memcmp())
  * @param free_value_cb The callback used to release values when a node
  *                      is removed or overwritten
  * @return              A valid and initialized red/black tree (empty)
  */
-rbtree_t *rbtree_create(rbtree_cmp_keys_callback cmp_key_cb,
+rbtree_t *rbtree_create(rbtree_cmp_keys_callback cmp_keys_cb,
                         rbtree_free_value_callback free_value_cb);
 
 /**
