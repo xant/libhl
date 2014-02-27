@@ -57,6 +57,7 @@ clean:
 	rm -f test/*_test
 	rm -f libhl.a
 	rm -f libhl.$(SHAREDEXT)
+	@if [ -f support/libut/Makefile ]; then make -C support/libut clean; fi
 
 .PHONY: libut
 libut:
