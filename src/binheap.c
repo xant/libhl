@@ -244,7 +244,7 @@ binomial_tree_node_destroy(binomial_tree_node_t *node)
             if (child_index < node->num_children - 1) {
                 memcpy(&node->children[child_index],
                        &node->children[child_index + 1],
-                       sizeof(binomial_tree_node_t *) * (node->num_children - child_index + 1));
+                       sizeof(binomial_tree_node_t *) * (node->num_children - (child_index + 1)));
                        
             }
             node->num_children--;
