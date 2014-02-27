@@ -728,12 +728,14 @@ ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user)
             SPIN_UNLOCK(list->lock);
             break;
         } else if (rc < 0) {
-            TAILQ_REMOVE(&list->head, item, next);
-            if (table->free_item_cb)
-                table->free_item_cb(item->data);
-            free(item->key);
-            free(item);
-            ATOMIC_DECREMENT(table->count);
+            if (item) {
+                TAILQ_REMOVE(&list->head, item, next);
+                if (table->free_item_cb)
+                    table->free_item_cb(item->data);
+                free(item->key);
+                free(item);
+                ATOMIC_DECREMENT(table->count);
+            }
             if (rc == -2) {
                 SPIN_UNLOCK(list->lock);
                 break;
@@ -774,12 +776,14 @@ ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user
             SPIN_UNLOCK(list->lock);
             break;
         } else if (rc < 0) {
-            TAILQ_REMOVE(&list->head, item, next);
-            if (table->free_item_cb)
-                table->free_item_cb(item->data);
-            free(item->key);
-            free(item);
-            ATOMIC_DECREMENT(table->count);
+            if (item) {
+                TAILQ_REMOVE(&list->head, item, next);
+                if (table->free_item_cb)
+                    table->free_item_cb(item->data);
+                free(item->key);
+                free(item);
+                ATOMIC_DECREMENT(table->count);
+            }
             if (rc == -2) {
                 SPIN_UNLOCK(list->lock);
                 break;
@@ -819,12 +823,14 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
             SPIN_UNLOCK(list->lock);
             break;
         } else if (rc < 0) {
-            TAILQ_REMOVE(&list->head, item, next);
-            if (table->free_item_cb)
-                table->free_item_cb(item->data);
-            free(item->key);
-            free(item);
-            ATOMIC_DECREMENT(table->count);
+            if (item) {
+                TAILQ_REMOVE(&list->head, item, next);
+                if (table->free_item_cb)
+                    table->free_item_cb(item->data);
+                free(item->key);
+                free(item);
+                ATOMIC_DECREMENT(table->count);
+            }
             if (rc == -2) {
                 SPIN_UNLOCK(list->lock);
                 break;

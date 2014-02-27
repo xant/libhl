@@ -188,7 +188,6 @@ binomial_tree_node_increase_key(binomial_tree_node_t *node, int incr)
         parent->value = node->value;
         parent->vlen = node->vlen;
 
-        free(node->key);
         node->key = tmp.key;
         node->klen = tmp.klen;
         node->value = tmp.value;
@@ -201,10 +200,11 @@ binomial_tree_node_increase_key(binomial_tree_node_t *node, int incr)
     }
 
     if (!swapped) {
-        free(node->key);
         node->key = nkey;
         node->klen = nklen;
     }
+
+    free(okey);
 }
 
 static void
@@ -260,8 +260,8 @@ binomial_tree_node_destroy(binomial_tree_node_t *node)
     }
 
     free(node->key);
-    free(node);
     node->bh->count--;
+    free(node);
 }
 
 binheap_t *
