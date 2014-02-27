@@ -74,7 +74,10 @@
             SPIN_UNLOCK((__l)->lock); \
         } \
         MUTEX_LOCK((__t)->lock); \
-        __l = ATOMIC_READ((__t)->items[__i]); \
+        __i = (__h)%ATOMIC_READ((__t)->size); \
+        (__l) = ATOMIC_READ((__t)->items[__i]); \
+        if (__l) \
+            SPIN_LOCK((__l)->lock); \
         MUTEX_UNLOCK((__t)->lock); \
     } \
 }
@@ -86,14 +89,15 @@
     TAILQ_INIT(&(__l)->head); \
     SPIN_LOCK((__l)->lock); \
     MUTEX_LOCK((__t)->lock); \
-    while (!__sync_bool_compare_and_swap(&(__t)->items[(__h)%ATOMIC_READ((__t)->size)], NULL, __l)) \
+    while (!__sync_bool_compare_and_swap(&(__t)->items[(__h)%ATOMIC_READ((__t)->size)], NULL, (__l))) \
     { \
         ht_items_list_t *l = ATOMIC_READ((__t)->items[(__h)%ATOMIC_READ((__t)->size)]); \
         if (l) { \
-            SPIN_UNLOCK(__l->lock); \
-            SPIN_DESTROY(__l->lock); \
-            free(__l); \
-            __l = l; \
+            SPIN_LOCK(l->lock); \
+            SPIN_UNLOCK((__l)->lock); \
+            SPIN_DESTROY((__l)->lock); \
+            free((__l)); \
+            (__l) = l; \
             break; \
         } \
     } \
