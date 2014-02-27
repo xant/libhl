@@ -26,6 +26,9 @@
 #define REFCNT_MARK_OFF(__addr) (refcnt_node_t *)((intptr_t)REFCNT_ATOMIC_READ(__addr) & -2)
 #define REFCNT_IS_MARKED(__addr) (((intptr_t)REFCNT_ATOMIC_READ(__addr) & 1) == 1)
 
+#define REFCNT_RETAIN(__refcnt, __node, __type) ((__type) *)get_node_ptr(retain_ref((__refcnt), (__node)))
+#define REFCNT_RELEASE(__refcnt, __node, __type) ((__type) *)get_node_ptr(release_ref((__refcnt), (__node)))
+
 typedef struct __refcnt refcnt_t;
 
 typedef struct __refcnt_node refcnt_node_t;
@@ -102,7 +105,7 @@ refcnt_node_t *deref_link_d(refcnt_t *refcnt, refcnt_node_t **link);
  * @param ref    : The reference to release
  * @note         : The refcount of the provided reference is decreased by 1
  */
-void release_ref(refcnt_t *refcnt, refcnt_node_t *ref);
+refcnt_node_t *release_ref(refcnt_t *refcnt, refcnt_node_t *ref);
 
 /**
  * @brief Atomically compare a reference to a refcounted object with an existing pointer
@@ -133,7 +136,7 @@ void *get_node_ptr(refcnt_node_t *node);
  * @param ref    : The reference to retain
  * @note         : The refcount of the provided reference is increased by 1
  */
-void retain_ref(refcnt_t *refcnt, refcnt_node_t *ref);
+refcnt_node_t *retain_ref(refcnt_t *refcnt, refcnt_node_t *ref);
 
 /**
  * @brief Atomically store a reference to a refcounted object in the memory

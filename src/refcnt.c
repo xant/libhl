@@ -88,9 +88,11 @@ refcnt_node_t *deref_link(refcnt_t *refcnt, refcnt_node_t **link) {
     return deref_link_internal(refcnt, link, 1);
 }
 
-void release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
+refcnt_node_t *release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
+    int terminated = 0;
+
     if (!refcnt)
-        return;
+        return NULL;
 
     if (REFCNT_ATOMIC_READ(ref->count) > 0)
         REFCNT_ATOMIC_DECREMENT(ref->count, 1);
@@ -99,12 +101,15 @@ void release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
             if (refcnt->terminate_node_cb)
                 refcnt->terminate_node_cb(ref, 0);
             rqueue_write(refcnt->free_list, ref);
+            terminated = 1;
         } else {
             REFCNT_ATOMIC_CMPXCHG(ref->delete, 1, 0);
         }
     }
     if (rqueue_write_count(refcnt->free_list) - rqueue_read_count(refcnt->free_list) > refcnt->gc_threshold)
         gc(refcnt, 0);
+
+    return terminated ? NULL : ref;
 }
 
 int compare_and_swap_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *old, refcnt_node_t *ref) {
@@ -135,9 +140,10 @@ void store_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *ref) {
     }
 }
 
-void retain_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
+refcnt_node_t *retain_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
     ref = deref_link(refcnt, &ref);
     if (ref) { } // suppress warnings
+    return ref;
 }
 
 refcnt_node_t *new_node(refcnt_t *refcnt, void *ptr) {
