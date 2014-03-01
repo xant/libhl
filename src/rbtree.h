@@ -31,9 +31,9 @@ typedef void (*rbtree_free_value_callback)(void *v);
  * @param k1size The size of the first key to compare
  * @param k2     The second key to compare
  * @param k2size The size of the second key to compare
- * @return The distance between the two keys. If the size is different
- *         0 will be returned if the keys match (both size and value);
- *         "k1size - k2size" will be returned if the two sizes don't match;
+ * @return The distance between the two keys.
+ *         0 will be returned if the keys match (both size and value);\n
+ *         "k1size - k2size" will be returned if the two sizes don't match;\n
  *         The difference between the two keys is returned if the two sizes
  *         match but the value doesn't
  * @note By default memcmp() is be used to compare the value, a custom
