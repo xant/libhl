@@ -2,6 +2,334 @@
 <Tokens version="1.0">
   <Token>
     <TokenIdentifier>
+      <Name>binheap_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>tdef</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a996b18d437efeba2d2cedca7d21aa544</Anchor>
+    <Abstract>Opaque structure representing the heap. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_cmp_keys_callback</Name>
+      <APILanguage>c</APILanguage>
+      <Type>tdef</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>aaf947de24ace12bea3371035ee81a4b5</Anchor>
+    <Abstract>Callback used to compare two keys. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_incr_key_callback</Name>
+      <APILanguage>c</APILanguage>
+      <Type>tdef</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>af4809e06c94bcb9d2569d8d19dc3a2d1</Anchor>
+    <Abstract>Callback used to increment a given key by an arbitrary amount. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_decr_key_callback</Name>
+      <APILanguage>c</APILanguage>
+      <Type>tdef</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a4b8fbd1a16e176618a72cefd5e842ba1</Anchor>
+    <Abstract>Callback used to decrement a given key by an arbitrary amount. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_create</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>ad1d7b1dd2c965385b60953890cbffd77</Anchor>
+    <Abstract>Create a new binomial heap. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_destroy</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a19700a45f509b2fd305dcaf68b0a196c</Anchor>
+    <Abstract>Release all the resources used by a binomial heap. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_insert</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>aec5fcb728521b60e49d652f37e18933d</Anchor>
+    <Abstract>Insert a new value into the heap. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_minimum</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a2a334afddd72ac7e9ed37f2f2e126659</Anchor>
+    <Abstract>Retrieve the minimum item in the heap. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_maximum</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a40267419a2ac136c084926679ae89e6b</Anchor>
+    <Abstract>Retrieve the maximum item in the heap. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_delete_minimum</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a766760f7edeaf0ab43e0e0901332485b</Anchor>
+    <Abstract>Delete the minimum item in the heap (and eventually retrieve its value) </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_delete_maximum</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a688ebb7c8173a23bb286be51bc5a0091</Anchor>
+    <Abstract>Delete the maximum item in the heap (and eventually retrieve its value) </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_delete</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a000f7c302a21d10048309194eea9b795</Anchor>
+    <Abstract>Delete at most one item matching a given key in the heap. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_increase_minimum</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a36c5240484646bdfe4fbeda64efe13a6</Anchor>
+    <Abstract>Increase the minimum key by an arbitrary amount. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_increase_maximum</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a38f39cc407f8d86e5436ae90174d6b68</Anchor>
+    <Abstract>Increase the maximum key by an arbitrary amount. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_decrease_minimum</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a643f08473fb897257daec11703acf83d</Anchor>
+    <Abstract>Decrease the minimum key by an arbitrary amount. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_decrease_maximum</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a3c2003e2ce3d254bceb63a8a12df22b9</Anchor>
+    <Abstract>Decrease the maximum key by an arbitrary amount. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_increase_key</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>ad9dee194e7bd6dbd21ef6d256a9e6520</Anchor>
+    <Abstract>Increase a given key by an arbitrary amount. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_decrease_key</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>ab4170563eca3188a231a716f6bdf2c73</Anchor>
+    <Abstract>Decrease a given key by an arbitrary amount. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_merge</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a12ae86c3af700313d1a1689df61c12f0</Anchor>
+    <Abstract>Merge two heaps. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_count</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>aa733db191b87bf6bb2b9f246d9c23348</Anchor>
+    <Abstract>Return the number of items in the heap. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_keys_callbacks_int16_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a7417981b93895ad623a7fbca4b858acf</Anchor>
+    <Abstract>Default callbacks to handle 16bit signed integer keys. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_keys_callbacks_int32_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a1eb4890a1e3835d51873cc496ddd7ae0</Anchor>
+    <Abstract>Default callbacks to handle 32bit signed integer keys. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_keys_callbacks_int64_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>ad490f0983a7753466835e1fad2e21a2a</Anchor>
+    <Abstract>Default callbacks to handle 64bit signed integer keys. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_keys_callbacks_uint16_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a030c1e1b0d33724e1e49089cd4883533</Anchor>
+    <Abstract>Default callbacks to handle 16bit unsigned integer keys. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_keys_callbacks_uint32_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a4a629ec0c95b9a859de193e69e88910e</Anchor>
+    <Abstract>Default callbacks to handle 32bit unsigned integer keys. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_keys_callbacks_uint64_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a305679dbcb981392d4f2d4efc61fde37</Anchor>
+    <Abstract>Default callbacks to handle 64bit unsigned integer keys. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_keys_callbacks_float</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>ac16dcffaa7f68487b68636dd4996627d</Anchor>
+    <Abstract>Default callbacks to handle float keys. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>binheap_keys_callbacks_double</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a2516e9d1fe4164c5d40ee65e528ab4b3</Anchor>
+    <Abstract>Default callbacks to handle double keys. </Abstract>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>BINHEAP_MODE_MAX</Name>
+      <APILanguage>c</APILanguage>
+      <Type>econst</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a742affb06865627d216e6b001a7694f7adb9c014247ac0e580c7c3156e093910d</Anchor>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>BINHEAP_MODE_MIN</Name>
+      <APILanguage>c</APILanguage>
+      <Type>econst</Type>
+    </TokenIdentifier>
+    <Path>binheap_8h.html</Path>
+    <Anchor>a742affb06865627d216e6b001a7694f7aa15e68c78c041cdd4363de055e242f53</Anchor>
+    <DeclaredIn>binheap.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>FBUF_MAXLEN_NONE</Name>
       <APILanguage>unknown</APILanguage>
       <Type>macro</Type>
@@ -1114,6 +1442,94 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>pqueue_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>tdef</Type>
+    </TokenIdentifier>
+    <Path>pqueue_8h.html</Path>
+    <Anchor>aa4a28125d71ac80ca6b39531c6c50267</Anchor>
+    <Abstract>Opaque structure representing the priority queue. </Abstract>
+    <DeclaredIn>pqueue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>pqueue_free_value_callback</Name>
+      <APILanguage>c</APILanguage>
+      <Type>tdef</Type>
+    </TokenIdentifier>
+    <Path>pqueue_8h.html</Path>
+    <Anchor>af77de2c23bdedd674b2e4b5cc081c1af</Anchor>
+    <Abstract>Callback that, if provided, will be called to release the value resources when an value is being remo...</Abstract>
+    <DeclaredIn>pqueue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>pqueue_create</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>pqueue_8h.html</Path>
+    <Anchor>a353daebcc1f95f532118c0b7ecea7295</Anchor>
+    <Abstract>Create a new priority queue. </Abstract>
+    <DeclaredIn>pqueue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>pqueue_insert</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>pqueue_8h.html</Path>
+    <Anchor>a6d8c7fa073d5b35e1f24d02e1806a4aa</Anchor>
+    <Abstract>Insert a new value into the queue with a given priority. </Abstract>
+    <DeclaredIn>pqueue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>pqueue_pull_highest</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>pqueue_8h.html</Path>
+    <Anchor>a039832ce67cfc443d576a3a1e474ddee</Anchor>
+    <Abstract>Pull the the highest priority value out of the queue. </Abstract>
+    <DeclaredIn>pqueue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>pqueue_pull_lowest</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>pqueue_8h.html</Path>
+    <Anchor>a9128adc7241be9f8baf2ce4cb276ab5f</Anchor>
+    <Abstract>Pull the the lowest priority value out of the queue. </Abstract>
+    <DeclaredIn>pqueue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>pqueue_count</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>pqueue_8h.html</Path>
+    <Anchor>a73388b7e3c833e79fb7a143ad427e115</Anchor>
+    <Abstract>Return the number of values stored in the priority queue. </Abstract>
+    <DeclaredIn>pqueue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>pqueue_destroy</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>pqueue_8h.html</Path>
+    <Anchor>a0c760d3e652c3f73e0ea11b5316582f4</Anchor>
+    <Abstract>Release all the resources used by a priority queue. </Abstract>
+    <DeclaredIn>pqueue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>queue_free_value_callback_t</Name>
       <APILanguage>c</APILanguage>
       <Type>tdef</Type>
@@ -1327,7 +1743,7 @@
       <Type>func</Type>
     </TokenIdentifier>
     <Path>rbtree_8h.html</Path>
-    <Anchor>a6e7793426c57534ada2d16e9e2bef1e8</Anchor>
+    <Anchor>adffa452fa390072698781eaefd76767f</Anchor>
     <Abstract>Create a new red/black tree. </Abstract>
     <DeclaredIn>rbtree.h</DeclaredIn>
   </Token>
@@ -1383,7 +1799,18 @@
     </TokenIdentifier>
     <Path>rbtree_8h.html</Path>
     <Anchor>ac845735f658163335990b6495ddae045</Anchor>
-    <Abstract>Walk the entire tree and call the provided callback for each visited node. </Abstract>
+    <Abstract>Walk the entire tree and call the callback for each visited node. </Abstract>
+    <DeclaredIn>rbtree.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>rbtree_walk_sorted</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>rbtree_8h.html</Path>
+    <Anchor>adb9448b2f4e84e6865a5a9ff9dea84b4</Anchor>
+    <Abstract>Walk the entire tree visiting nodes in ascending order and call the callback for each visited node...</Abstract>
     <DeclaredIn>rbtree.h</DeclaredIn>
   </Token>
   <Token>

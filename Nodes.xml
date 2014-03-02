@@ -18,6 +18,28 @@
           <Path>annotated.html</Path>
           <Subnodes>
            <Node>
+            <Name>binheap_callbacks_t</Name>
+            <Path>binheap_8h.html</Path>
+            <Anchor>structbinheap__callbacks__t</Anchor>
+            <Subnodes>
+             <Node>
+              <Name>cmp</Name>
+              <Path>binheap_8h.html</Path>
+              <Anchor>ad3e250893038100ba08c266d0dfe87f4</Anchor>
+             </Node>
+             <Node>
+              <Name>incr</Name>
+              <Path>binheap_8h.html</Path>
+              <Anchor>aada8544b7a9ef937ea8d031910ca9aea</Anchor>
+             </Node>
+             <Node>
+              <Name>decr</Name>
+              <Path>binheap_8h.html</Path>
+              <Anchor>a155f5635a59c09bbf6fb82e576b0d019</Anchor>
+             </Node>
+            </Subnodes>
+           </Node>
+           <Node>
             <Name>fbuf_t</Name>
             <Path>fbuf_8h.html</Path>
             <Anchor>structfbuf__t</Anchor>
@@ -154,6 +176,191 @@
             <Name>src</Name>
             <Path>dir_68267d1309a1af8e8297ef4c3efbcdba.html</Path>
             <Subnodes>
+             <Node>
+              <Name>binheap.h</Name>
+              <Path>binheap_8h.html</Path>
+              <Subnodes>
+               <Node>
+                <Name>binheap_callbacks_t</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>structbinheap__callbacks__t</Anchor>
+                <Subnodes>
+                 <Node>
+                  <Name>cmp</Name>
+                  <Path>binheap_8h.html</Path>
+                  <Anchor>ad3e250893038100ba08c266d0dfe87f4</Anchor>
+                 </Node>
+                 <Node>
+                  <Name>incr</Name>
+                  <Path>binheap_8h.html</Path>
+                  <Anchor>aada8544b7a9ef937ea8d031910ca9aea</Anchor>
+                 </Node>
+                 <Node>
+                  <Name>decr</Name>
+                  <Path>binheap_8h.html</Path>
+                  <Anchor>a155f5635a59c09bbf6fb82e576b0d019</Anchor>
+                 </Node>
+                </Subnodes>
+               </Node>
+               <Node>
+                <Name>binheap_t</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a996b18d437efeba2d2cedca7d21aa544</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_cmp_keys_callback</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>aaf947de24ace12bea3371035ee81a4b5</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_incr_key_callback</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>af4809e06c94bcb9d2569d8d19dc3a2d1</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_decr_key_callback</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a4b8fbd1a16e176618a72cefd5e842ba1</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_mode_t</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a742affb06865627d216e6b001a7694f7</Anchor>
+                <Subnodes>
+                 <Node>
+                  <Name>BINHEAP_MODE_MAX</Name>
+                  <Path>binheap_8h.html</Path>
+                  <Anchor>a742affb06865627d216e6b001a7694f7adb9c014247ac0e580c7c3156e093910d</Anchor>
+                 </Node>
+                 <Node>
+                  <Name>BINHEAP_MODE_MIN</Name>
+                  <Path>binheap_8h.html</Path>
+                  <Anchor>a742affb06865627d216e6b001a7694f7aa15e68c78c041cdd4363de055e242f53</Anchor>
+                 </Node>
+                </Subnodes>
+               </Node>
+               <Node>
+                <Name>binheap_create</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>ad1d7b1dd2c965385b60953890cbffd77</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_destroy</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a19700a45f509b2fd305dcaf68b0a196c</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_insert</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>aec5fcb728521b60e49d652f37e18933d</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_minimum</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a2a334afddd72ac7e9ed37f2f2e126659</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_maximum</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a40267419a2ac136c084926679ae89e6b</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_delete_minimum</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a766760f7edeaf0ab43e0e0901332485b</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_delete_maximum</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a688ebb7c8173a23bb286be51bc5a0091</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_delete</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a000f7c302a21d10048309194eea9b795</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_increase_minimum</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a36c5240484646bdfe4fbeda64efe13a6</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_increase_maximum</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a38f39cc407f8d86e5436ae90174d6b68</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_decrease_minimum</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a643f08473fb897257daec11703acf83d</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_decrease_maximum</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a3c2003e2ce3d254bceb63a8a12df22b9</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_increase_key</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>ad9dee194e7bd6dbd21ef6d256a9e6520</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_decrease_key</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>ab4170563eca3188a231a716f6bdf2c73</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_merge</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a12ae86c3af700313d1a1689df61c12f0</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_count</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>aa733db191b87bf6bb2b9f246d9c23348</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_keys_callbacks_int16_t</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a7417981b93895ad623a7fbca4b858acf</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_keys_callbacks_int32_t</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a1eb4890a1e3835d51873cc496ddd7ae0</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_keys_callbacks_int64_t</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>ad490f0983a7753466835e1fad2e21a2a</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_keys_callbacks_uint16_t</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a030c1e1b0d33724e1e49089cd4883533</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_keys_callbacks_uint32_t</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a4a629ec0c95b9a859de193e69e88910e</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_keys_callbacks_uint64_t</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a305679dbcb981392d4f2d4efc61fde37</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_keys_callbacks_float</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>ac16dcffaa7f68487b68636dd4996627d</Anchor>
+               </Node>
+               <Node>
+                <Name>binheap_keys_callbacks_double</Name>
+                <Path>binheap_8h.html</Path>
+                <Anchor>a2516e9d1fe4164c5d40ee65e528ab4b3</Anchor>
+               </Node>
+              </Subnodes>
+             </Node>
              <Node>
               <Name>fbuf.h</Name>
               <Path>fbuf_8h.html</Path>
@@ -786,6 +993,52 @@
               </Subnodes>
              </Node>
              <Node>
+              <Name>pqueue.h</Name>
+              <Path>pqueue_8h.html</Path>
+              <Subnodes>
+               <Node>
+                <Name>pqueue_t</Name>
+                <Path>pqueue_8h.html</Path>
+                <Anchor>aa4a28125d71ac80ca6b39531c6c50267</Anchor>
+               </Node>
+               <Node>
+                <Name>pqueue_free_value_callback</Name>
+                <Path>pqueue_8h.html</Path>
+                <Anchor>af77de2c23bdedd674b2e4b5cc081c1af</Anchor>
+               </Node>
+               <Node>
+                <Name>pqueue_create</Name>
+                <Path>pqueue_8h.html</Path>
+                <Anchor>a353daebcc1f95f532118c0b7ecea7295</Anchor>
+               </Node>
+               <Node>
+                <Name>pqueue_insert</Name>
+                <Path>pqueue_8h.html</Path>
+                <Anchor>a6d8c7fa073d5b35e1f24d02e1806a4aa</Anchor>
+               </Node>
+               <Node>
+                <Name>pqueue_pull_highest</Name>
+                <Path>pqueue_8h.html</Path>
+                <Anchor>a039832ce67cfc443d576a3a1e474ddee</Anchor>
+               </Node>
+               <Node>
+                <Name>pqueue_pull_lowest</Name>
+                <Path>pqueue_8h.html</Path>
+                <Anchor>a9128adc7241be9f8baf2ce4cb276ab5f</Anchor>
+               </Node>
+               <Node>
+                <Name>pqueue_count</Name>
+                <Path>pqueue_8h.html</Path>
+                <Anchor>a73388b7e3c833e79fb7a143ad427e115</Anchor>
+               </Node>
+               <Node>
+                <Name>pqueue_destroy</Name>
+                <Path>pqueue_8h.html</Path>
+                <Anchor>a0c760d3e652c3f73e0ea11b5316582f4</Anchor>
+               </Node>
+              </Subnodes>
+             </Node>
+             <Node>
               <Name>queue.h</Name>
               <Path>queue_8h.html</Path>
               <Subnodes>
@@ -893,7 +1146,7 @@
                <Node>
                 <Name>rbtree_create</Name>
                 <Path>rbtree_8h.html</Path>
-                <Anchor>a6e7793426c57534ada2d16e9e2bef1e8</Anchor>
+                <Anchor>adffa452fa390072698781eaefd76767f</Anchor>
                </Node>
                <Node>
                 <Name>rbtree_destroy</Name>
@@ -919,6 +1172,11 @@
                 <Name>rbtree_walk</Name>
                 <Path>rbtree_8h.html</Path>
                 <Anchor>ac845735f658163335990b6495ddae045</Anchor>
+               </Node>
+               <Node>
+                <Name>rbtree_walk_sorted</Name>
+                <Path>rbtree_8h.html</Path>
+                <Anchor>adb9448b2f4e84e6865a5a9ff9dea84b4</Anchor>
                </Node>
                <Node>
                 <Name>rbtree_cmp_keys_int16</Name>
@@ -1255,6 +1513,72 @@
            <Node>
             <Name>All</Name>
             <Path>globals.html</Path>
+            <Subnodes>
+             <Node>
+              <Name>b</Name>
+              <Path>globals.html</Path>
+             </Node>
+             <Node>
+              <Name>c</Name>
+              <Path>globals_0x63.html</Path>
+             </Node>
+             <Node>
+              <Name>d</Name>
+              <Path>globals_0x64.html</Path>
+             </Node>
+             <Node>
+              <Name>f</Name>
+              <Path>globals_0x66.html</Path>
+             </Node>
+             <Node>
+              <Name>g</Name>
+              <Path>globals_0x67.html</Path>
+             </Node>
+             <Node>
+              <Name>h</Name>
+              <Path>globals_0x68.html</Path>
+             </Node>
+             <Node>
+              <Name>i</Name>
+              <Path>globals_0x69.html</Path>
+             </Node>
+             <Node>
+              <Name>l</Name>
+              <Path>globals_0x6c.html</Path>
+             </Node>
+             <Node>
+              <Name>m</Name>
+              <Path>globals_0x6d.html</Path>
+             </Node>
+             <Node>
+              <Name>n</Name>
+              <Path>globals_0x6e.html</Path>
+             </Node>
+             <Node>
+              <Name>p</Name>
+              <Path>globals_0x70.html</Path>
+             </Node>
+             <Node>
+              <Name>q</Name>
+              <Path>globals_0x71.html</Path>
+             </Node>
+             <Node>
+              <Name>r</Name>
+              <Path>globals_0x72.html</Path>
+             </Node>
+             <Node>
+              <Name>s</Name>
+              <Path>globals_0x73.html</Path>
+             </Node>
+             <Node>
+              <Name>t</Name>
+              <Path>globals_0x74.html</Path>
+             </Node>
+             <Node>
+              <Name>u</Name>
+              <Path>globals_0x75.html</Path>
+             </Node>
+            </Subnodes>
            </Node>
            <Node>
             <Name>Functions</Name>

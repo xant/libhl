@@ -139,9 +139,9 @@ Typedefs</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a6e7793426c57534ada2d16e9e2bef1e8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="rbtree_8h.html#a801f239917836505e4680383c2c626ea">rbtree_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbtree_8h.html#a6e7793426c57534ada2d16e9e2bef1e8">rbtree_create</a> (<a class="el" href="rbtree_8h.html#ae6a58c956b2c0695ca5d4ba70c776c62">rbtree_cmp_keys_callback</a> cmp_key_cb, <a class="el" href="rbtree_8h.html#a4271725bcaa5d23a9bcf677ca70a2259">rbtree_free_value_callback</a> free_value_cb)</td></tr>
-<tr class="memdesc:a6e7793426c57534ada2d16e9e2bef1e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new red/black tree.  <a href="#a6e7793426c57534ada2d16e9e2bef1e8">More...</a><br/></td></tr>
-<tr class="separator:a6e7793426c57534ada2d16e9e2bef1e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adffa452fa390072698781eaefd76767f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="rbtree_8h.html#a801f239917836505e4680383c2c626ea">rbtree_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbtree_8h.html#adffa452fa390072698781eaefd76767f">rbtree_create</a> (<a class="el" href="rbtree_8h.html#ae6a58c956b2c0695ca5d4ba70c776c62">rbtree_cmp_keys_callback</a> cmp_keys_cb, <a class="el" href="rbtree_8h.html#a4271725bcaa5d23a9bcf677ca70a2259">rbtree_free_value_callback</a> free_value_cb)</td></tr>
+<tr class="memdesc:adffa452fa390072698781eaefd76767f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new red/black tree.  <a href="#adffa452fa390072698781eaefd76767f">More...</a><br/></td></tr>
+<tr class="separator:adffa452fa390072698781eaefd76767f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae1d60f8535b8d21dbd2fd2fefefebfce"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbtree_8h.html#ae1d60f8535b8d21dbd2fd2fefefebfce">rbtree_destroy</a> (<a class="el" href="rbtree_8h.html#a801f239917836505e4680383c2c626ea">rbtree_t</a> *rbt)</td></tr>
 <tr class="memdesc:ae1d60f8535b8d21dbd2fd2fefefebfce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Release all the resources used by a red/black tree.  <a href="#ae1d60f8535b8d21dbd2fd2fefefebfce">More...</a><br/></td></tr>
 <tr class="separator:ae1d60f8535b8d21dbd2fd2fefefebfce"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -155,8 +155,11 @@ Functions</h2></td></tr>
 <tr class="memdesc:ad565fcb9a7a0acc280960b23ed3c262e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the value stored in the node node matching a specific key (if any)  <a href="#ad565fcb9a7a0acc280960b23ed3c262e">More...</a><br/></td></tr>
 <tr class="separator:ad565fcb9a7a0acc280960b23ed3c262e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac845735f658163335990b6495ddae045"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbtree_8h.html#ac845735f658163335990b6495ddae045">rbtree_walk</a> (<a class="el" href="rbtree_8h.html#a801f239917836505e4680383c2c626ea">rbtree_t</a> *rbt, <a class="el" href="rbtree_8h.html#afa109a49ce0d2442340419459c1a9ad9">rbtree_walk_callback</a> cb, void *priv)</td></tr>
-<tr class="memdesc:ac845735f658163335990b6495ddae045"><td class="mdescLeft">&#160;</td><td class="mdescRight">Walk the entire tree and call the provided callback for each visited node.  <a href="#ac845735f658163335990b6495ddae045">More...</a><br/></td></tr>
+<tr class="memdesc:ac845735f658163335990b6495ddae045"><td class="mdescLeft">&#160;</td><td class="mdescRight">Walk the entire tree and call the callback for each visited node.  <a href="#ac845735f658163335990b6495ddae045">More...</a><br/></td></tr>
 <tr class="separator:ac845735f658163335990b6495ddae045"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adb9448b2f4e84e6865a5a9ff9dea84b4"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbtree_8h.html#adb9448b2f4e84e6865a5a9ff9dea84b4">rbtree_walk_sorted</a> (<a class="el" href="rbtree_8h.html#a801f239917836505e4680383c2c626ea">rbtree_t</a> *rbt, <a class="el" href="rbtree_8h.html#afa109a49ce0d2442340419459c1a9ad9">rbtree_walk_callback</a> cb, void *priv)</td></tr>
+<tr class="memdesc:adb9448b2f4e84e6865a5a9ff9dea84b4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Walk the entire tree visiting nodes in ascending order and call the callback for each visited node.  <a href="#adb9448b2f4e84e6865a5a9ff9dea84b4">More...</a><br/></td></tr>
+<tr class="separator:adb9448b2f4e84e6865a5a9ff9dea84b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae7457d99f1314a5a146b228aaecb2a37"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbtree_8h.html#ae7457d99f1314a5a146b228aaecb2a37">rbtree_cmp_keys_int16</a> (void *k1, size_t k1size, void *k2, size_t k2size)</td></tr>
 <tr class="memdesc:ae7457d99f1314a5a146b228aaecb2a37"><td class="mdescLeft">&#160;</td><td class="mdescRight">16bit signed integers comparator  <a href="#ae7457d99f1314a5a146b228aaecb2a37">More...</a><br/></td></tr>
 <tr class="separator:ae7457d99f1314a5a146b228aaecb2a37"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -184,7 +187,8 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Red/Black Tree. </p>
-<p>Red/Black Tree implementation to store/access arbitrary data </p>
+<p>Red/Black Tree implementation to store/access arbitrary data</p>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000002">Todo:</a></b></dt><dd>extend the api to allow walking from/to a specific node (instead of only allowing to walk the entire tree)</dd></dl>
 </div><h2 class="groupheader">Macro Definition Documentation</h2>
 <a class="anchor" id="a4c8378e1348c88ddfdd386bff2029f63"></a>
 <div class="memitem">
@@ -286,8 +290,10 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The distance between the two keys. If the size is different 0 will be returned if the keys match (both size and value); "k1size - k2size" will be returned if the two sizes don't match; The difference between the two keys is returned if the two sizes match but the value doesn't </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>By default memcmp() is be used to compare the value, a custom comparator can be registered at creation time (as parameter of <a class="el" href="rbtree_8h.html#a6e7793426c57534ada2d16e9e2bef1e8" title="Create a new red/black tree. ">rbtree_create()</a>) </dd>
+<dl class="section return"><dt>Returns</dt><dd>The distance between the two keys. 0 will be returned if the keys match (both size and value);<br/>
+ "k1size - k2size" will be returned if the two sizes don't match;<br/>
+ The difference between the two keys is returned if the two sizes match but the value doesn't </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>By default memcmp() is be used to compare the value, a custom comparator can be registered at creation time (as parameter of <a class="el" href="rbtree_8h.html#adffa452fa390072698781eaefd76767f" title="Create a new red/black tree. ">rbtree_create()</a>) </dd>
 <dd>
 If integers bigger than 8 bits are going to be used as keys, an integer comparator should be used instead of the default one (either a custom comparator or one of the <a class="el" href="rbtree_8h.html#ae7457d99f1314a5a146b228aaecb2a37" title="16bit signed integers comparator ">rbtree_cmp_keys_int16()</a>, <a class="el" href="rbtree_8h.html#a7553be54ae88791fcf63b116a9435aa3" title="32bit signed integers comparator ">rbtree_cmp_keys_int32()</a> and <a class="el" href="rbtree_8h.html#a6513c01f943da757d54ebe1b2ebee30f" title="64bit signed integers comparator ">rbtree_cmp_keys_int64()</a> helpers provided by the library). </dd></dl>
 
@@ -314,12 +320,12 @@ If integers bigger than 8 bits are going to be used as keys, an integer comparat
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>0 if the walker can go ahead visiting next node, any NON-ZERO integer if the walker should stop and return </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>1 If the walker can go ahead visiting the next node, 0 if the walker should stop and return -1 if the current node should be removed and the walker can go ahead -2 if the current node should be removed and the walker should stop </dd></dl>
 
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a class="anchor" id="a6e7793426c57534ada2d16e9e2bef1e8"></a>
+<a class="anchor" id="adffa452fa390072698781eaefd76767f"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -327,7 +333,7 @@ If integers bigger than 8 bits are going to be used as keys, an integer comparat
           <td class="memname"><a class="el" href="rbtree_8h.html#a801f239917836505e4680383c2c626ea">rbtree_t</a>* rbtree_create </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="rbtree_8h.html#ae6a58c956b2c0695ca5d4ba70c776c62">rbtree_cmp_keys_callback</a>&#160;</td>
-          <td class="paramname"><em>cmp_key_cb</em>, </td>
+          <td class="paramname"><em>cmp_keys_cb</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -346,7 +352,7 @@ If integers bigger than 8 bits are going to be used as keys, an integer comparat
 <p>Create a new red/black tree. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">cmp_key_cb</td><td>The comparator callback to use when comparing keys (defaults to memcmp()) </td></tr>
+    <tr><td class="paramname">cmp_keys_cb</td><td>The comparator callback to use when comparing keys (defaults to memcmp()) </td></tr>
     <tr><td class="paramname">free_value_cb</td><td>The callback used to release values when a node is removed or overwritten </td></tr>
   </table>
   </dd>
@@ -532,7 +538,8 @@ If integers bigger than 8 bits are going to be used as keys, an integer comparat
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>0 on success and both *v and *vsize are set to point to the stored value and its size; -1 if not found </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>0 on success and both *v and *vsize are set to point to the stored value and its size;<br/>
+-1 if not found </dd></dl>
 
 </div>
 </div>
@@ -566,7 +573,50 @@ If integers bigger than 8 bits are going to be used as keys, an integer comparat
       </table>
 </div><div class="memdoc">
 
-<p>Walk the entire tree and call the provided callback for each visited node. </p>
+<p>Walk the entire tree and call the callback for each visited node. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rbt</td><td>A valid pointer to an initialized rbtree_t structure </td></tr>
+    <tr><td class="paramname">cb</td><td>The callback to call for each visited node </td></tr>
+    <tr><td class="paramname">priv</td><td>A pointer to private data provided passed as argument to the callback when invoked. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The number of visited nodes </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="adb9448b2f4e84e6865a5a9ff9dea84b4"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int rbtree_walk_sorted </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="rbtree_8h.html#a801f239917836505e4680383c2c626ea">rbtree_t</a> *&#160;</td>
+          <td class="paramname"><em>rbt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="rbtree_8h.html#afa109a49ce0d2442340419459c1a9ad9">rbtree_walk_callback</a>&#160;</td>
+          <td class="paramname"><em>cb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>priv</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Walk the entire tree visiting nodes in ascending order and call the callback for each visited node. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">rbt</td><td>A valid pointer to an initialized rbtree_t structure </td></tr>
@@ -969,7 +1019,7 @@ If integers bigger than 8 bits are going to be used as keys, an integer comparat
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="rbtree_8h.html">rbtree.h</a></li>
-    <li class="footer">Generated on Sat Feb 22 2014 11:35:32 for libhl by
+    <li class="footer">Generated on Sun Mar 2 2014 23:39:01 for libhl by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.5 </li>
   </ul>
