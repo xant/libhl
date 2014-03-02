@@ -316,36 +316,114 @@ binheap_count(binheap_t *bh)
 
 binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
 {
-    binomial_tree_node_t *node = shift_value(bh2->trees);
-    while (node) {
-        int order = node->num_children;
-        int insert_index = -1;
-        binomial_tree_node_t *tree = NULL;
-        int i;
-        node->bh = bh1;
-        for (i = 0; i < list_count(bh1->trees); i++) {
-            tree = pick_value(bh1->trees, i);
-            if (tree->num_children == order) {
-                if (bh1->cmp_keys_cb(node->key, node->klen, tree->key, tree->klen) >= 0)
-                {
-                    binomial_tree_merge(node, tree);
-                } else {
-                    binomial_tree_merge(tree, node);
+    linked_list_t *new_list = create_list();
+    binomial_tree_node_t *node1 = shift_value(bh1->trees);
+    binomial_tree_node_t *node2 = shift_value(bh2->trees);
+    binomial_tree_node_t *merged = NULL;
+    while (node1 || node2 || merged) {
+
+        if (merged) {
+            binomial_tree_node_t *node = NULL;
+            if (node1 && node1->num_children == merged->num_children) {
+                node = node1;
+            } else if (node2 && node2->num_children  == merged->num_children) {
+                node = node2;
+            } else {
+                if (!node1 && !node2) {
+                    push_value(new_list, merged);
+                    merged = NULL;
+                    continue;
                 }
-                order++;
-                insert_index = i--;
-                node = fetch_value(bh1->trees, insert_index);
+                if (node1 && node1->num_children > merged->num_children) {
+                    binomial_tree_node_t *tmp = node1;
+                    node1 = merged;
+                    merged = tmp;
+                } else if (node2 && node2->num_children > merged->num_children) {
+                    binomial_tree_node_t *tmp = node2;
+                    node2 = merged;
+                    merged = tmp;
+                }
+            }
+
+            if (node) {
+                if (bh1->cmp_keys_cb(node->key, node->klen, merged->key, merged->klen) >= 0)
+                {
+                    binomial_tree_merge(node, merged);
+                } else {
+                    binomial_tree_merge(merged, node);
+                    if (node == node1)
+                        node1 = merged;
+                    else
+                        node2 = merged;
+                }
+                merged = NULL;
             }
         }
-        if (tree && insert_index >= 0)
-            insert_value(bh1->trees, tree, insert_index);
 
-        node = shift_value(bh2->trees);
+        if (node1 && !node2) {
+            push_value(new_list, node1);
+            node1 = shift_value(bh1->trees);
+            continue;
+        } else if (node2 && !node1) {
+            push_value(new_list, node2);
+            node2 = shift_value(bh2->trees);
+            continue;
+        } else if (merged && !node1 && !node2) {
+            push_value(new_list, merged);
+            merged = NULL;
+            continue;
+        }
+
+        int order1 = node1->num_children;
+        int order2 = node2->num_children;
+
+        if (order1 < order2) {
+            push_value(new_list, node1);
+            node1 = shift_value(bh1->trees);
+            continue;
+        } else if (order1 > order2) {
+            push_value(new_list, node2);
+            node2 = shift_value(bh2->trees);
+            continue;
+        }
+
+        if (bh1->cmp_keys_cb(node1->key, node1->klen, node2->key, node2->klen) >= 0)
+        {
+            binomial_tree_merge(node1, node2);
+            if (merged) {
+                if (bh1->cmp_keys_cb(node1->key, node1->klen, merged->key, merged->klen) >= 0) {
+                    binomial_tree_merge(node1, merged);
+                    merged = node1;
+                } else {
+                    binomial_tree_merge(merged, node1);
+                }
+            } else {
+                merged = node1;
+            }
+        } else {
+            binomial_tree_merge(node2, node1);
+            if (merged) {
+                if (bh1->cmp_keys_cb(node2->key, node2->klen, merged->key, merged->klen) >= 0) {
+                    binomial_tree_merge(node2, merged);
+                    merged = node2;
+                } else {
+                    binomial_tree_merge(merged, node2);
+                }
+            } else {
+                merged = node2;
+            }
+        }
+
+        node1 = shift_value(bh1->trees);
+        node2 = shift_value(bh2->trees);
     }
 
     bh1->count += bh2->count;
 
     binheap_destroy(bh2);
+
+    destroy_list(bh1->trees);
+    bh1->trees = new_list;
 
     return bh1;
 }
