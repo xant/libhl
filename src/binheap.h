@@ -26,10 +26,10 @@ int binheap_minimum(binheap_t *bh, void **key, size_t *klen, void **value, size_
 
 int binheap_maximum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *vlen);
 
-int binheap_delete_minimum(binheap_t *bh);
-int binheap_delete_maximum(binheap_t *bh);
+int binheap_delete_minimum(binheap_t *bh, void **value, size_t *vlen);
+int binheap_delete_maximum(binheap_t *bh, void **value, size_t *vlen);
 
-int binheap_delete(binheap_t *bh, void *key, size_t klen);
+int binheap_delete(binheap_t *bh, void *key, size_t klen, void **value, size_t *vlen);
 
 binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2);
 
