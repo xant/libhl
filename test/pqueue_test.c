@@ -5,13 +5,21 @@
 #include <ut.h>
 #include "pqueue.h"
 
+static int free_count = 0;
+
+void free_item(void *item)
+{
+    free_count++;
+    free(item);
+}
+
 int
 main(int argc, char **argv)
 {
     ut_init(basename(argv[0]));
 
     ut_testing("pqueue_create(100, free)");
-    pqueue_t *pq = pqueue_create(100, (pqueue_free_value_callback)free);
+    pqueue_t *pq = pqueue_create(100, (pqueue_free_value_callback)free_item);
     if (pq)
         ut_success();
     else
@@ -61,10 +69,14 @@ main(int argc, char **argv)
 
     ut_validate_int(pqueue_count(pq), 100);
 
-    ut_testing("The item with lowest prio has been dropped so now min prio is 2");
+    ut_testing("Min prio is now 2");
     pqueue_pull_lowest(pq, (void **)&min, &minprio);
     ut_validate_int(*min, 2);
     free(min);
+
+    ut_testing("pqueue_destroy() and the free_value_callback");
+    pqueue_destroy(pq);
+    ut_validate_int(free_count, 100);
 
     ut_summary();
 
