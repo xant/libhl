@@ -111,9 +111,7 @@ void queue_init(queue_t *q)
 static inline void destroy_entry(queue_entry_t *entry) 
 {
     if(entry) 
-    {
         release_ref(entry->refcnt, ATOMIC_READ(entry->node)); // this will also release the entry itself
-    }
 }
 
 /*
@@ -212,7 +210,10 @@ static inline queue_entry_t *help_insert(queue_entry_t *prev, queue_entry_t *ent
         release_ref(prev2->refcnt, ATOMIC_READ(prev2->node));
         if (get_node_ptr(link1) == prev)
             break;
-        if (ATOMIC_READ(prev->next) == ATOMIC_READ(entry->node) && ATOMIC_CMPXCHG(entry->prev, link1, ATOMIC_READ(prev->node))) {
+
+        if (ATOMIC_READ(prev->next) == ATOMIC_READ(entry->node) &&
+            ATOMIC_CMPXCHG(entry->prev, link1, ATOMIC_READ(prev->node)))
+        {
             retain_ref(prev->refcnt, ATOMIC_READ(prev->node));
             release_ref(entry->refcnt, link1);
             if (REFCNT_IS_MARKED(prev->prev))
@@ -342,7 +343,6 @@ static inline void push_common(queue_entry_t *entry, queue_entry_t *next) {
         release_ref(next->refcnt, link1);
     }
     release_ref(next->refcnt, ATOMIC_READ(next->node));
-    //release_ref(entry->refcnt, entry->node);
 }
 
 /* 
