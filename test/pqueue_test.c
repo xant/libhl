@@ -74,8 +74,14 @@ main(int argc, char **argv)
     ut_validate_int(*min, 2);
     free(min);
 
+    ut_testing("pqueue_count(pq) == 99");
+    ut_validate_int(pqueue_count(pq), 99);
+
     ut_testing("pqueue_destroy() and the free_value_callback");
     pqueue_destroy(pq);
+    // 100 items need to have been freed so far
+    // 1 was automatically removed when overflowing the queue by adding extra items
+    // 99 are left in the queue when we called pqueue_destroy()
     ut_validate_int(free_count, 100);
 
     ut_summary();

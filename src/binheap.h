@@ -49,6 +49,15 @@ int binheap_delete_maximum(binheap_t *bh, void **value, size_t *vlen);
 
 int binheap_delete(binheap_t *bh, void *key, size_t klen, void **value, size_t *vlen);
 
+void binheap_increase_minimum(binheap_t *bh, int incr);
+void binheap_increase_maximum(binheap_t *bh, int incr);
+void binheap_decrease_minimum(binheap_t *bh, int decr);
+void binheap_decrease_maximum(binheap_t *bh, int decr);
+void binheap_increase_key(binheap_t *bh, void *key, size_t klen, int incr);
+void binheap_decrease_key(binheap_t *bh, void *key, size_t klen, int decr);
+
+void binheap_decrease(binheap_t *bh, void *key, size_t klen);
+
 binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2);
 
 uint32_t binheap_count(binheap_t *bh);

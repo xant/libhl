@@ -34,6 +34,16 @@ main(int argc, char **argv)
     binheap_minimum(bh, (void **)&min, NULL, NULL, NULL);
     ut_validate_int(*min, 0);
 
+    ut_testing("binheap_increase_minimum(bh, 1)");
+    binheap_increase_minimum(bh, 1);
+    binheap_minimum(bh, (void **)&min, NULL, NULL, NULL);
+    ut_validate_int(*min, 1);
+
+    ut_testing("binheap_increase_maximum(bh, 1)");
+    binheap_increase_maximum(bh, 1);
+    binheap_maximum(bh, (void **)&max, NULL, NULL, NULL);
+    ut_validate_int(*max, 100);
+
     ut_summary();
 
     return ut_failed;

@@ -23,20 +23,94 @@ struct __binheap_s {
 ((__bh->mode == BINHEAP_MODE_MAX  && __bh->cbs->cmp(__k1, __kl1, __k2, __kl2) >= 0) || \
  (__bh->mode == BINHEAP_MODE_MIN  && __bh->cbs->cmp(__k1, __kl1, __k2, __kl2) <= 0))
 
-static int __cmp_keys_default(void *k1, size_t kl1, void *k2, size_t kl2)
+static inline int __cmp_keys_default(void *k1, size_t kl1, void *k2, size_t kl2)
 {
     if (kl1 != kl2)
         return kl1 - kl2;
     return memcmp(k1, k2, kl1);
 }
 
+static inline void __incr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int incr)
+{
+    size_t size = kl1;
+    size_t off = kl1 - 1;
+    unsigned char *key = (unsigned char *)k1;
+    unsigned char b = key[off];
+    unsigned char *nk = NULL;
+
+    if (out) {
+        nk = malloc(kl1);
+        memcpy(nk, key, kl1);
+    }
+
+    b += incr;
+    while (off > 0 && b < key[off]) {
+        if (nk)
+            nk[off--] = b;
+        b = key[off] + 1;
+    }
+
+    if (nk && off == 0 && b < nk[0]) {
+        unsigned char *copy = malloc(++size);
+        copy[0] = 0x01;
+        memcpy(copy + 1, nk, kl1);
+        free(nk);
+        nk = copy;
+    }
+
+    if (out)
+        *out = nk;
+
+    if (olen)
+        *olen = size;
+
+
+}
+
+static inline void __decr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int decr)
+{
+    size_t size = kl1;
+    size_t off = kl1 - 1;
+    unsigned char *key = (unsigned char *)k1;
+    unsigned char b = key[off];
+    unsigned char *nk = NULL;
+
+    if (out) {
+        nk = malloc(kl1);
+        memcpy(nk, key, kl1);
+    }
+
+    b -= decr;
+    while (off > 0 && b > key[off]) {
+        if (nk)
+            nk[off--] = b;
+        b = key[off] - 1;
+    }
+
+    if (nk && off == 0 && b > nk[0]) {
+        unsigned char *copy = malloc(++size);
+        copy[0] = 0xFF;
+        memcpy(copy + 1, nk, kl1);
+        free(nk);
+        nk = copy;
+    }
+
+    if (out)
+        *out = nk;
+
+    if (olen)
+        *olen = size;
+
+}
+
+
 static binheap_callbacks_t __keys_callbacks_default = {
     .cmp = __cmp_keys_default,
-    .incr = NULL,
-    .decr = NULL
+    .incr = __incr_key_default,
+    .decr = __decr_key_default
 };
 
-int
+static int
 binomial_tree_node_add(binomial_tree_node_t *node,
                        binomial_tree_node_t *child)
 {
@@ -49,7 +123,7 @@ binomial_tree_node_add(binomial_tree_node_t *node,
     return 0;
 }
 
-int
+static int
 binomial_tree_node_find_min_child(binomial_tree_node_t *node)
 {
     if (!node->num_children)
@@ -66,7 +140,7 @@ binomial_tree_node_find_min_child(binomial_tree_node_t *node)
     return min_child_index;
 }
 
-int
+static int
 binomial_tree_node_find_max_child(binomial_tree_node_t *node)
 {
     if (!node->num_children)
@@ -83,7 +157,57 @@ binomial_tree_node_find_max_child(binomial_tree_node_t *node)
     return max_child_index;
 }
 
-void
+static void
+binomial_tree_node_increase_key(binomial_tree_node_t *node, int incr)
+{
+    void *okey = node->key;
+    size_t oklen = node->klen;
+    void *nkey = NULL;
+    size_t nklen = 0;
+
+    if (incr == 0)
+        return;
+    else if (incr > 0)
+        node->bh->cbs->incr(okey, oklen, &nkey, &nklen, incr);
+    else 
+        node->bh->cbs->decr(okey, oklen, &nkey, &nklen, -incr);
+
+    binomial_tree_node_t *parent = node->parent;
+
+    int swapped = 0;
+    while (parent && HAS_PRECEDENCE(node->bh, nkey, nklen, parent->key, parent->klen))
+    {
+        binomial_tree_node_t tmp;
+        tmp.key = parent->key;
+        tmp.klen = parent->klen;
+        tmp.value = parent->value;
+        tmp.vlen = parent->vlen;
+
+        parent->key = nkey;
+        parent->klen = nklen;
+        parent->value = node->value;
+        parent->vlen = node->vlen;
+
+        free(node->key);
+        node->key = tmp.key;
+        node->klen = tmp.klen;
+        node->value = tmp.value;
+        node->vlen = tmp.vlen;
+
+        binomial_tree_node_t *op = parent;
+        parent = parent->parent; 
+        node = op;
+        swapped++;
+    }
+
+    if (!swapped) {
+        free(node->key);
+        node->key = nkey;
+        node->klen = nklen;
+    }
+}
+
+static void
 binomial_tree_node_destroy(binomial_tree_node_t *node)
 {
     int i;
@@ -343,28 +467,57 @@ binheap_minimum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *v
     return -1;
 }
 
-int
-binheap_delete_minimum(binheap_t *bh, void **value, size_t *vlen)
+binomial_tree_node_t *
+binheap_get_minimum(binheap_t *bh, uint32_t *minidx)
 {
-    uint32_t minidx = 0;
-    binomial_tree_node_t *minroot = __binheap_maxmin(bh, &minidx, 1);
+    binomial_tree_node_t *minroot = __binheap_maxmin(bh, minidx, 1);
 
     if (!minroot)
-        return -1;
+        return NULL;
 
-    if (bh->mode == BINHEAP_MODE_MAX && minroot->num_children) {
+    if (bh->mode != BINHEAP_MODE_MIN && minroot->num_children) {
         while (minroot->num_children) {
             int min_child_index = binomial_tree_node_find_min_child(minroot);
             minroot = minroot->children[min_child_index];
         }
-    } else {
+    }
+    return minroot;
+}
+
+binomial_tree_node_t *
+binheap_get_maximum(binheap_t *bh, uint32_t *maxidx)
+{
+    binomial_tree_node_t *maxroot = __binheap_maxmin(bh, maxidx, 0);
+
+    if (!maxroot)
+        return NULL;
+
+    if (bh->mode != BINHEAP_MODE_MAX && maxroot->num_children) {
+        while (maxroot->num_children) {
+            int max_child_index = binomial_tree_node_find_max_child(maxroot);
+            maxroot = maxroot->children[max_child_index];
+        }
+    }
+    return maxroot; 
+}
+
+int
+binheap_delete_minimum(binheap_t *bh, void **value, size_t *vlen)
+{
+    uint32_t minidx = 0;
+    binomial_tree_node_t *minroot = binheap_get_minimum(bh, &minidx);
+
+    if (!minroot)
+        return -1;
+
+    if (bh->mode == BINHEAP_MODE_MIN) {
         (void)fetch_value(bh->trees, minidx);
         if (minroot->num_children) {
-            int child_index = bh->mode == BINHEAP_MODE_MAX
-                            ? binomial_tree_node_find_max_child(minroot)
-                            : binomial_tree_node_find_min_child(minroot);
+            int child_index = binomial_tree_node_find_min_child(minroot);
             insert_value(bh->trees, minroot->children[child_index], minidx);
         }
+    } else if (!minroot->parent) {
+        (void)fetch_value(bh->trees, minidx);
     }
 
     if (value)
@@ -381,24 +534,19 @@ int
 binheap_delete_maximum(binheap_t *bh, void **value, size_t *vlen)
 {
     uint32_t maxidx = 0;
-    binomial_tree_node_t *maxroot = __binheap_maxmin(bh, &maxidx, 0);
+    binomial_tree_node_t *maxroot = binheap_get_maximum(bh, &maxidx);
 
     if (!maxroot)
         return -1;
 
-    if (bh->mode != BINHEAP_MODE_MAX && maxroot->num_children) {
-        while (maxroot->num_children) {
-            int max_child_index = binomial_tree_node_find_max_child(maxroot);
-            maxroot = maxroot->children[max_child_index];
-        }
-    } else {
+    if (bh->mode == BINHEAP_MODE_MAX) {
         (void)fetch_value(bh->trees, maxidx);
         if (maxroot->num_children) {
-            int child_index = bh->mode == BINHEAP_MODE_MAX
-                            ? binomial_tree_node_find_max_child(maxroot)
-                            : binomial_tree_node_find_min_child(maxroot);
+            int child_index = binomial_tree_node_find_max_child(maxroot);
             insert_value(bh->trees, maxroot->children[child_index], maxidx);
         }
+    } else if (!maxroot->parent) {
+        (void)fetch_value(bh->trees, maxidx);
     }
 
     if (value)
@@ -537,6 +685,52 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
     return bh1;
 }
 
+void
+binheap_increase_maximum(binheap_t *bh, int incr)
+{
+    binomial_tree_node_t *maxitem = binheap_get_maximum(bh, NULL);
+
+    if (!maxitem)
+        return;
+
+    binomial_tree_node_increase_key(maxitem, incr);
+}
+
+void
+binheap_decrease_maximum(binheap_t *bh, int decr)
+{
+    binomial_tree_node_t *maxitem = binheap_get_maximum(bh, NULL);
+
+    if (!maxitem)
+        return;
+
+    binomial_tree_node_increase_key(maxitem, -decr);
+}
+
+
+void
+binheap_increase_minimum(binheap_t *bh, int incr)
+{
+    binomial_tree_node_t *minitem = binheap_get_minimum(bh, NULL);
+
+    if (!minitem)
+        return;
+
+    binomial_tree_node_increase_key(minitem, incr);
+}
+
+void
+binheap_decrease_minimum(binheap_t *bh, int decr)
+{
+    binomial_tree_node_t *minitem = binheap_get_minimum(bh, NULL);
+
+    if (!minitem)
+        return;
+
+    binomial_tree_node_increase_key(minitem, -decr);
+}
+
+
 #define BINHEAP_CMP_KEYS_TYPE(__type, __k1, __k1s, __k2, __k2s) \
 { \
     if (__k1s < sizeof(__type) || __k2s < sizeof(__type) || __k1s != __k2s) \
@@ -552,9 +746,10 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
     __ki += __incr; \
     if (__nks) \
         *(__nks) = __ks; \
-    if (__nk) {\
-        *__nk = malloc(__ks);\
-        memcpy(*__nk, &__ki, __ks); \
+    if (__nk) { \
+        *__nk = malloc(__ks); \
+        __type *__nkp = *__nk; \
+        *__nkp = __ki; \
     } \
 }
 
@@ -564,9 +759,10 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
     __ki -= __decr; \
     if (__nks) \
         *(__nks) = __ks; \
-    if (__nk) {\
-        *__nk = malloc(__ks);\
-        memcpy(*__nk, &__ki, __ks); \
+    if (__nk) { \
+        *__nk = malloc(__ks); \
+        __type *__nkp = *__nk; \
+        *__nkp = __ki; \
     } \
 }
 
