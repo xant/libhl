@@ -5,6 +5,9 @@
  *
  * Red/Black Tree implementation to store/access arbitrary data
  *
+ * @todo extend the api to allow walking from/to a specific node
+ *       (instead of only allowing to walk the entire tree)
+ *
  */
 
 #ifndef __RBTREE_H__

@@ -5,6 +5,8 @@
  *
  * Binomial Heap implementation for arbitrary data
  *
+ * @todo Implement binheap_increase_key() and binheap_decrease_key()
+ *
  */
 
 #ifndef __BINOMIAL_HEAP_H__
