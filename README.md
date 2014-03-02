@@ -2,7 +2,7 @@ libhl
 =====
 
 Tiny C library implementing a set of APIs to efficiently manage some basic data structures
-such as : hashtables, linked lists, queues, trees, ringbuffers
+such as : hashtables, linked lists, queues, trees, ringbuffers, red-black trees, priority queues
 
 The provided APIs are :
 
