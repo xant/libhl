@@ -34,8 +34,11 @@ int
 binomial_tree_node_add(binomial_tree_node_t *node,
                        binomial_tree_node_t *child)
 {
-    node->children = realloc(node->children, node->num_children + 1);
+    node->children = realloc(node->children, sizeof(binomial_tree_node_t *) * (node->num_children + 1));
     node->children[node->num_children++] = child;
+    if (child->parent) {
+        // TODO - remove the node
+    }
     child->parent = node;
     return 0;
 }
@@ -132,7 +135,7 @@ binheap_destroy(binheap_t *bh)
 
 int binomial_tree_merge(binomial_tree_node_t *node1, binomial_tree_node_t *node2)
 {
-    node1->children = realloc(node1->children, node1->num_children + 1);
+    node1->children = realloc(node1->children, sizeof(binomial_tree_node_t *) * (node1->num_children + 1));
     node1->children[node1->num_children++] = node2;
     node2->parent = node1;
     return 0;
@@ -155,8 +158,8 @@ binheap_insert(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen)
             binomial_tree_merge(node, tree);
         } else {
             binomial_tree_merge(tree, node);
+            node = tree;
         }
-        node = tree;
         order++;
         tree = shift_value(bh->trees);
     }
@@ -357,6 +360,11 @@ binheap_count(binheap_t *bh)
 
 binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
 {
+    if (bh1->mode != bh2->mode) {
+        // refuse to mere binomial heaps initialized with a different mode
+        // TODO - error message
+        return NULL;
+    }
     linked_list_t *new_list = create_list();
     set_free_value_callback(new_list, (free_value_callback_t)binomial_tree_node_destroy);
 
