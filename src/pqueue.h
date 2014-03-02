@@ -41,6 +41,10 @@ pqueue_t *pqueue_create(uint32_t size, pqueue_free_value_callback free_value_cb)
  * @param value The new value to add to the queue
  * @return 0 if the value has been successfully added to the queue;\n
  *         -1 in case of errors
+ * @note If the number of items after the insertion will be bigger than the
+ *       'size' specified at pqueue_create(), the lowest priority items
+ *       will be dropped until the size is again less or equal to the
+ *       configured maximum size
  */
 int pqueue_insert(pqueue_t *pq, int32_t prio, void *value);
 
