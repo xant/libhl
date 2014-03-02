@@ -565,6 +565,7 @@ binheap_count(binheap_t *bh)
     return bh->count;
 }
 
+// merge two heaps in a single iteration
 binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
 {
     if (bh1->mode != bh2->mode) {
@@ -572,52 +573,66 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
         // TODO - error message
         return NULL;
     }
+
     linked_list_t *new_list = create_list();
     set_free_value_callback(new_list, (free_value_callback_t)binomial_tree_node_destroy);
 
     binomial_tree_node_t *node1 = shift_value(bh1->trees);
     binomial_tree_node_t *node2 = shift_value(bh2->trees);
-    binomial_tree_node_t *merged = NULL;
+    binomial_tree_node_t *carry = NULL;
 
-    while (node1 || node2 || merged) {
+    while (node1 || node2 || carry) {
 
-        if (merged) {
+        if (carry) {
+            // if we have a carry (merged tree from previous iteration)
+            // lets check if either node1 or node2 is of the same order and
+            // in case let's merge it before comparing node1 with node2 so 
+            // we get rid of the carry as soon as possible
             binomial_tree_node_t *node = NULL;
-            if (node1 && node1->num_children == merged->num_children) {
+            if (node1 && node1->num_children == carry->num_children) {
                 node = node1;
-            } else if (node2 && node2->num_children  == merged->num_children) {
+            } else if (node2 && node2->num_children  == carry->num_children) {
                 node = node2;
             } else {
                 if (!node1 && !node2) {
-                    push_value(new_list, merged);
-                    merged = NULL;
+                    // if we have the carry but there is neither node1 nor node2
+                    // we can just add the carry to the list and forget about it
+                    push_value(new_list, carry);
+                    carry = NULL;
                     continue;
                 }
-                if (node1 && node1->num_children > merged->num_children) {
+
+                // if either node1 or node2 is of an higher order than the carry,
+                // let's swap it so that we will always compare the lower order trees
+                // among the three (node1, node2 and carry)
+                if (node1 && node1->num_children > carry->num_children) {
                     binomial_tree_node_t *tmp = node1;
-                    node1 = merged;
-                    merged = tmp;
-                } else if (node2 && node2->num_children > merged->num_children) {
+                    node1 = carry;
+                    carry = tmp;
+                } else if (node2 && node2->num_children > carry->num_children) {
                     binomial_tree_node_t *tmp = node2;
-                    node2 = merged;
-                    merged = tmp;
+                    node2 = carry;
+                    carry = tmp;
                 }
             }
 
             if (node) {
-                if (HAS_PRECEDENCE(bh1, node->key, node->klen, merged->key, merged->klen)) {
-                    binomial_tree_merge(node, merged);
+                if (HAS_PRECEDENCE(bh1, node->key, node->klen, carry->key, carry->klen)) {
+                    binomial_tree_merge(node, carry);
                 } else {
-                    binomial_tree_merge(merged, node);
+                    binomial_tree_merge(carry, node);
                     if (node == node1)
-                        node1 = merged;
+                        node1 = carry;
                     else
-                        node2 = merged;
+                        node2 = carry;
                 }
-                merged = NULL;
+                carry = NULL;
             }
         }
 
+        // we have already taken care of the carry here
+        // so now if either node1 or node2 is missing 
+        // we can just add the other to the list and go ahead
         if (node1 && !node2) {
             push_value(new_list, node1);
             node1 = shift_value(bh1->trees);
@@ -626,15 +641,20 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
             push_value(new_list, node2);
             node2 = shift_value(bh2->trees);
             continue;
-        } else if (merged && !node1 && !node2) {
-            push_value(new_list, merged);
-            merged = NULL;
+        } else if (carry && !node1 && !node2) {
+            // XXX - this case should have already been handled earlier
+            //       (we have a carry but neither node1 nor node2)
+            push_value(new_list, carry);
+            carry = NULL;
             continue;
         }
 
+        
         int order1 = node1->num_children;
         int order2 = node2->num_children;
 
+        // compare node1 and node2 and if they are of different orders
+        // let's add the lower one to the list and go ahead
         if (order1 < order2) {
             push_value(new_list, node1);
             node1 = shift_value(bh1->trees);
@@ -645,44 +665,47 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
             continue;
         }
 
+        // if we are here node1 and node2 have the same order so they
+        // need to be merged
         if (HAS_PRECEDENCE(bh1, node1->key, node1->klen, node2->key, node2->klen)) {
             binomial_tree_merge(node1, node2);
-            if (merged) {
-                if (bh1->cbs->cmp(node1->key, node1->klen, merged->key, merged->klen) >= 0) {
-                    binomial_tree_merge(node1, merged);
-                    merged = node1;
+            if (carry) {
+                if (bh1->cbs->cmp(node1->key, node1->klen, carry->key, carry->klen) >= 0) {
+                    binomial_tree_merge(node1, carry);
+                    carry = node1;
                 } else {
-                    binomial_tree_merge(merged, node1);
+                    binomial_tree_merge(carry, node1);
                 }
             } else {
-                merged = node1;
+                carry = node1;
             }
         } else {
             binomial_tree_merge(node2, node1);
-            if (merged) {
-                if (HAS_PRECEDENCE(bh1, node2->key, node2->klen, merged->key, merged->klen)) {
-                    binomial_tree_merge(node2, merged);
-                    merged = node2;
+            if (carry) {
+                if (HAS_PRECEDENCE(bh1, node2->key, node2->klen, carry->key, carry->klen)) {
+                    binomial_tree_merge(node2, carry);
+                    carry = node2;
                 } else {
-                    binomial_tree_merge(merged, node2);
+                    binomial_tree_merge(carry, node2);
                 }
             } else {
-                merged = node2;
+                carry = node2;
             }
         }
 
+        // the two trees (node1 and node2) have been merged and put into carry,
+        // so let's get the next two nodes (if any) and go ahead
         node1 = shift_value(bh1->trees);
         node2 = shift_value(bh2->trees);
     }
 
-    bh1->count += bh2->count;
+    binheap_t *merged_heap = calloc(1, sizeof(binheap_t));
+    merged_heap->mode = bh1->mode;
+    merged_heap->trees = new_list;
+    merged_heap->count = bh1->count + bh2->count;
+    merged_heap->cbs = bh1->cbs;
 
-    binheap_destroy(bh2);
-
-    destroy_list(bh1->trees);
-    bh1->trees = new_list;
-
-    return bh1;
+    return merged_heap;
 }
 
 void

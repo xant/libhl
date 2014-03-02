@@ -239,6 +239,13 @@ void binheap_decrease_key(binheap_t *bh, void *key, size_t klen, int decr);
  * @brief Merge two heaps
  * @param bh1 A valid pointer to an initialized binheap_t structure
  * @param bh2 A valid pointer to an initialized binheap_t structure
+ * @return A newly created heap which will contain the union of the items
+ *         stored in both the heaps (bh1 and bh2) provided as argument.
+ *         The caller is responsible of disposing the new heap.
+ * @note Both bh1 and bh2 will be empty once merged in the new returned heap.
+ *       The caller is responsible of disposing both of them if not necessary
+ *       anymore (otherwise further operations on the original heaps are still
+ *       possible)
  * @note The two heaps MUST be configured to use the same operational mode
  *       for them to be merged. If the operational modes differ no merge 
  *       will be attempted and NULL will be returned
