@@ -69,7 +69,7 @@ main(int argc, char **argv)
 
     ut_validate_int(pqueue_count(pq), 100);
 
-    ut_testing("Min prio is now 2");
+    ut_testing("pqueue_pull_lowest() == 2");
     pqueue_pull_lowest(pq, (void **)&min, &minprio);
     ut_validate_int(*min, 2);
     free(min);

@@ -11,12 +11,30 @@ typedef enum {
 
 typedef struct __binheap_s binheap_t;
 
-typedef int (*binheap_cmp_keys_callback)(void *k1,
-                                         size_t k1size,
-                                         void *k2,
-                                         size_t k2size);
+typedef int (*binheap_cmp_keys_callback)(void *key1,
+                                         size_t key1size,
+                                         void *key2,
+                                         size_t key2size);
 
-binheap_t *binheap_create(binheap_cmp_keys_callback cmp_keys_cb, binheap_mode_t mode);
+typedef void (*binheap_incr_key_callback)(void *key,
+                                          size_t keysize,
+                                          void **new_key,
+                                          size_t *new_keysize,
+                                          int increment);
+
+typedef void (*binheap_decr_key_callback)(void *key,
+                                          size_t keysize,
+                                          void **new_key,
+                                          size_t *new_keysize,
+                                          int decrement);
+
+typedef struct {
+    binheap_cmp_keys_callback cmp;
+    binheap_incr_key_callback incr;
+    binheap_decr_key_callback decr;
+} binheap_callbacks_t;
+
+binheap_t *binheap_create(const binheap_callbacks_t *keys_callbacks, binheap_mode_t mode);
 
 void binheap_destroy(binheap_t *bh);
 
@@ -35,87 +53,13 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2);
 
 uint32_t binheap_count(binheap_t *bh);
 
-#define BINHEAP_CMP_KEYS_TYPE(__type, __k1, __k1s, __k2, __k2s) \
-{ \
-    if (__k1s < sizeof(__type) || __k2s < sizeof(__type) || __k1s != __k2s) \
-        return __k1s - __k2s; \
-    __type __k1i = *((__type *)__k1); \
-    __type __k2i = *((__type *)__k2); \
-    return __k1i - __k2i; \
-}
-
-/**
- * @brief 16bit signed integers comparator
- */
-static inline int
-binheap_cmp_keys_int16(void *k1, size_t k1size, void *k2, size_t k2size)
-{
-    BINHEAP_CMP_KEYS_TYPE(int16_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 32bit signed integers comparator
- */
-static inline int binheap_cmp_keys_int32(void *k1, size_t k1size,
-                                        void *k2, size_t k2size)
-{
-    BINHEAP_CMP_KEYS_TYPE(int32_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 64bit signed integers comparator
- */
-static inline int binheap_cmp_keys_int64(void *k1, size_t k1size,
-                                        void *k2, size_t k2size)
-{
-    BINHEAP_CMP_KEYS_TYPE(int64_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 16bit unsigned integers comparator
- */
-static inline int
-binheap_cmp_keys_uint16(void *k1, size_t k1size,
-                       void *k2, size_t k2size)
-{
-    BINHEAP_CMP_KEYS_TYPE(uint16_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 32bit unsigned integers comparator
- */
-static inline int binheap_cmp_keys_uint32(void *k1, size_t k1size,
-                                         void *k2, size_t k2size)
-{
-    BINHEAP_CMP_KEYS_TYPE(uint32_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 64bit unsigned integers comparator
- */
-static inline int binheap_cmp_keys_uint64(void *k1, size_t k1size,
-                                         void *k2, size_t k2size)
-{
-    BINHEAP_CMP_KEYS_TYPE(uint64_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief float comparator
- */
-static inline int binheap_cmp_keys_float(void *k1, size_t k1size,
-                                        void *k2, size_t k2size)
-{
-    BINHEAP_CMP_KEYS_TYPE(float, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief double comparator
- */
-static inline int binheap_cmp_keys_double(void *k1, size_t k1size,
-                                         void *k2, size_t k2size)
-{
-    BINHEAP_CMP_KEYS_TYPE(double, k1, k1size, k2, k2size);
-}
-
+extern inline const binheap_callbacks_t *binheap_keys_callbacks_int16_t();
+extern inline const binheap_callbacks_t *binheap_keys_callbacks_int32_t();
+extern inline const binheap_callbacks_t *binheap_keys_callbacks_int64_t();
+extern inline const binheap_callbacks_t *binheap_keys_callbacks_uint16_t();
+extern inline const binheap_callbacks_t *binheap_keys_callbacks_uint32_t();
+extern inline const binheap_callbacks_t *binheap_keys_callbacks_uint64_t();
+extern inline const binheap_callbacks_t *binheap_keys_callbacks_float();
+extern inline const binheap_callbacks_t *binheap_keys_callbacks_double();
 
 #endif

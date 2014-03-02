@@ -14,14 +14,14 @@ typedef struct __binomial_tree_node_s {
 
 struct __binheap_s {
     linked_list_t *trees;
-    binheap_cmp_keys_callback cmp_keys_cb;
+    const binheap_callbacks_t *cbs;
     int count;
     int mode;
 };
 
 #define HAS_PRECEDENCE(__bh, __k1, __kl1, __k2, __kl2) \
-((__bh->mode == BINHEAP_MODE_MAX  && __bh->cmp_keys_cb(__k1, __kl1, __k2, __kl2) >= 0) || \
- (__bh->mode == BINHEAP_MODE_MIN  && __bh->cmp_keys_cb(__k1, __kl1, __k2, __kl2) <= 0))
+((__bh->mode == BINHEAP_MODE_MAX  && __bh->cbs->cmp(__k1, __kl1, __k2, __kl2) >= 0) || \
+ (__bh->mode == BINHEAP_MODE_MIN  && __bh->cbs->cmp(__k1, __kl1, __k2, __kl2) <= 0))
 
 static int __cmp_keys_default(void *k1, size_t kl1, void *k2, size_t kl2)
 {
@@ -29,6 +29,12 @@ static int __cmp_keys_default(void *k1, size_t kl1, void *k2, size_t kl2)
         return kl1 - kl2;
     return memcmp(k1, k2, kl1);
 }
+
+static binheap_callbacks_t __keys_callbacks_default = {
+    .cmp = __cmp_keys_default,
+    .incr = NULL,
+    .decr = NULL
+};
 
 int
 binomial_tree_node_add(binomial_tree_node_t *node,
@@ -54,7 +60,7 @@ binomial_tree_node_find_min_child(binomial_tree_node_t *node)
     for (i = 0; i < node->num_children; i++) {
         binomial_tree_node_t *cur = node->children[i];
         binomial_tree_node_t *min = node->children[min_child_index];
-        if (node->bh->cmp_keys_cb(cur->key, cur->klen, min->key, min->klen) <= 0)
+        if (node->bh->cbs->cmp(cur->key, cur->klen, min->key, min->klen) <= 0)
             min_child_index = i;
     }
     return min_child_index;
@@ -71,7 +77,7 @@ binomial_tree_node_find_max_child(binomial_tree_node_t *node)
     for (i = 0; i < node->num_children; i++) {
         binomial_tree_node_t *cur = node->children[i];
         binomial_tree_node_t *max = node->children[max_child_index];
-        if (node->bh->cmp_keys_cb(cur->key, cur->klen, max->key, max->klen) >= 0)
+        if (node->bh->cbs->cmp(cur->key, cur->klen, max->key, max->klen) >= 0)
             max_child_index = i;
     }
     return max_child_index;
@@ -135,11 +141,11 @@ binomial_tree_node_destroy(binomial_tree_node_t *node)
 }
 
 binheap_t *
-binheap_create(binheap_cmp_keys_callback cmp_keys_cb, binheap_mode_t mode)
+binheap_create(const binheap_callbacks_t *keys_callbacks, binheap_mode_t mode)
 {
     binheap_t *bh = calloc(1, sizeof(binheap_t));
     bh->trees = create_list();
-    bh->cmp_keys_cb = cmp_keys_cb ? cmp_keys_cb : __cmp_keys_default;
+    bh->cbs = keys_callbacks ? keys_callbacks : &__keys_callbacks_default;
     bh-> mode = mode;
     set_free_value_callback(bh->trees, (free_value_callback_t)binomial_tree_node_destroy);
     return bh;
@@ -209,7 +215,7 @@ binheap_delete(binheap_t *bh, void *key, size_t klen, void **value, size_t *vlen
     }
 
     binomial_tree_node_t *to_delete = tree;
-    while(to_delete && bh->cmp_keys_cb(to_delete->key, to_delete->klen, key, klen) != 0)
+    while(to_delete && bh->cbs->cmp(to_delete->key, to_delete->klen, key, klen) != 0)
     {
         binomial_tree_node_t *next_tree = NULL;
         for (i = 0; i < to_delete->num_children; i++) {
@@ -256,7 +262,7 @@ __binheap_maxmin(binheap_t *bh, uint32_t *index, int maxmin)
                 *index = i;
             continue;
         }
-        int is_bigger = (bh->cmp_keys_cb(curtree->key, curtree->klen, node->key, node->klen) >= 0);
+        int is_bigger = (bh->cbs->cmp(curtree->key, curtree->klen, node->key, node->klen) >= 0);
         if ((maxmin == 0 && is_bigger) || (maxmin != 0 && !is_bigger))
         {
             node = curtree;
@@ -494,7 +500,7 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
         if (HAS_PRECEDENCE(bh1, node1->key, node1->klen, node2->key, node2->klen)) {
             binomial_tree_merge(node1, node2);
             if (merged) {
-                if (bh1->cmp_keys_cb(node1->key, node1->klen, merged->key, merged->klen) >= 0) {
+                if (bh1->cbs->cmp(node1->key, node1->klen, merged->key, merged->klen) >= 0) {
                     binomial_tree_merge(node1, merged);
                     merged = node1;
                 } else {
@@ -530,3 +536,77 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
 
     return bh1;
 }
+
+#define BINHEAP_CMP_KEYS_TYPE(__type, __k1, __k1s, __k2, __k2s) \
+{ \
+    if (__k1s < sizeof(__type) || __k2s < sizeof(__type) || __k1s != __k2s) \
+        return __k1s - __k2s; \
+    __type __k1i = *((__type *)__k1); \
+    __type __k2i = *((__type *)__k2); \
+    return __k1i - __k2i; \
+}
+
+#define BINHEAP_INCR_KEY_TYPE(__type, __k, __ks, __nk, __nks, __incr) \
+{ \
+    __type __ki = *((__type *)__k); \
+    __ki += __incr; \
+    if (__nks) \
+        *(__nks) = __ks; \
+    if (__nk) {\
+        *__nk = malloc(__ks);\
+        memcpy(*__nk, &__ki, __ks); \
+    } \
+}
+
+#define BINHEAP_DECR_KEY_TYPE(__type, __k, __ks, __nk, __nks, __decr) \
+{ \
+    __type __ki = *((__type *)__k); \
+    __ki -= __decr; \
+    if (__nks) \
+        *(__nks) = __ks; \
+    if (__nk) {\
+        *__nk = malloc(__ks);\
+        memcpy(*__nk, &__ki, __ks); \
+    } \
+}
+
+#define BINHEAP_KEY_CALLBACKS_TYPE(__type) \
+static inline int \
+binheap_cmp_keys_##__type(void *k1, size_t k1size, void *k2, size_t k2size) \
+{ \
+    BINHEAP_CMP_KEYS_TYPE(__type, k1, k1size, k2, k2size); \
+} \
+\
+static inline void \
+binheap_incr_key_##__type(void *k, size_t ksize, void **nk, size_t *nksize, int incr) \
+{ \
+    BINHEAP_INCR_KEY_TYPE(int16_t, k, ksize, nk, nksize, incr); \
+} \
+\
+static inline void \
+binheap_decr_key_##__type(void *k, size_t ksize, void **nk, size_t *nksize, int decr) \
+{ \
+    BINHEAP_DECR_KEY_TYPE(int16_t, k, ksize, nk, nksize, decr); \
+} \
+\
+inline const binheap_callbacks_t * \
+binheap_keys_callbacks_##__type() \
+{ \
+    static const binheap_callbacks_t __type##_cbs \
+    = { \
+          .cmp = binheap_cmp_keys_##__type \
+        , .incr = binheap_incr_key_##__type \
+        , .decr = binheap_decr_key_##__type \
+    };\
+    return &(__type##_cbs); \
+}
+
+BINHEAP_KEY_CALLBACKS_TYPE(int16_t)
+BINHEAP_KEY_CALLBACKS_TYPE(int32_t)
+BINHEAP_KEY_CALLBACKS_TYPE(int64_t)
+BINHEAP_KEY_CALLBACKS_TYPE(uint16_t)
+BINHEAP_KEY_CALLBACKS_TYPE(uint32_t)
+BINHEAP_KEY_CALLBACKS_TYPE(uint64_t)
+BINHEAP_KEY_CALLBACKS_TYPE(float)
+BINHEAP_KEY_CALLBACKS_TYPE(double)
+

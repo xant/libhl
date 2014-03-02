@@ -10,8 +10,8 @@ main(int argc, char **argv)
 {
     ut_init(basename(argv[0]));
 
-    ut_testing("binheap_create(binheap_cmp_keys_int32, BINHEAP_MODE_MAX)");
-    binheap_t *bh = binheap_create(binheap_cmp_keys_int32, BINHEAP_MODE_MAX);
+    ut_testing("binheap_create(binheap_keys_callbacks_int32(), BINHEAP_MODE_MAX)");
+    binheap_t *bh = binheap_create(binheap_keys_callbacks_int32_t(), BINHEAP_MODE_MAX);
     if (bh)
         ut_success();
     else

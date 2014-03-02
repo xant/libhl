@@ -19,7 +19,7 @@ pqueue_create(uint32_t size, pqueue_free_value_callback free_value_cb)
 {
     pqueue_t *pq = calloc(1, sizeof(pqueue_t));
     pq->max_size = size;
-    pq->heap = binheap_create(binheap_cmp_keys_int32, BINHEAP_MODE_MAX);
+    pq->heap = binheap_create(binheap_keys_callbacks_int32_t(), BINHEAP_MODE_MAX);
     pq->free_value_cb = free_value_cb;
     return pq;
 }
