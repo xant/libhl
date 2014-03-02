@@ -14,3 +14,5 @@ The provided APIs are :
 - rqueue.[ch]     :  A lock-free thread-safe circular (fixed size) queue implementation (aka: vaule-oriented ringbuffers)
 - rbuf.[ch]       :  Byte-oriented ringbuffers
 - refcnt.[ch]     :  Reference-count memory manager
+- binheap.[ch]    :  A binomial heap implementation (building block for the priority queue implementation)
+- pqueue.[ch]     :  A priority queue implementation
