@@ -57,7 +57,8 @@ typedef int (*binheap_cmp_keys_callback)(void *key1,
  * @param key         The key to increment
  * @param keysize     The size of the key
  * @param new_key     If NOT-NULL will be set to point to the new memory
- *                    storing the incremented key
+ *                    storing the incremented key. The caller will be responsible
+ *                    of releasing the memory allocated for the new key
  * @param new_keysize If NOT-NULL the memory pointed by new_keysize will be
  *                    set to the size of the memory holding the new_key
  * @param increment   How much to increment the key
@@ -73,10 +74,11 @@ typedef void (*binheap_incr_key_callback)(void *key,
  * @param key         The key to decrement
  * @param keysize     The size of the key
  * @param new_key     If NOT-NULL will be set to point to the new memory
- *                    storing the decremented key
+ *                    storing the decremented key. The caller will be responsible
+ *                    of releasing the memory allocated for the new key
  * @param new_keysize If NOT-NULL the memory pointed by new_keysize will be
  *                    set to the size of the memory holding the new_key
- * @param increment   How much to decrement the key
+ * @param decrement   How much to decrement the key
  */
 typedef void (*binheap_decr_key_callback)(void *key,
                                           size_t keysize,
