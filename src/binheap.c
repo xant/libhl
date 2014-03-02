@@ -12,17 +12,16 @@ typedef struct __binomial_tree_node_s {
     binheap_t *bh;
 } binomial_tree_node_t;
 
-/*
-typedef struct {
-    binomial_tree_node_t *root;
-} binomial_tree_t;
-*/
-
 struct __binheap_s {
     linked_list_t *trees;
     binheap_cmp_keys_callback cmp_keys_cb;
     int count;
+    int mode;
 };
+
+#define HAS_PRECEDENCE(__bh, __k1, __kl1, __k2, __kl2) \
+((__bh->mode == BINHEAP_MODE_MAX  && __bh->cmp_keys_cb(__k1, __kl1, __k2, __kl2) >= 0) || \
+ (__bh->mode == BINHEAP_MODE_MIN  && __bh->cmp_keys_cb(__k1, __kl1, __k2, __kl2) <= 0))
 
 static int __cmp_keys_default(void *k1, size_t kl1, void *k2, size_t kl2)
 {
@@ -84,13 +83,16 @@ binomial_tree_node_destroy(binomial_tree_node_t *node)
     if (node->parent) {
         new_parent = node->parent;
     } else if (node->num_children) {
-        int max_child_index = binomial_tree_node_find_max_child(node);
-        if (max_child_index >= 0) {
-            new_parent = node->children[max_child_index];
-            if (max_child_index < node->num_children - 1) {
-                memcpy(&node->children[max_child_index],
-                       &node->children[max_child_index + 1],
-                       sizeof(binomial_tree_node_t *) * (node->num_children - max_child_index + 1));
+        int child_index = node->bh->mode == BINHEAP_MODE_MAX
+                        ? binomial_tree_node_find_max_child(node)
+                        : binomial_tree_node_find_min_child(node);
+
+        if (child_index >= 0) {
+            new_parent = node->children[child_index];
+            if (child_index < node->num_children - 1) {
+                memcpy(&node->children[child_index],
+                       &node->children[child_index + 1],
+                       sizeof(binomial_tree_node_t *) * (node->num_children - child_index + 1));
                        
             }
             node->num_children--;
@@ -111,11 +113,12 @@ binomial_tree_node_destroy(binomial_tree_node_t *node)
 }
 
 binheap_t *
-binheap_create(binheap_cmp_keys_callback cmp_keys_cb)
+binheap_create(binheap_cmp_keys_callback cmp_keys_cb, binheap_mode_t mode)
 {
     binheap_t *bh = calloc(1, sizeof(binheap_t));
     bh->trees = create_list();
     bh->cmp_keys_cb = cmp_keys_cb ? cmp_keys_cb : __cmp_keys_default;
+    bh-> mode = mode;
     set_free_value_callback(bh->trees, (free_value_callback_t)binomial_tree_node_destroy);
     return bh;
 }
@@ -148,8 +151,7 @@ binheap_insert(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen)
     int order = 0;
     binomial_tree_node_t *tree = shift_value(bh->trees);
     while (tree && tree->num_children == order) {
-        if (bh->cmp_keys_cb(node->key, node->klen, tree->key, tree->klen) >= 0)
-        {
+        if (HAS_PRECEDENCE(bh, node->key, node->klen, tree->key, tree->klen)) {
             binomial_tree_merge(node, tree);
         } else {
             binomial_tree_merge(tree, node);
@@ -173,11 +175,9 @@ binheap_delete(binheap_t *bh, void *key, size_t klen)
     int i;
     for (i = 0; i < list_count(bh->trees); i++) {
         binomial_tree_node_t *cur_tree = pick_value(bh->trees, i);
-        if (bh->cmp_keys_cb(cur_tree->key, cur_tree->klen, key, klen) >= 0)
-        {
+        if (HAS_PRECEDENCE(bh, cur_tree->key, cur_tree->klen, key, klen)) {
             if (tree) {
-                if (bh->cmp_keys_cb(tree->key, tree->klen, cur_tree->key, cur_tree->klen) >= 0)
-                {
+                if (HAS_PRECEDENCE(bh, tree->key, tree->klen, cur_tree->key, cur_tree->klen)) {
                     tree = cur_tree;
                 }
             } else {
@@ -193,11 +193,9 @@ binheap_delete(binheap_t *bh, void *key, size_t klen)
         for (i = 0; i < to_delete->num_children; i++) {
             binomial_tree_node_t *child = to_delete->children[i];
             
-            if (bh->cmp_keys_cb(child->key, child->klen, key, klen) >= 0)
-            {
+            if (HAS_PRECEDENCE(bh, child->key, child->klen, key, klen)) {
                 if (next_tree) {
-                    if (bh->cmp_keys_cb(next_tree->key, next_tree->klen, child->key, child->klen) >= 0)
-                    {
+                    if (HAS_PRECEDENCE(bh, next_tree->key, next_tree->klen, child->key, child->klen)) {
                         next_tree = child;
                     }
                 } else {
@@ -246,26 +244,56 @@ binheap_maximum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *v
     binomial_tree_node_t *maxroot = __binheap_maxmin(bh, 0);
     if (!maxroot)
         return -1;
-    if (key)
-        *key = maxroot->key;
-    if (klen)
-        *klen = maxroot->klen;
-    if (value)
-        *value = maxroot->value;
-    if (vlen)
-        *vlen = maxroot->vlen;
-    return 0;
+    if (bh->mode == BINHEAP_MODE_MAX) {
+        if (key)
+            *key = maxroot->key;
+        if (klen)
+            *klen = maxroot->klen;
+        if (value)
+            *value = maxroot->value;
+        if (vlen)
+            *vlen = maxroot->vlen;
+        return 0;
+    } else {
+        while (maxroot->num_children) {
+            int max_child_index = binomial_tree_node_find_max_child(maxroot);
+            maxroot = maxroot->children[max_child_index];
+        }
+        if (key)
+            *key = maxroot->key;
+        if (klen)
+            *klen = maxroot->klen;
+        if (value)
+            *value = maxroot->value;
+        if (vlen)
+            *vlen = maxroot->vlen;
+        return 0;
+    }
 }
 
 int
 binheap_minimum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *vlen)
 {
     binomial_tree_node_t *minroot = __binheap_maxmin(bh, 1);
-    if (minroot) { 
-        while (minroot->num_children) {
-            int min_child_index = binomial_tree_node_find_min_child(minroot);
-            minroot = minroot->children[min_child_index];
+    if (!minroot)
+        return -1;
+    if (bh->mode == BINHEAP_MODE_MAX) {
+        if (minroot) { 
+            while (minroot->num_children) {
+                int min_child_index = binomial_tree_node_find_min_child(minroot);
+                minroot = minroot->children[min_child_index];
+            }
+            if (key)
+                *key = minroot->key;
+            if (klen)
+                *klen = minroot->klen;
+            if (value)
+                *value = minroot->value;
+            if (vlen)
+                *vlen = minroot->vlen;
+            return 0;
         }
+    } else {
         if (key)
             *key = minroot->key;
         if (klen)
@@ -283,15 +311,20 @@ int
 binheap_delete_minimum(binheap_t *bh)
 {
     binomial_tree_node_t *minroot = __binheap_maxmin(bh, 1);
-    if (minroot) { 
+
+    if (!minroot)
+        return -1;
+
+    if (bh->mode == BINHEAP_MODE_MAX) {
         while (minroot->num_children) {
             int min_child_index = binomial_tree_node_find_min_child(minroot);
             minroot = minroot->children[min_child_index];
         }
         binomial_tree_node_destroy(minroot);
-        return 0;
-    } 
-    return -1;
+    } else {
+        binomial_tree_node_destroy(minroot);
+    }
+    return 0;
 }
 
 int
@@ -302,7 +335,15 @@ binheap_delete_maximum(binheap_t *bh)
     if (!maxroot)
         return -1;
 
-    binomial_tree_node_destroy(maxroot);
+    if (bh->mode == BINHEAP_MODE_MAX) {
+        binomial_tree_node_destroy(maxroot);
+    } else {
+        while (maxroot->num_children) {
+            int max_child_index = binomial_tree_node_find_max_child(maxroot);
+            maxroot = maxroot->children[max_child_index];
+        }
+        binomial_tree_node_destroy(maxroot);
+    }
 
     return 0;
 }
@@ -317,9 +358,12 @@ binheap_count(binheap_t *bh)
 binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
 {
     linked_list_t *new_list = create_list();
+    set_free_value_callback(new_list, (free_value_callback_t)binomial_tree_node_destroy);
+
     binomial_tree_node_t *node1 = shift_value(bh1->trees);
     binomial_tree_node_t *node2 = shift_value(bh2->trees);
     binomial_tree_node_t *merged = NULL;
+
     while (node1 || node2 || merged) {
 
         if (merged) {
@@ -346,8 +390,7 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
             }
 
             if (node) {
-                if (bh1->cmp_keys_cb(node->key, node->klen, merged->key, merged->klen) >= 0)
-                {
+                if (HAS_PRECEDENCE(bh1, node->key, node->klen, merged->key, merged->klen)) {
                     binomial_tree_merge(node, merged);
                 } else {
                     binomial_tree_merge(merged, node);
@@ -387,8 +430,7 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
             continue;
         }
 
-        if (bh1->cmp_keys_cb(node1->key, node1->klen, node2->key, node2->klen) >= 0)
-        {
+        if (HAS_PRECEDENCE(bh1, node1->key, node1->klen, node2->key, node2->klen)) {
             binomial_tree_merge(node1, node2);
             if (merged) {
                 if (bh1->cmp_keys_cb(node1->key, node1->klen, merged->key, merged->klen) >= 0) {
@@ -403,7 +445,7 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
         } else {
             binomial_tree_merge(node2, node1);
             if (merged) {
-                if (bh1->cmp_keys_cb(node2->key, node2->klen, merged->key, merged->klen) >= 0) {
+                if (HAS_PRECEDENCE(bh1, node2->key, node2->klen, merged->key, merged->klen)) {
                     binomial_tree_merge(node2, merged);
                     merged = node2;
                 } else {

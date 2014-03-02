@@ -4,6 +4,11 @@
 #include <sys/types.h>
 #include <stdint.h>
 
+typedef enum {
+    BINHEAP_MODE_MAX,
+    BINHEAP_MODE_MIN
+} binheap_mode_t;
+
 typedef struct __binheap_s binheap_t;
 
 typedef int (*binheap_cmp_keys_callback)(void *k1,
@@ -11,7 +16,7 @@ typedef int (*binheap_cmp_keys_callback)(void *k1,
                                          void *k2,
                                          size_t k2size);
 
-binheap_t *binheap_create(binheap_cmp_keys_callback cmp_keys_cb);
+binheap_t *binheap_create(binheap_cmp_keys_callback cmp_keys_cb, binheap_mode_t mode);
 
 void binheap_destroy(binheap_t *bh);
 
