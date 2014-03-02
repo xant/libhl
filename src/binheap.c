@@ -313,3 +313,39 @@ binheap_count(binheap_t *bh)
 {
     return bh->count;
 }
+
+binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
+{
+    binomial_tree_node_t *node = shift_value(bh2->trees);
+    while (node) {
+        int order = node->num_children;
+        int insert_index = -1;
+        binomial_tree_node_t *tree = NULL;
+        int i;
+        node->bh = bh1;
+        for (i = 0; i < list_count(bh1->trees); i++) {
+            tree = pick_value(bh1->trees, i);
+            if (tree->num_children == order) {
+                if (bh1->cmp_keys_cb(node->key, node->klen, tree->key, tree->klen) >= 0)
+                {
+                    binomial_tree_merge(node, tree);
+                } else {
+                    binomial_tree_merge(tree, node);
+                }
+                order++;
+                insert_index = i--;
+                node = fetch_value(bh1->trees, insert_index);
+            }
+        }
+        if (tree && insert_index >= 0)
+            insert_value(bh1->trees, tree, insert_index);
+
+        node = shift_value(bh2->trees);
+    }
+
+    bh1->count += bh2->count;
+
+    binheap_destroy(bh2);
+
+    return bh1;
+}
