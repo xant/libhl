@@ -569,7 +569,7 @@ binheap_count(binheap_t *bh)
 binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
 {
     if (bh1->mode != bh2->mode) {
-        // refuse to mere binomial heaps initialized with a different mode
+        // refuse to merge binomial heaps initialized with different operational modes
         // TODO - error message
         return NULL;
     }

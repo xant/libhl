@@ -393,8 +393,9 @@ static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
         else 
         {
             entry = list->head;
-            for(i=0;i<pos;i++) 
+            for(i=0;i<pos;i++) {
                 entry = entry->next;
+            }
         }
     }
     if (entry) {
@@ -407,26 +408,19 @@ static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
 
 /* Retreive the list_entry_t at pos in a linked_list_t removing it from the list 
  * XXX - no locking here because this routine is just an accessor to other routines
- * XXX - POSSIBLE RACE CONDITION BETWEEN pick_entry and remove_entry
- * Caller MUST destroy returned entry trough destroy_entry() call
+ * Caller MUST destroy the returned entry trough destroy_entry() call
  */
 static inline list_entry_t *fetch_entry(linked_list_t *list, uint32_t pos) 
 {
     list_entry_t *entry = NULL;
     if(pos == 0 )
         return shift_entry(list);
-    else if(pos == list->length - 1)
+    else if(pos == list_count(list) - 1)
         return pop_entry(list);
 
     entry = remove_entry(list, pos); 
     return entry;
 }
-
-/*
-list_entry_t *SelectEntry(linked_list_t *list, uint32_t pos) 
-{
-}
-*/
 
 static inline int move_entry(linked_list_t *list, uint32_t srcPos, uint32_t dstPos) 
 {
@@ -492,6 +486,7 @@ static inline list_entry_t *subst_entry(linked_list_t *list, uint32_t pos, list_
     return old;
 }
 
+/* XXX - POSSIBLE RACE CONDITION BETWEEN pick_entry and the actual removal */
 static inline list_entry_t *remove_entry(linked_list_t *list, uint32_t pos) 
 {
     list_entry_t *next, *prev;
@@ -676,12 +671,6 @@ int swap_values(linked_list_t *list,  uint32_t pos1, uint32_t pos2)
 void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uint32_t idx, void *user), void *user)
 {
     MUTEX_LOCK(&list->lock);
-#if 0
-    for(i=0;i<list->length;i++) {
-        if (item_handler(pick_value(list, i), i, user) == 0)
-            break;
-    }
-#endif
     uint32_t idx = 0;
     list_entry_t *e = list->head;
     while(e) {

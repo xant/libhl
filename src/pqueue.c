@@ -107,5 +107,5 @@ pqueue_pull_lowest(pqueue_t *pq, void **value, int32_t *prio)
 uint32_t
 pqueue_count(pqueue_t *pq)
 {
-    return (binheap_count(pq->heap));
+    return binheap_count(pq->heap);
 }
