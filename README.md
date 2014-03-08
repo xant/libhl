@@ -16,3 +16,11 @@ The provided APIs are :
 - refcnt.[ch]     :  Reference-count memory manager
 - binheap.[ch]    :  A binomial heap implementation (building block for the priority queue implementation)
 - pqueue.[ch]     :  A priority queue implementation
+
+Provided APIs typically don't depend on each other and can be simply included in an existing project by 
+simply copying both the .c and the .h files into the project sourcetree.
+
+The only exceptions are:
+
+- queue => depending on: refcnt
+- pqueue => depending on: binheap
