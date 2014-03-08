@@ -18,7 +18,7 @@ The provided APIs are :
 - pqueue.[ch]     :  A priority queue implementation
 
 Provided APIs typically don't depend on each other and can be simply included in an existing project by 
-simply copying both the .c and the .h files into the project sourcetree.
+copying both the .c and the .h files into the project sourcetree.
 
 The only exceptions are:
 
