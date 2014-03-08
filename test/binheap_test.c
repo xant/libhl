@@ -44,6 +44,8 @@ main(int argc, char **argv)
     binheap_maximum(bh, (void **)&max, NULL, NULL, NULL);
     ut_validate_int(*max, 100);
 
+    binheap_destroy(bh);
+
     ut_summary();
 
     return ut_failed;
