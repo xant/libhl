@@ -5,6 +5,7 @@
 
 typedef struct {
     void *value;
+    size_t len;
     int32_t prio;
 } pqueue_item_t;
 
@@ -55,10 +56,11 @@ pqueue_destroy(pqueue_t *pq)
 }
 
 int
-pqueue_insert(pqueue_t *pq, int32_t prio, void *value)
+pqueue_insert(pqueue_t *pq, int32_t prio, void *value, size_t len)
 {
     pqueue_item_t *item = malloc(sizeof(pqueue_item_t));
     item->value = value;
+    item->len = len;
     item->prio = prio;
     int rc = binheap_insert(pq->heap, (void *)&item->prio, sizeof(item->prio), item, sizeof(pqueue_item_t));
 
@@ -69,7 +71,7 @@ pqueue_insert(pqueue_t *pq, int32_t prio, void *value)
 }
 
 int
-pqueue_pull_highest(pqueue_t *pq, void **value, int32_t *prio)
+pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, int32_t *prio)
 {
     pqueue_item_t *item = NULL;
 
@@ -85,6 +87,9 @@ pqueue_pull_highest(pqueue_t *pq, void **value, int32_t *prio)
             pq->free_value_cb(item->value);
         }
 
+        if (len)
+            *len = item->len;
+
         if (prio)
             *prio = item->prio;
 
@@ -94,7 +99,7 @@ pqueue_pull_highest(pqueue_t *pq, void **value, int32_t *prio)
 }
 
 int
-pqueue_pull_lowest(pqueue_t *pq, void **value, int32_t *prio)
+pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, int32_t *prio)
 {
     pqueue_item_t *item = NULL;
 
@@ -109,6 +114,9 @@ pqueue_pull_lowest(pqueue_t *pq, void **value, int32_t *prio)
         } else if (pq->free_value_cb) {
             pq->free_value_cb(item->value);
         }
+
+        if (len)
+            *len = item->len;
 
         if (prio)
             *prio = item->prio;
