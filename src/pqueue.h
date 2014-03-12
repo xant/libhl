@@ -13,6 +13,11 @@
 #include <sys/types.h>
 #include <stdint.h>
 
+typedef enum {
+    PQUEUE_MODE_HIGHEST,
+    PQUEUE_MODE_LOWEST
+} pqueue_mode_t;
+
 /**
  * @brief Opaque structure representing the priority queue
  */
@@ -26,13 +31,16 @@ typedef void (*pqueue_free_value_callback)(void *value);
 
 /**
  * @brief Create a new priority queue
+ * @param mode   The operational mode of the priority queue \n
+ *                - PQUEUE_MODE_HIGHEST : highest key have highest priority
+ *                - PQUEUE_MODE_LOWEST  : lowest key have highest priority
  * @param size   The maximum size of the queue (maximum number of elements
  *               that can be stored in the queue)
  * @param free_value_cb   the callback to use when an value has been removed
  *                        from the queue and the value can be released
  * @return a newly allocated and initialized priority queue
  */
-pqueue_t *pqueue_create(uint32_t size, pqueue_free_value_callback free_value_cb);
+pqueue_t *pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_callback free_value_cb);
 
 /**
  * @brief Insert a new value into the queue with a given priority

@@ -18,8 +18,8 @@ main(int argc, char **argv)
 {
     ut_init(basename(argv[0]));
 
-    ut_testing("pqueue_create(100, free)");
-    pqueue_t *pq = pqueue_create(100, (pqueue_free_value_callback)free_item);
+    ut_testing("pqueue_create(PQUEUE_MODE_HIGHEST, 100, free)");
+    pqueue_t *pq = pqueue_create(PQUEUE_MODE_HIGHEST, 100, (pqueue_free_value_callback)free_item);
     if (pq)
         ut_success();
     else
