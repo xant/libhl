@@ -712,17 +712,12 @@ ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user)
 
     for (i = 0; i < ATOMIC_READ(table->size) && count < ATOMIC_READ(table->count); i++)
     {
-        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
+        ht_items_list_t *list;
+        ATOMIC_GETLIST(table, i, list);
 
-        if (!list) {
+        if (!list)
             continue;
-        }
         
-        // Note: once we acquired the linklist, we don't need to lock the whole
-        // table anymore. We need to lock the list though to prevent it from
-        // being destroyed while we are still accessing it (or iterating over)
-        SPIN_LOCK(list->lock);
-
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
             count++;
@@ -762,16 +757,11 @@ ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user
 
     for (i = 0; i < ATOMIC_READ(table->size) && count < ATOMIC_READ(table->count); i++)
     {
-        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
+        ht_items_list_t *list;
+        ATOMIC_GETLIST(table, i, list);
 
-        if (!list) {
+        if (!list)
             continue;
-        }
-
-        // Note: once we acquired the linklist, we don't need to lock the whole
-        // table anymore. We need to lock the list though to prevent it from
-        // being destroyed while we are still accessing it (or iterating over)
-        SPIN_LOCK(list->lock);
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
@@ -812,15 +802,11 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
 
     for (i = 0; i < ATOMIC_READ(table->size) && count < ATOMIC_READ(table->count); i++)
     {
-        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
+        ht_items_list_t *list;
+        ATOMIC_GETLIST(table, i, list);
 
         if (!list)
             continue;
-
-        // Note: once we acquired the linklist, we don't need to lock the whole
-        // table anymore. We need to lock the list though to prevent it from
-        // being destroyed while we are still accessing it (or iterating over)
-        SPIN_LOCK(list->lock);
 
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
