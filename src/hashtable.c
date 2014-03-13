@@ -105,7 +105,7 @@
 }
 
 
-#define HT_GROW_THRESHOLD 16
+#define HT_SIZE_MIN 128
 
 typedef struct __ht_item {
     uint32_t hash;
@@ -176,7 +176,7 @@ ht_init(hashtable_t *table,
         uint32_t max_size,
         ht_free_item_callback_t cb)
 {
-    table->size = initial_size > 256 ? initial_size : 256;
+    table->size = initial_size > HT_SIZE_MIN ? initial_size : HT_SIZE_MIN;
     table->max_size = max_size;
     table->items = (ht_items_list_t **)calloc(table->size, sizeof(ht_items_list_t *));
 
@@ -381,8 +381,9 @@ _ht_set_internal(hashtable_t *table,
 
     SPIN_UNLOCK(list->lock);
 
-    if (ht_count(table) > ATOMIC_READ(table->size) + HT_GROW_THRESHOLD && 
-        (!table->max_size || ATOMIC_READ(table->size) < table->max_size) &&
+    uint32_t current_size = ATOMIC_READ(table->size);
+    if (ht_count(table) > (current_size + (current_size/3)) && 
+        (!table->max_size || current_size < table->max_size) &&
         !ATOMIC_READ(table->growing))
     {
         ht_grow_table(table);
