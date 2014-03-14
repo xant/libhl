@@ -49,7 +49,7 @@ shared: objects
 	$(CC) $(LDFLAGS) $(SHAREDFLAGS) src/*.o -o libhl.$(SHAREDEXT)
 
 .PHONY: objects
-objects: CFLAGS += -fPIC -Isrc -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function -Wno-undefined-inline -DTHREAD_SAFE -g -O3
+objects: CFLAGS += -fPIC -Isrc -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function -Wno-undefined-inline -Wno-unknown-warning-option -DTHREAD_SAFE -g -O3
 objects: $(TARGETS)
 
 clean:
