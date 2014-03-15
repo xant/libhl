@@ -90,6 +90,15 @@ int main(int argc, char **argv) {
 
     ht_set(table, "test_key", 7, "test_value", 10);
 
+    ut_testing("ht_set_if_not_exists()");
+    int rc = ht_set_if_not_exists(table, "test_key", 7, "blah", 4);
+    ut_validate_int(rc, 1);
+
+    ut_testing("ht_get_or_set() doesn't overrides current value (and returns it)");
+    ht_get_or_set(table, "test_key", 7, "blah", 4, &old_value, NULL);
+    new_value = ht_get(table, "test_key", 7, NULL);
+    ut_validate_string(new_value, "test_value");
+
     ut_testing("ht_unset()");
     old_value = NULL;
     ht_unset(table, "test_key", 7, &old_value, NULL);

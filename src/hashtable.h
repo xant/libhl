@@ -149,6 +149,22 @@ int ht_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen);
 int ht_get_and_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen, void **prev_data, size_t *prev_len);
 
 /**
+ * @brief Get the value for a specific key or set a new value if none has been found
+ * @param table    : A valid pointer to an hashtable_t structure
+ * @param key      : The key to use
+ * @param klen     : The length of the key
+ * @param data     : A pointer to the new data to store if none is found
+ * @param dlen     : The size of the data to store
+ * @param cur_data : If not NULL, the referenced pointer will be set to point to the current data
+ * @param cur_len  : If not NULL, the size of the current data will be stored in the memory
+ *                    pointed by cur_len
+ * @return 0 the value new value has been set successfully;\n
+ *         1 if a value was already set;\n
+ *         -1 in case of errors
+ */
+int ht_get_or_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen, void **cur_data, size_t *cur_len);
+
+/**
  * @brief Set the value for a specific key and returns the previous value if any.
  *
  *        The new value will be copied before being stored
@@ -166,6 +182,18 @@ int ht_get_and_set(hashtable_t *table, void *key, size_t klen, void *data, size_
  *       so the caller will be responsible of releasing the previous data once done with it
  */
 int ht_set_copy(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen, void **prev_data, size_t *prev_len);
+
+
+/**
+ * @brief Set the value for a specific key if there is no value already stored
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key   : The key to use
+ * @param klen  : The length of the key
+ * @param data  : A pointer to the data to store
+ * @param dlen  : The size of the data
+ * @return 0 on success;\n1 if a value was already set;\n-1 in case of errors
+ */
+int ht_set_if_not_exists(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen);
 
 /**
  * @brief Unset the value stored at a specific key

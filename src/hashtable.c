@@ -308,7 +308,8 @@ _ht_set_internal(hashtable_t *table,
                  size_t dlen,
                  void **prev_data,
                  size_t *prev_len,
-                 int copy)
+                 int copy,
+                 int inx)
 {
     void *prev = NULL;
     size_t plen = 0;
@@ -334,13 +335,6 @@ _ht_set_internal(hashtable_t *table,
         {
             prev = item->data;
             plen = item->dlen;
-            item->dlen = dlen;
-            if (copy) {
-                item->data = malloc(dlen);
-                memcpy(item->data, data, dlen);
-            } else {
-                item->data = data;
-            }
             break;
         }
     }
@@ -377,6 +371,22 @@ _ht_set_internal(hashtable_t *table,
 
         TAILQ_INSERT_TAIL(&list->head, item, next);
         ATOMIC_INCREMENT(table->count);
+    } else {
+        if (inx) {
+            if (prev_data)
+                *prev_data = prev;
+            if (prev_len)
+                *prev_len = plen;
+            SPIN_UNLOCK(list->lock);
+            return 1;
+        }
+        item->dlen = dlen;
+        if (copy) {
+            item->data = malloc(dlen);
+            memcpy(item->data, data, dlen);
+        } else {
+            item->data = data;
+        }
     }
 
     SPIN_UNLOCK(list->lock);
@@ -405,33 +415,51 @@ _ht_set_internal(hashtable_t *table,
 }
 
 int
-ht_set(hashtable_t *table, void *key, size_t len, void *data, size_t dlen)
+ht_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen)
 {
-    return _ht_set_internal(table, key, len, data, dlen, NULL, 0, 0);
+    return _ht_set_internal(table, key, klen, data, dlen, NULL, NULL, 0, 0);
+}
+
+int
+ht_set_if_not_exists(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen)
+{
+    return _ht_set_internal(table, key, klen, data, dlen, NULL, NULL, 0, 1);
+}
+
+int
+ht_get_or_set(hashtable_t *table,
+              void *key,
+              size_t klen,
+              void *data,
+              size_t dlen,
+              void **cur_data,
+              size_t *cur_len)
+{
+    return _ht_set_internal(table, key, klen, data, dlen, cur_data, cur_len, 0, 1);
 }
 
 int
 ht_get_and_set(hashtable_t *table,
                void *key,
-               size_t len,
+               size_t klen,
                void *data,
                size_t dlen,
                void **prev_data,
                size_t *prev_len)
 {
-    return _ht_set_internal(table, key, len, data, dlen, prev_data, prev_len, 0);
+    return _ht_set_internal(table, key, klen, data, dlen, prev_data, prev_len, 0, 0);
 }
 
 int
 ht_set_copy(hashtable_t *table,
             void *key,
-            size_t len,
+            size_t klen,
             void *data,
             size_t dlen,
             void **prev_data,
             size_t *prev_len)
 {
-    return _ht_set_internal(table, key, len, data, dlen, prev_data, prev_len, 1);
+    return _ht_set_internal(table, key, klen, data, dlen, prev_data, prev_len, 1, 0);
 }
 
 int
