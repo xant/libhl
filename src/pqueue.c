@@ -6,7 +6,7 @@
 typedef struct {
     void *value;
     size_t len;
-    int32_t prio;
+    uint64_t prio;
 } pqueue_item_t;
 
 struct __pqueue_s {
@@ -22,7 +22,7 @@ pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_callback free
     pqueue_t *pq = calloc(1, sizeof(pqueue_t));
     pq->mode = mode;
     pq->max_size = size;
-    pq->heap = binheap_create(binheap_keys_callbacks_int32_t(),
+    pq->heap = binheap_create(binheap_keys_callbacks_uint64_t(),
                               (mode == PQUEUE_MODE_HIGHEST) ? BINHEAP_MODE_MAX : BINHEAP_MODE_MIN);
     pq->free_value_cb = free_value_cb;
     return pq;
@@ -56,7 +56,7 @@ pqueue_destroy(pqueue_t *pq)
 }
 
 int
-pqueue_insert(pqueue_t *pq, int32_t prio, void *value, size_t len)
+pqueue_insert(pqueue_t *pq, uint64_t prio, void *value, size_t len)
 {
     pqueue_item_t *item = malloc(sizeof(pqueue_item_t));
     item->value = value;
@@ -71,7 +71,7 @@ pqueue_insert(pqueue_t *pq, int32_t prio, void *value, size_t len)
 }
 
 int
-pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, int32_t *prio)
+pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 {
     pqueue_item_t *item = NULL;
 
@@ -99,7 +99,7 @@ pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, int32_t *prio)
 }
 
 int
-pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, int32_t *prio)
+pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 {
     pqueue_item_t *item = NULL;
 

@@ -36,7 +36,7 @@ main(int argc, char **argv)
 
     ut_testing("pqueue_pull_highest() == 99");
     int *max = NULL;
-    int32_t maxprio;
+    uint64_t maxprio;
     pqueue_pull_highest(pq, (void **)&max, NULL, &maxprio);
     ut_validate_int(maxprio, 99);
     ut_testing("pqueue_pull_highest() returned the correct value");
@@ -48,7 +48,7 @@ main(int argc, char **argv)
 
     ut_testing("pqueue_pull_lowest() == 0");
     int *min = NULL;
-    int32_t minprio;
+    uint64_t minprio;
     pqueue_pull_lowest(pq, (void **)&min, NULL, &minprio);
     ut_validate_int(minprio, 0);
 

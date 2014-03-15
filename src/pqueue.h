@@ -54,7 +54,7 @@ pqueue_t *pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_cal
  *       will be dropped until the size is again less or equal to the
  *       configured maximum size
  */
-int pqueue_insert(pqueue_t *pq, int32_t prio, void *value, size_t len);
+int pqueue_insert(pqueue_t *pq, uint64_t prio, void *value, size_t len);
 
 /**
  * @brief Pull the the highest priority value out of the queue
@@ -67,7 +67,7 @@ int pqueue_insert(pqueue_t *pq, int32_t prio, void *value, size_t len);
  * @return 0 if a value has been found and successfully pulled out
  *         of the queue;\n-1 in case of errors
  */
-int pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, int32_t *prio);
+int pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio);
 
 /**
  * @brief Pull the the lowest priority value out of the queue
@@ -80,7 +80,7 @@ int pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, int32_t *prio);
  * @return 0 if a value has been found and successfully pulled out
  *         of the queue;\n-1 in case of errors
  */
-int pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, int32_t *prio);
+int pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio);
 
 /**
  * @brief Return the number of values stored in the priority queue
