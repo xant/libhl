@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "binheap.h"
 #include "pqueue.h"
@@ -14,6 +15,7 @@ struct __pqueue_s {
     uint32_t max_size;
     pqueue_free_value_callback free_value_cb;
     pqueue_mode_t mode;
+    pthread_mutex_t lock;
 };
 
 pqueue_t *
@@ -25,6 +27,7 @@ pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_callback free
     pq->heap = binheap_create(binheap_keys_callbacks_uint64_t(),
                               (mode == PQUEUE_MODE_HIGHEST) ? BINHEAP_MODE_MAX : BINHEAP_MODE_MIN);
     pq->free_value_cb = free_value_cb;
+    pthread_mutex_init(&pq->lock, NULL);
     return pq;
 }
 
@@ -52,6 +55,7 @@ pqueue_destroy(pqueue_t *pq)
 {
     pqueue_drop_items(pq, binheap_count(pq->heap));
     binheap_destroy(pq->heap);
+    pthread_mutex_destroy(&pq->lock);
     free(pq);
 }
 
@@ -62,10 +66,15 @@ pqueue_insert(pqueue_t *pq, uint64_t prio, void *value, size_t len)
     item->value = value;
     item->len = len;
     item->prio = prio;
+
+    pthread_mutex_lock(&pq->lock);
+
     int rc = binheap_insert(pq->heap, (void *)&item->prio, sizeof(item->prio), item, sizeof(pqueue_item_t));
 
     if (binheap_count(pq->heap) > pq->max_size)
         pqueue_drop_items(pq, binheap_count(pq->heap) - pq->max_size);
+
+    pthread_mutex_unlock(&pq->lock);
 
     return rc;
 }
@@ -75,9 +84,13 @@ pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 {
     pqueue_item_t *item = NULL;
 
+    pthread_mutex_lock(&pq->lock);
+
     int rc = (pq->mode == PQUEUE_MODE_HIGHEST)
            ? binheap_delete_maximum(pq->heap, (void **)&item, NULL)
            : binheap_delete_minimum(pq->heap, (void **)&item, NULL);
+
+    pthread_mutex_unlock(&pq->lock);
 
     if (rc == 0) {
 
@@ -103,9 +116,13 @@ pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 {
     pqueue_item_t *item = NULL;
 
+    pthread_mutex_lock(&pq->lock);
+
     int rc = (pq->mode == PQUEUE_MODE_HIGHEST)
            ? binheap_delete_minimum(pq->heap, (void **)&item, NULL)
            : binheap_delete_maximum(pq->heap, (void **)&item, NULL);
+
+    pthread_mutex_unlock(&pq->lock);
 
     if (rc == 0) {
 
@@ -129,5 +146,8 @@ pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 uint32_t
 pqueue_count(pqueue_t *pq)
 {
-    return binheap_count(pq->heap);
+    pthread_mutex_lock(&pq->lock);
+    uint32_t count = binheap_count(pq->heap);
+    pthread_mutex_unlock(&pq->lock);
+    return count;
 }
