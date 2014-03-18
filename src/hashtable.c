@@ -116,12 +116,6 @@ typedef struct __ht_item {
     TAILQ_ENTRY(__ht_item) next;
 } ht_item_t;
 
-typedef struct __ht_iterator_arg {
-    uint32_t  index;
-    bool      set;
-    ht_item_t item;
-} ht_iterator_arg_t;
-
 typedef TAILQ_HEAD(__ht_items_list_head, __ht_item) ht_items_list_head_t;
 
 typedef struct {
@@ -731,94 +725,37 @@ ht_get_all_values(hashtable_t *table)
     return output;
 }
 
+typedef struct {
+    int (*cb)();
+    void *user;
+} ht_iterator_arg_t;
+
+static int
+ht_foreach_key_helper(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user)
+{
+    ht_iterator_arg_t *arg = (ht_iterator_arg_t *)user;
+    return arg->cb(table, key, klen, arg->user);
+}
+
 void
 ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user)
 {
-    uint32_t i;
-    uint32_t count = 0;
-    int rc = 0;
+    ht_iterator_arg_t arg = { cb, user };
+    ht_foreach_pair(table, ht_foreach_key_helper, &arg);
+}
 
-    for (i = 0; i < ATOMIC_READ(table->size) && count < ATOMIC_READ(table->count); i++)
-    {
-        ht_items_list_t *list;
-        ATOMIC_GETLIST(table, i, list);
-
-        if (!list)
-            continue;
-        
-        ht_item_t *item = NULL;
-        TAILQ_FOREACH(item, &list->head, next) {
-            count++;
-            rc = cb(table, item->key, item->klen, user);
-            if (rc <= 0)
-                break;
-        }
-
-        if (item) {
-            if (rc == 0) {
-                SPIN_UNLOCK(list->lock);
-                break;
-            } else if (rc < 0) {
-                TAILQ_REMOVE(&list->head, item, next);
-                if (table->free_item_cb)
-                    table->free_item_cb(item->data);
-                free(item->key);
-                free(item);
-                ATOMIC_DECREMENT(table->count);
-                if (rc == -2) {
-                    SPIN_UNLOCK(list->lock);
-                    break;
-                }
-                count--;
-            }
-        }
-        SPIN_UNLOCK(list->lock);
-    }
+static int
+ht_foreach_value_helper(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user)
+{
+    ht_iterator_arg_t *arg = (ht_iterator_arg_t *)user;
+    return arg->cb(table, value, vlen, arg->user);
 }
 
 void
 ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user)
 {
-    uint32_t i;
-    uint32_t count = 0;
-    int rc = 0;
-
-    for (i = 0; i < ATOMIC_READ(table->size) && count < ATOMIC_READ(table->count); i++)
-    {
-        ht_items_list_t *list;
-        ATOMIC_GETLIST(table, i, list);
-
-        if (!list)
-            continue;
-
-        ht_item_t *item = NULL;
-        TAILQ_FOREACH(item, &list->head, next) {
-            count++;
-            rc = cb(table, item->data, item->dlen, user);
-            if (rc <= 0)
-                break;
-        }
-
-        if (item) { 
-            if (rc == 0) {
-                SPIN_UNLOCK(list->lock);
-                break;
-            } else if (rc < 0) {
-                TAILQ_REMOVE(&list->head, item, next);
-                if (table->free_item_cb)
-                    table->free_item_cb(item->data);
-                free(item->key);
-                free(item);
-                ATOMIC_DECREMENT(table->count);
-                if (rc == -2) {
-                    SPIN_UNLOCK(list->lock);
-                    break;
-                }
-                count--;
-            }
-        }
-        SPIN_UNLOCK(list->lock);
-    }
+    ht_iterator_arg_t arg = { cb, user };
+    ht_foreach_pair(table, ht_foreach_value_helper, &arg);
 }
 
 void
