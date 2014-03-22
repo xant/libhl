@@ -358,7 +358,7 @@ fbuf_copy(fbuf_t *fbufsrc, fbuf_t *fbufdst)
     if (!fbuf_extend(fbufdst, fbufsrc->used))
         return -1;
     fbuf_clear(fbufdst);
-    strcpy(fbufdst->data + fbufdst->skip, fbufsrc->data + fbufsrc->skip);
+    memcpy(fbufdst->data + fbufdst->skip, fbufsrc->data + fbufsrc->skip, fbufsrc->used);
     fbufdst->used = fbufsrc->used;
 
     return fbufdst->used;
