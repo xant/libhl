@@ -36,14 +36,14 @@ pqueue_drop_items(pqueue_t *pq, uint32_t num_items)
 {
     uint32_t deleted = 0;
     while(binheap_count(pq->heap) && deleted < num_items) {
-        pqueue_item_t *deleted_item = NULL;
+        void *deleted_item = NULL;
         if (pq->mode == PQUEUE_MODE_HIGHEST)
-            binheap_delete_minimum(pq->heap, (void **)&deleted_item, NULL);
+            binheap_delete_minimum(pq->heap, &deleted_item, NULL);
         else
-            binheap_delete_maximum(pq->heap, (void **)&deleted_item, NULL);
+            binheap_delete_maximum(pq->heap, &deleted_item, NULL);
         if (deleted_item) {
             if (pq->free_value_cb)
-                pq->free_value_cb(deleted_item->value);
+                pq->free_value_cb(((pqueue_item_t *)deleted_item)->value);
             free(deleted_item);
         }
         deleted++;
@@ -82,29 +82,29 @@ pqueue_insert(pqueue_t *pq, uint64_t prio, void *value, size_t len)
 int
 pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 {
-    pqueue_item_t *item = NULL;
+    void *item = NULL;
 
     pthread_mutex_lock(&pq->lock);
 
     int rc = (pq->mode == PQUEUE_MODE_HIGHEST)
-           ? binheap_delete_maximum(pq->heap, (void **)&item, NULL)
-           : binheap_delete_minimum(pq->heap, (void **)&item, NULL);
+           ? binheap_delete_maximum(pq->heap, &item, NULL)
+           : binheap_delete_minimum(pq->heap, &item, NULL);
 
     pthread_mutex_unlock(&pq->lock);
 
     if (rc == 0) {
 
         if (value) {
-            *value = item->value;
+            *value = ((pqueue_item_t *)item)->value;
         } else if (pq->free_value_cb) {
-            pq->free_value_cb(item->value);
+            pq->free_value_cb(((pqueue_item_t *)item)->value);
         }
 
         if (len)
-            *len = item->len;
+            *len = ((pqueue_item_t *)item)->len;
 
         if (prio)
-            *prio = item->prio;
+            *prio = ((pqueue_item_t *)item)->prio;
 
         free(item);
     }
@@ -114,29 +114,29 @@ pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 int
 pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 {
-    pqueue_item_t *item = NULL;
+    void *item = NULL;
 
     pthread_mutex_lock(&pq->lock);
 
     int rc = (pq->mode == PQUEUE_MODE_HIGHEST)
-           ? binheap_delete_minimum(pq->heap, (void **)&item, NULL)
-           : binheap_delete_maximum(pq->heap, (void **)&item, NULL);
+           ? binheap_delete_minimum(pq->heap, &item, NULL)
+           : binheap_delete_maximum(pq->heap, &item, NULL);
 
     pthread_mutex_unlock(&pq->lock);
 
     if (rc == 0) {
 
         if (value) {
-            *value = item->value;
+            *value = ((pqueue_item_t *)item)->value;
         } else if (pq->free_value_cb) {
-            pq->free_value_cb(item->value);
+            pq->free_value_cb(((pqueue_item_t *)item)->value);
         }
 
         if (len)
-            *len = item->len;
+            *len = ((pqueue_item_t *)item)->len;
 
         if (prio)
-            *prio = item->prio;
+            *prio = ((pqueue_item_t *)item)->prio;
 
         free(item);
     }
