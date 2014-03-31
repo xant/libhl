@@ -668,7 +668,7 @@ int swap_values(linked_list_t *list,  uint32_t pos1, uint32_t pos2)
     return swap_entries(list, pos1, pos2);
 }
 
-void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uint32_t idx, void *user), void *user)
+int foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uint32_t idx, void *user), void *user)
 {
     MUTEX_LOCK(&list->lock);
     uint32_t idx = 0;
@@ -705,6 +705,7 @@ void foreach_list_value(linked_list_t *list, int (*item_handler)(void *item, uin
         }
     }
     MUTEX_UNLOCK(&list->lock);
+    return idx;
 }
 
 tagged_value_t *create_tagged_value_nocopy(char *tag, void *val) 

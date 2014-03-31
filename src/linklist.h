@@ -212,8 +212,9 @@ typedef int (*item_handler_t)(void *item, uint32_t idx, void *user);
 
 /* list iterator. This iterator can be used for both Tag-based and Value-based lists.
  * If tagged, items can simply be casted to a tagged_value_t pointer.
+ * @return The number of items visited during the iteration
  */
-void foreach_list_value(linked_list_t *list, item_handler_t item_handler, void *user);
+int foreach_list_value(linked_list_t *list, item_handler_t item_handler, void *user);
 
 /********************************************************************
  * Tag-based API 
