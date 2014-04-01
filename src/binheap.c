@@ -338,10 +338,10 @@ binomial_tree_node_destroy(binomial_tree_node_t *node, int rindex)
                            
                 }
                 node->num_children--;
+                new_parent->parent = NULL;
+                if (item_num > 0) // and finally add one of its child back to the list of trees
+                    insert_value(node->bh->trees, new_parent, item_num - 1);
             }
-            new_parent->parent = NULL;
-            if (item_num > 0) // and finally add one of its child back to the list of trees
-                insert_value(node->bh->trees, new_parent, item_num - 1);
         }
     }
 
