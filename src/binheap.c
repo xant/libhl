@@ -289,7 +289,7 @@ binheap_get_maximum(binheap_t *bh, uint32_t *maxidx)
     return maxroot; 
 }
 static void
-binomial_tree_node_destroy(binomial_tree_node_t *node)
+binomial_tree_node_destroy(binomial_tree_node_t *node, int rindex)
 {
     int i;
     binomial_tree_node_t *new_parent = NULL;
@@ -317,7 +317,13 @@ binomial_tree_node_destroy(binomial_tree_node_t *node)
         }
     } else {
         // the node is a root node, let's first remove it from the list of trees
-        int item_num = foreach_list_value(node->bh->trees, binheap_remove_root_node, node);
+        int item_num = 0;
+        if (rindex) {
+            (void)fetch_value(node->bh->trees, rindex);
+            item_num = rindex + 1;
+        } else {
+            item_num = foreach_list_value(node->bh->trees, binheap_remove_root_node, node);
+        }
         if (node->num_children) {
             int child_index = node->bh->mode == BINHEAP_MODE_MAX
                             ? binomial_tree_node_find_max_child(node)
@@ -371,7 +377,7 @@ binheap_destroy(binheap_t *bh)
                                ? binheap_get_minimum(bh, NULL)
                                : binheap_get_maximum(bh, NULL);
     while (node) {
-        binomial_tree_node_destroy(node);
+        binomial_tree_node_destroy(node, 0);
         node = (bh->mode == BINHEAP_MODE_MIN)
              ? binheap_get_minimum(bh, NULL)
              : binheap_get_maximum(bh, NULL);
@@ -471,7 +477,7 @@ binheap_delete(binheap_t *bh, void *key, size_t klen, void **value, size_t *vlen
             *value = to_delete->value;
         if (vlen)
             *vlen = to_delete->vlen;
-        binomial_tree_node_destroy(to_delete);
+        binomial_tree_node_destroy(to_delete, 0);
         return 0;
     }
     return -1;
@@ -530,7 +536,7 @@ binheap_delete_minimum(binheap_t *bh, void **value, size_t *vlen)
     if (vlen)
         *vlen = minitem->vlen;
 
-    binomial_tree_node_destroy(minitem);
+    binomial_tree_node_destroy(minitem, minidx);
 
     return 0;
 }
@@ -549,7 +555,7 @@ binheap_delete_maximum(binheap_t *bh, void **value, size_t *vlen)
     if (vlen)
         *vlen = maxitem->vlen;
 
-    binomial_tree_node_destroy(maxitem);
+    binomial_tree_node_destroy(maxitem, maxidx);
 
     return 0;
 }
