@@ -284,7 +284,9 @@ ht_grow_table(hashtable_t *table)
         free(list);
     }
 
+    ht_items_list_t **old_items = ATOMIC_READ(table->items);
     ATOMIC_SET(table->items, items_list);
+    free(old_items);
 
     ATOMIC_SET(table->size, new_size);
 
