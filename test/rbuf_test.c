@@ -18,10 +18,12 @@
 struct __rbuf_s {
     u_char *buf;        // the buffer
     int size;           // buffer size
+    int available;      // buffer size
+    int used;           // used size
     int rfx;            // read offset
     int wfx;            // write offset
+    int mode;           // the ringbuffer mode (blocking/overwrite)
 };
-
 
 int
 main (int argc, char **argv)
@@ -72,7 +74,7 @@ main (int argc, char **argv)
     ut_testing("rbuf_clear(rb)");
     rbuf_clear(rb);
     // len must be 0 and both rfx and wfx at the beginning of the buffer (so either 0)
-    ut_validate_int(rbuf_len(rb)|rb->rfx|rb->wfx, 0);
+    ut_validate_int(rbuf_used(rb)|rb->rfx|rb->wfx, 0);
     // fill the buffer so that it looks like '0123456789ABCDEFxxxxxxxx'
     rbuf_write(rb, buffer1, 16);
     rbuf_write(rb, buffer2, 16);
@@ -84,14 +86,18 @@ main (int argc, char **argv)
     rbuf_write(rb, buffer1, 16);
     ut_testing("rb->rfx > rb->wfx");
     ut_validate_int((rb->rfx > rb->wfx), 1);
-    ut_testing("rbuf_read_until(rb, 'E', test, 24)"); 
-    ut_validate_int(rbuf_read_until(rb, 'E', test, rb->size), 22); 
+
+    ut_testing("rbuf_available(rb) == rbuf_size(rb) - rbuf_used(rb)");
+    ut_validate_int(rbuf_available(rb), rbuf_size(rb) - rbuf_used(rb));
+
+    ut_testing("rbuf_read_until(rb, 'E', test, 24)");
+    ut_validate_int(rbuf_read_until(rb, 'E', test, rb->size), 22);
     // first byte now has to be 'F' (which follows the 'E' we looked for)
-    ut_testing("rbuf_find(rb, 'F') == 0"); 
+    ut_testing("rbuf_find(rb, 'F') == 0");
     ut_validate_int(rbuf_find(rb, 'F'), 0);
     ut_testing("rb->rfx < rb->wfx");
     ut_validate_int((rb->rfx < rb->wfx), 1);
-    
+
     rbuf_clear(rb);
     ut_testing("rbuf_set_mode(rb, RBUF_MODE_OVERWRITE)");
     rbuf_set_mode(rb, RBUF_MODE_OVERWRITE);
@@ -103,9 +109,34 @@ main (int argc, char **argv)
     ut_validate_int( rbuf_write(rb, bigbuffer, 32), 32);
     ut_testing("rbuf_find(rb, '8') == 0");
     ut_validate_int(rbuf_find(rb, '8'), 0);
-    ut_testing("rbuf_len(rb) == 24");
-    ut_validate_int(rbuf_len(rb), 24);
-    
+    ut_testing("rbuf_used(rb) == 24");
+    ut_validate_int(rbuf_used(rb), 24);
+
+
+    ut_testing("rbuf_copy(rb, copy, 24)");
+    rbuf_t *copy = rbuf_create(24);
+    rbuf_copy(rb, copy, rbuf_used(rb));
+    ut_validate_buffer(copy->buf, 24, rb->buf, 24);
+
+    rbuf_t *move = rbuf_create(24);
+    ut_testing("rbuf_move(copy, move, 24)");
+    rbuf_move(copy, move, rbuf_used(copy));
+    if (memcmp(move->buf, rb->buf, 24) == 0) {
+        if (rbuf_used(copy) == 0) {
+            ut_success();
+        } else {
+            ut_failure("rbuf_used(copy) != 0");
+        }
+    } else {
+        ut_failure("move != rb");
+    }
+
+    rbuf_destroy(copy);
+    rbuf_destroy(move);
+
+    ut_testing("rbuf_available(rb) == rbuf_size(rb) - rbuf_used(rb) [ again ]");
+    ut_validate_int(rbuf_available(rb), rbuf_size(rb) - rbuf_used(rb));
+
     ut_testing("rbuf_write(rb, \"XX\", 2)");
     ut_validate_int(rbuf_write(rb, "XX", 2), 2);
 
@@ -115,6 +146,7 @@ main (int argc, char **argv)
     ut_validate_int(rbuf_find(rb, 'X'), 22);
 
 
+    rbuf_destroy(rb);
 
     ut_summary();
 

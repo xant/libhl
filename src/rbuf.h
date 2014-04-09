@@ -68,11 +68,29 @@ int rbuf_read(rbuf_t *rbuf, u_char *out, int size);
 int rbuf_write(rbuf_t *rbuf, u_char *in, int size);
 
 /**
- * @brief Returns the amount of bytes available in the ringbuffer for reading
+ * @brief Returns the total size of the ringbuffer (specified at creation time)
  * @param rbuf  : A valid pointer to a rbuf_t structure
- * @return the amount of bytes written into the ringbuffer and available for reading
+ * @return the total amount of bytes that can be stored in the rbuf
  */
-int rbuf_len(rbuf_t *rbuf);
+int rbuf_size(rbuf_t *rbuf);
+
+/**
+ * @brief Returns the amount of bytes stored into the ringbuffer
+ *        and available for reading
+ * @param rbuf  : A valid pointer to a rbuf_t structure
+ * @return the amount of bytes stored into the ringbuffer
+ *         and available for reading
+ */
+int rbuf_used(rbuf_t *rbuf);
+
+/**
+ * @brief Returns the amount of space left in the ringbuffer for writing
+ * @note equivalent to: rbuf_size() - rbuf_used()
+ * @param rbuf  : A valid pointer to a rbuf_t structure
+ * @return the amount of bytes which is still possible to write into the ringbuffer
+ *         until some data is consumed by a rbuf_read() operation
+ */
+int rbuf_available(rbuf_t *rbuf);
 
 /**
  * @brief Scan the ringbuffer untill the specific byte is found
@@ -92,6 +110,9 @@ int rbuf_find(rbuf_t *rbuf, u_char octet);
  * @return        : The amount of bytes actually read from the ringbuffer
  */
 int rbuf_read_until(rbuf_t *rbuf, u_char octet, u_char *out, int maxsize);
+
+int rbuf_move(rbuf_t *src, rbuf_t *dst, int len);
+int rbuf_copy(rbuf_t *src, rbuf_t *dst, int len);
 
 /**
  * @brief Clear the ringbuffer by eventually skipping all the unread bytes (if any)
