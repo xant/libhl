@@ -364,11 +364,15 @@ static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
 {
     unsigned int i;
     list_entry_t *entry;
-    if(list->length <= pos)
+
+    MUTEX_LOCK(&list->lock);
+
+    if(list->length <= pos) {
+        MUTEX_UNLOCK(&list->lock);
         return NULL;
+    }
 
     uint32_t half_length = list->length >> 1;
-    MUTEX_LOCK(&list->lock);
     if (list->cur && (uint32_t)abs(list->pos - pos) < half_length) {
         entry = list->cur;
         if (list->pos != pos) {
