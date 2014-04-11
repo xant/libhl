@@ -754,6 +754,62 @@ binheap_decrease_minimum(binheap_t *bh, int decr)
     binomial_tree_node_increase_key(minitem, -decr);
 }
 
+static int
+binomial_tree_walk(binomial_tree_node_t *node, int *count, binheap_walk_callback_t cb, void *priv)
+{
+    int proceed = 0;
+    int remove = 0;
+    (*count)++;
+    int rc = cb(node->bh, node->key, node->klen, node->value, node->vlen, priv);
+    switch(rc) {
+        case -2:
+            proceed = 0;
+            remove = 1;
+            break;
+        case -1:
+            proceed = 1;
+            remove = 1;
+            break;
+        case 0:
+            proceed = 0;
+            remove = 0;
+            break;
+        case 1:
+            proceed = 1;
+            remove = 0;
+            break;
+        default:
+            // TODO - Warning messages? (the callback returned an invalid return code)
+            break;
+    }
+    if (proceed) {
+        int i;
+        for (i = 0; i < node->num_children; i ++) {
+            binomial_tree_node_t *child = node->children[i];
+            proceed = binomial_tree_walk(child, count, cb, priv); 
+            if (!proceed)
+                break;
+        }
+    }
+    if (remove) {
+        binomial_tree_node_destroy(node, 0);
+    }
+    return proceed;
+}
+
+int
+binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv)
+{
+    int cnt = 0;
+    int i;
+    for (i = 0; i < list_count(bh->trees); i++) {
+        binomial_tree_node_t *curtree = pick_value(bh->trees, i);
+        if (!binomial_tree_walk(curtree, &cnt, cb, priv))
+            break;
+    }
+    return cnt;
+}
+
 
 #define BINHEAP_CMP_KEYS_TYPE(__type, __k1, __k1s, __k2, __k2s) \
 { \

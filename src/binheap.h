@@ -257,6 +257,35 @@ void binheap_decrease_key(binheap_t *bh, void *key, size_t klen, int decr);
 binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2);
 
 /**
+ * @brief Callback called for each node when walking the priority queue
+ * @param bh A valid pointer to an initialized binheap_t structure
+ * @param key  The key of the current node
+ * @param klen The size of the key
+ * @param value The value of the current node
+ * @param vlen  The size of the value
+ * @param priv The private pointer passed to binheap_walk()
+ * @return 1 If the walker can go ahead visiting the next node,
+ *         0 if the walker should stop and return
+ *        -1 if the current node should be removed and the walker can go ahead
+ *        -2 if the current node should be removed and the walker should stop
+ */
+typedef int (*binheap_walk_callback_t)(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen, void *priv);
+
+/**
+ * @brief Walk the entire priority queue and call the provided
+ *        callback for each visited node
+ * @note The callback can both stop the walker and/or remove the currently
+ *       visited node using its return value (check binheap_walk_callback_t)
+ * @param bh A valid pointer to an initialized binheap_t structure
+ * @param cb The callback to call for each visited node
+ * @param priv A private pointer which will be passed to the callback at each
+ *             call
+ * @return The number of visited nodes
+ *
+ */
+int binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv);
+
+/**
  * @brief Return the number of items in the heap
  * @param bh A valid pointer to an initialized binheap_t structure
  * @return the actual number of items in the heap

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 
 #include "binheap.h"
@@ -141,6 +142,62 @@ pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
         free(item);
     }
     return rc;
+}
+
+typedef struct {
+    pqueue_t *pq;
+    pqueue_walk_callback_t cb;
+    void *priv;
+} pqueue_walk_helper_arg_t;
+
+static int 
+pqueue_walk_helper(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen, void *priv)
+{
+    pqueue_walk_helper_arg_t *arg = (pqueue_walk_helper_arg_t *)priv;
+    uint64_t *prio = (uint64_t *)key;
+    return arg->cb(arg->pq, *prio, value, vlen, arg->priv);
+}
+
+int
+pqueue_walk(pqueue_t *pq, pqueue_walk_callback_t cb, void *priv)
+{
+    pqueue_walk_helper_arg_t arg = {
+        .pq = pq,
+        .cb = cb,
+        .priv = priv
+    };
+    return binheap_walk(pq->heap, pqueue_walk_helper, &arg);
+}
+
+
+typedef struct {
+    void *value;
+    size_t len;
+    int found;
+} pqueue_remove_helper_arg_t;
+
+static int
+pqueue_remove_helper(pqueue_t *pq, uint64_t prio, void *value, size_t len, void *priv)
+{
+    pqueue_remove_helper_arg_t *arg = (pqueue_remove_helper_arg_t *)priv;
+    if (len == arg->len && *((char *)value) == *((char *)arg->value) &&
+        memcmp(value, arg->value, len) == 0)
+    {
+        return -2;
+    }
+    return 1;
+}
+
+int
+pqueue_remove(pqueue_t *pq, void *value, size_t len)
+{
+    pqueue_remove_helper_arg_t arg = {
+        .value = value,
+        .len = len,
+        .found = 0
+    };
+    pqueue_walk(pq, pqueue_remove_helper, &arg);
+    return arg.found ? 0 : -1;
 }
 
 uint32_t

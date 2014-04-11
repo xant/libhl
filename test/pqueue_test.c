@@ -13,6 +13,14 @@ void free_item(void *item)
     free(item);
 }
 
+static int
+test_walk(pqueue_t *pq, uint64_t prio, void *value, size_t len, void *priv)
+{
+    int *count = (int *)priv;
+    (*count)++;
+    return 1;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -76,6 +84,14 @@ main(int argc, char **argv)
 
     ut_testing("pqueue_count(pq) == 99");
     ut_validate_int(pqueue_count(pq), 99);
+
+    int cnt = 0;
+
+    ut_testing("pqueue_walk(pq, test_walk, &count)");
+    int visited = pqueue_walk(pq, test_walk, &cnt);
+    // pqueue_walk should report we have visited 99 nodes
+    // and count should have also been summed up to 99
+    ut_validate_int(cnt+visited, 99*2);
 
     ut_testing("pqueue_destroy() and the free_value_callback");
     pqueue_destroy(pq);
