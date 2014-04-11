@@ -115,6 +115,7 @@ int rbtree_find(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize);
  * @param ksize The size of the key
  * @param v     The new value to store
  * @param vsize The size of the value
+ * @param priv  The private pointer passed to either rbtree_walk() or rbtree_walk_sorted()
  * @return 1 If the walker can go ahead visiting the next node,
  *         0 if the walker should stop and return
  *        -1 if the current node should be removed and the walker can go ahead
