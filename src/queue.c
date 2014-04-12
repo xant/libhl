@@ -406,6 +406,7 @@ inline int queue_push_position(queue_t *q, uint32_t pos, void *value)
             break;
         }
     }
+    ATOMIC_INCREMENT(q->length, 1);
     push_common(entry, next);
     return 0;
 
