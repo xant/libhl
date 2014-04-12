@@ -123,6 +123,8 @@ uint32_t rqueue_read_count(rqueue_t *rb);
  */
 char *rqueue_stats(rqueue_t *rb);
 
+int rqueue_isempty(rqueue_t *tb);
+
 #ifdef __cplusplus
 }
 #endif
