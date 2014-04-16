@@ -134,6 +134,40 @@ avlt_node_create(void *key, size_t klen, void *value, size_t vlen)
     return node;
 }
 
+static inline void
+avlt_balance(avlt_t *tree, avlt_node_t *node)
+{
+    while(node) {
+        node->hl = node->left ? MAX(node->left->hl, node->left->hr) + 1 : 0;
+        node->hr = node->right ? MAX(node->right->hl, node->right->hr) + 1 : 0;
+        int balance_factor = node->hl - node->hr;
+        if (balance_factor <= -2) {
+            avlt_node_t *right = node->right;
+            // check for right-left case
+            if ((right->hl - right->hr) == 1)
+                avlt_rotate_right(right);
+            avlt_rotate_left(node);
+            if (tree->root == node)
+                tree->root = node->parent;
+        } else if (balance_factor >= 2) {
+            avlt_node_t *left = node->left;
+            // check for left-right case
+            if ((left->hl - left->hr) == -1)
+                avlt_rotate_left(left);
+            avlt_rotate_right(node);
+            if (tree->root == node)
+                tree->root = node->parent;
+        } else {
+            node = node->parent;
+            continue;
+        }
+
+        balance_factor = node->hl - node->hr;
+        if (balance_factor >= -1 && balance_factor <= 1)
+            node = node->parent;
+    }
+}
+
 int
 avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen)
 {
@@ -235,39 +269,11 @@ avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen)
         }
     }
 
-    while(cur) {
-        cur->hl = cur->left ? MAX(cur->left->hl, cur->left->hr) + 1 : 0;
-        cur->hr = cur->right ? MAX(cur->right->hl, cur->right->hr) + 1 : 0;
-        int balance_factor = cur->hl - cur->hr;
-        if (balance_factor <= -2) {
-            avlt_node_t *right = cur->right;
-            // check for right-left case
-            if ((right->hl - right->hr) == 1)
-                avlt_rotate_right(right);
-            avlt_rotate_left(cur);
-            if (tree->root == cur)
-                tree->root = cur->parent;
-        } else if (balance_factor >= 2) {
-            avlt_node_t *left = cur->left;
-            // check for left-right case
-            if ((left->hl - left->hr) == -1)
-                avlt_rotate_left(left);
-            avlt_rotate_right(cur);
-            if (tree->root == cur)
-                tree->root = cur->parent;
-        } else {
-            cur = cur->parent;
-            continue;
-        }
-
-        balance_factor = cur->hl - cur->hr;
-        if (balance_factor >= -1 && balance_factor <= 1)
-            cur = cur->parent;
-    }
+    avlt_balance(tree, cur);
     return 0;
 }
 
-static avlt_node_t *
+static inline avlt_node_t *
 avlt_find_next(avlt_t *tree, avlt_node_t *node)
 {
     if (!node->right)
@@ -281,7 +287,7 @@ avlt_find_next(avlt_t *tree, avlt_node_t *node)
     return next;
 }
 
-static avlt_node_t *
+static inline avlt_node_t *
 avlt_find_prev(avlt_t *tree, avlt_node_t *node)
 {
     if (!node->left)
@@ -294,7 +300,6 @@ avlt_find_prev(avlt_t *tree, avlt_node_t *node)
 
     return prev;
 }
-
 
 int
 avlt_remove(avlt_t *tree, void *key, size_t klen, void **value, size_t *vlen)
@@ -347,49 +352,18 @@ avlt_remove(avlt_t *tree, void *key, size_t klen, void **value, size_t *vlen)
         if (!cur->left || !cur->right) {
             // none or at most 1 child case
             if (parent) {
-                if (parent->left == cur) {
+                if (parent->left == cur)
                     parent->left = cur->left ? cur->left : cur->right;
-                    parent->hl = MAX(cur->hl, cur->hr);
-                } else {
+                else
                     parent->right = (cur->right) ? cur->right : cur->left;
-                    parent->hr = MAX(cur->hl, cur->hr);
-                }
+
                 if (cur->left) {
                     cur->left->parent = parent;
                 } else if (cur->right) {
                     cur->right->parent = parent;
                 }
 
-                
-                cur = parent;
-                while(cur) {
-                    int balance_factor = cur->hl - cur->hr;
-                    if (balance_factor <= -2) {
-                        avlt_node_t *right = cur->right;
-                        // check for right-left case
-                        if ((right->hl - right->hr) == 1)
-                            avlt_rotate_right(right);
-                        avlt_rotate_left(cur);
-                        if (tree->root == cur)
-                            tree->root = cur->parent;
-                    } else if (balance_factor >= 2) {
-                        avlt_node_t *left = cur->left;
-                        // check for left-right case
-                        if ((left->hl - left->hr) == -1)
-                            avlt_rotate_left(left);
-                        avlt_rotate_right(cur);
-                        if (tree->root == cur)
-                            tree->root = cur->parent;
-                    } else {
-                        cur = cur->parent;
-                        continue;
-                    }
-
-                    balance_factor = cur->hl - cur->hr;
-                    if (balance_factor >= -1 && balance_factor <= 1)
-                        cur = cur->parent;
-                }
-
+                avlt_balance(tree, parent);
             } else {
                 if (cur->left) {
                     cur->left->parent = NULL;
