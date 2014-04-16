@@ -41,6 +41,7 @@ TEST_EXEC_ORDER = fbuf_test \
 		  rqueue_test \
 		  queue_test \
 		  rbtree_test \
+		  avltree_test \
 		  binheap_test \
 		  pqueue_test
 

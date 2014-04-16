@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <libgen.h>
 #include <ut.h>
-#include "rbtree.h"
+#include "avltree.h"
 
 /*
 static int
-print_value(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+print_value(avlt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
 {
     printf("%d\n", *((int *)value));
     return 0;
@@ -15,7 +15,7 @@ print_value(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, v
 */
 
 static int
-sum_value(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+sum_value(avlt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
 {
     int *vsum = (int *)priv;
     *vsum += *((int *)value);
@@ -23,7 +23,7 @@ sum_value(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, voi
 }
 
 static int
-check_sort(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+check_sort(avlt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
 {
     int *check = (int *)priv;
     int v = *((int *)value);
@@ -36,7 +36,7 @@ check_sort(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, vo
 }
 
 static int
-get_root(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+get_root(avlt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
 {
     void **p = (void **)priv;
     *p = value;
@@ -53,53 +53,53 @@ main(int argc, char **argv)
 
     ut_init(basename(argv[0]));
 
-    ut_testing("rbtree_create(free)");
-    rbtree_t *rbt = rbtree_create(libhl_cmp_keys_int16, free);
+    ut_testing("avlt_create(free)");
+    avlt_t *rbt = avlt_create(libhl_cmp_keys_int16, free);
     if (rbt)
         ut_success();
     else
-        ut_failure("Can't create a new rbtree");
+        ut_failure("Can't create a new avlt");
 
     ut_testing("Adding 0..18");
     int sum = 0;
     for (i = 0; i < 18; i++) {
         v = malloc(sizeof(int));
         *v = i;
-        rbtree_add(rbt, v, sizeof(int), v, sizeof(int));
+        avlt_add(rbt, v, sizeof(int), v, sizeof(int));
         sum += i;
     }
     int vsum = 0;
-    int rc = rbtree_walk(rbt, sum_value, &vsum);
+    int rc = avlt_walk(rbt, sum_value, &vsum);
     ut_validate_int(vsum, sum);
 
-    ut_testing("rbtree_walk() return value");
+    ut_testing("avlt_walk() return value");
     ut_validate_int(rc, 18);
 
     ut_testing("root is '7'");
-    rbtree_walk(rbt, get_root, &v);
+    avlt_walk(rbt, get_root, &v);
     ut_validate_int(*((int *)v), 7);
     
-    ut_testing("rbtree_walk_sorted()");
+    ut_testing("avlt_walk_sorted()");
     int check = 0;
-    rc = rbtree_walk_sorted(rbt, check_sort, &check);
+    rc = avlt_walk_sorted(rbt, check_sort, &check);
     ut_validate_int(check, 18);
 
-    ut_testing("rbtree_walk_sorted() return value");
+    ut_testing("avlt_walk_sorted() return value");
     ut_validate_int(rc, 18);
 
     ut_testing("Removing '7'");
     i = 7;
-    rbtree_remove(rbt, &i, sizeof(int), NULL, NULL);
+    avlt_remove(rbt, &i, sizeof(int), NULL, NULL);
     vsum = 0;
-    rbtree_walk(rbt, sum_value, &vsum);
+    avlt_walk(rbt, sum_value, &vsum);
     ut_validate_int(vsum, sum - 7);
 
-    ut_testing("root is '6'");
-    rbtree_walk(rbt, get_root, &v);
-    ut_validate_int(*((int *)v), 6);
+    ut_testing("root is '8'");
+    avlt_walk(rbt, get_root, &v);
+    ut_validate_int(*((int *)v), 8);
 
     /*
-    rbtree_walk(rbt, print_value, NULL);
+    avlt_walk(rbt, print_value, NULL);
     */
     
     ut_summary();

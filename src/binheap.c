@@ -846,13 +846,14 @@ binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv)
     } \
 }
 
+#define libhl_cmp_keys_int16_t libhl_cmp_keys_int16
+#define libhl_cmp_keys_int32_t libhl_cmp_keys_int32
+#define libhl_cmp_keys_int64_t libhl_cmp_keys_int64
+#define libhl_cmp_keys_uint16_t libhl_cmp_keys_uint16
+#define libhl_cmp_keys_uint32_t libhl_cmp_keys_uint32
+#define libhl_cmp_keys_uint64_t libhl_cmp_keys_uint64
+
 #define BINHEAP_KEY_CALLBACKS_TYPE(__type) \
-static inline int \
-binheap_cmp_keys_##__type(void *k1, size_t k1size, void *k2, size_t k2size) \
-{ \
-    BINHEAP_CMP_KEYS_TYPE(__type, k1, k1size, k2, k2size); \
-} \
-\
 static inline void \
 binheap_incr_key_##__type(void *k, size_t ksize, void **nk, size_t *nksize, int incr) \
 { \
@@ -870,7 +871,7 @@ binheap_keys_callbacks_##__type() \
 { \
     static const binheap_callbacks_t __type##_cbs \
     = { \
-          .cmp = binheap_cmp_keys_##__type \
+          .cmp = libhl_cmp_keys_##__type \
         , .incr = binheap_incr_key_##__type \
         , .decr = binheap_decr_key_##__type \
     };\
