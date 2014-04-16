@@ -35,18 +35,18 @@ static void free_value(void *val) {
 typedef struct {
     queue_t *queue;
     int count;
+    int leave;
 } queue_worker_arg;
 
 void *queue_worker(void *user) {
     void *v;
     queue_worker_arg *arg = (queue_worker_arg *)user;
-    for (;;) {
+    while (!__sync_fetch_and_add(&arg->leave, 0)) {
         v = queue_pop_left(arg->queue);
         if (v) {
             __sync_add_and_fetch(&arg->count, 1);
             free(v);
         }
-        pthread_testcancel();
     }
     return NULL;
 }
@@ -110,7 +110,8 @@ int main(int argc, char **argv) {
 
     queue_worker_arg arg = {
         .queue = queue_create(),
-        .count = 0
+        .count = 0,
+        .leave = 0
     };
 
     int num_queued_items = 10000;
@@ -130,9 +131,9 @@ int main(int argc, char **argv) {
     while(queue_count(arg.queue))
         usleep(500);
 
+    __sync_add_and_fetch(&arg.leave, 1);
     for (i = 0; i < num_parallel_threads; i++) {
         pthread_cancel(threads[i]);
-        pthread_join(threads[i], NULL);
     }
 
     ut_result(arg.count == num_queued_items, "Handled items should have been %d (was %d)", num_queued_items, arg.count);
