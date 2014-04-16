@@ -89,7 +89,7 @@ main(int argc, char **argv)
 
     ut_testing("Removing '7'");
     i = 7;
-    rbtree_remove(rbt, &i, sizeof(int));
+    rbtree_remove(rbt, &i, sizeof(int), NULL, NULL);
     vsum = 0;
     rbtree_walk(rbt, sum_value, &vsum);
     ut_validate_int(vsum, sum - 7);

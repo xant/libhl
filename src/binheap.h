@@ -14,6 +14,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <comparators.h>
 
 /**
  * @brief Working modes (max-based or min-based)
@@ -49,10 +50,6 @@ typedef struct __binheap_s binheap_t;
  *       by the library).
  *
  */
-typedef int (*binheap_cmp_keys_callback)(void *key1,
-                                         size_t key1size,
-                                         void *key2,
-                                         size_t key2size);
 
 /**
  * @brief Callback used to increment a given key by an arbitrary amount
@@ -91,7 +88,7 @@ typedef void (*binheap_decr_key_callback)(void *key,
                                           int decrement);
 
 typedef struct {
-    binheap_cmp_keys_callback cmp; //!< compare two keys
+    libhl_cmp_callback_t cmp; //!< compare two keys
     binheap_incr_key_callback incr; //!< increment a given key
     binheap_decr_key_callback decr; //!< decrement a given key
 } binheap_callbacks_t;
