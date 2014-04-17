@@ -15,44 +15,44 @@
 typedef enum {
     RBTREE_COLOR_RED = 0,
     RBTREE_COLOR_BLACK,
-} rbtree_color_t;
+} rbt_color_t;
 
-typedef struct __rbtree_node_s {
-    rbtree_color_t color;
+typedef struct __rbt_node_s {
+    rbt_color_t color;
     void *key;
-    size_t ksize;
+    size_t klen;
     void *value;
-    size_t vsize;
-    struct __rbtree_node_s *left; 
-    struct __rbtree_node_s *right; 
-    struct __rbtree_node_s *parent;
-} rbtree_node_t;
+    size_t vlen;
+    struct __rbt_node_s *left; 
+    struct __rbt_node_s *right; 
+    struct __rbt_node_s *parent;
+} rbt_node_t;
 
-struct __rbtree_s {
-    rbtree_node_t *root;
+struct __rbt_s {
+    rbt_node_t *root;
     libhl_cmp_callback_t cmp_keys_cb;
-    rbtree_free_value_callback free_value_cb;
+    rbt_free_value_callback_t free_value_cb;
 };
 
-rbtree_t *
-rbtree_create(libhl_cmp_callback_t cmp_keys_cb,
-              rbtree_free_value_callback free_value_cb)
+rbt_t *
+rbt_create(libhl_cmp_callback_t cmp_keys_cb,
+              rbt_free_value_callback_t free_value_cb)
 {
-    rbtree_t *rbt = calloc(1, sizeof(rbtree_t));
+    rbt_t *rbt = calloc(1, sizeof(rbt_t));
     rbt->free_value_cb = free_value_cb;
     rbt->cmp_keys_cb = cmp_keys_cb;
     return rbt;
 }
 
 void
-_rbtree_destroy_internal(rbtree_node_t *node, rbtree_free_value_callback free_value_cb)
+_rbt_destroy_internal(rbt_node_t *node, rbt_free_value_callback_t free_value_cb)
 {
     if (!node)
         return;
 
 
-    _rbtree_destroy_internal(node->left, free_value_cb);
-    _rbtree_destroy_internal(node->right, free_value_cb);
+    _rbt_destroy_internal(node->left, free_value_cb);
+    _rbt_destroy_internal(node->right, free_value_cb);
 
     free(node->key);
     if (free_value_cb)
@@ -63,14 +63,14 @@ _rbtree_destroy_internal(rbtree_node_t *node, rbtree_free_value_callback free_va
 
 
 void
-rbtree_destroy(rbtree_t *rbt)
+rbt_destroy(rbt_t *rbt)
 {
-    _rbtree_destroy_internal(rbt->root, rbt->free_value_cb);
+    _rbt_destroy_internal(rbt->root, rbt->free_value_cb);
     free(rbt);
 }
 
 int
-_rbtree_walk_internal(rbtree_t *rbt, rbtree_node_t *node, int sorted, rbtree_walk_callback cb, void *priv)
+_rbt_walk_internal(rbt_t *rbt, rbt_node_t *node, int sorted, rbt_walk_callback cb, void *priv)
 {
     if (!node)
         return 0;
@@ -79,24 +79,24 @@ _rbtree_walk_internal(rbtree_t *rbt, rbtree_node_t *node, int sorted, rbtree_wal
     int cbrc = 0;
 
     if (sorted && node->left) {
-        int rrc = _rbtree_walk_internal(rbt, node->left, sorted, cb, priv);
+        int rrc = _rbt_walk_internal(rbt, node->left, sorted, cb, priv);
         if (rrc == 0)
             return rc + 1;
         rc += rrc;
     }
 
-    cbrc = cb(rbt, node->key, node->ksize, node->value, node->vsize, priv);
+    cbrc = cb(rbt, node->key, node->klen, node->value, node->vlen, priv);
     switch(cbrc) {
         case -2:
-            rbtree_remove(rbt, node->key, node->ksize, NULL, NULL);
+            rbt_remove(rbt, node->key, node->klen, NULL, NULL);
             return 0;
         case -1:
             {
                 if (node->left && node->right) {
-                    rbtree_remove(rbt, node->key, node->ksize, NULL, NULL);
-                    return _rbtree_walk_internal(rbt, node, sorted, cb, priv);
+                    rbt_remove(rbt, node->key, node->klen, NULL, NULL);
+                    return _rbt_walk_internal(rbt, node, sorted, cb, priv);
                 } else if (node->left || node->right) {
-                    return _rbtree_walk_internal(rbt, node->left ? node->left : node->right, sorted, cb, priv);
+                    return _rbt_walk_internal(rbt, node->left ? node->left : node->right, sorted, cb, priv);
                 }
                 // this node was a leaf
                 return 1;
@@ -111,14 +111,14 @@ _rbtree_walk_internal(rbtree_t *rbt, rbtree_node_t *node, int sorted, rbtree_wal
     }
 
     if (!sorted && node->left) {
-        int rrc = _rbtree_walk_internal(rbt, node->left, sorted, cb, priv);
+        int rrc = _rbt_walk_internal(rbt, node->left, sorted, cb, priv);
         if (rrc == 0)
             return rc + 1;
         rc += rrc;
     }
 
     if (node->right) {
-        int rrc = _rbtree_walk_internal(rbt, node->right, sorted, cb, priv);
+        int rrc = _rbt_walk_internal(rbt, node->right, sorted, cb, priv);
         if (rrc == 0)
             return rc + 1;
         rc += rrc;
@@ -128,36 +128,36 @@ _rbtree_walk_internal(rbtree_t *rbt, rbtree_node_t *node, int sorted, rbtree_wal
 }
 
 int
-rbtree_walk(rbtree_t *rbt, rbtree_walk_callback cb, void *priv)
+rbt_walk(rbt_t *rbt, rbt_walk_callback cb, void *priv)
 {
     if (rbt->root)
-        return _rbtree_walk_internal(rbt, rbt->root, 0, cb, priv);
+        return _rbt_walk_internal(rbt, rbt->root, 0, cb, priv);
 
     return 0;
 }
 
 int
-rbtree_walk_sorted(rbtree_t *rbt, rbtree_walk_callback cb, void *priv)
+rbt_walk_sorted(rbt_t *rbt, rbt_walk_callback cb, void *priv)
 {
     if (rbt->root)
-        return _rbtree_walk_internal(rbt, rbt->root, 1, cb, priv);
+        return _rbt_walk_internal(rbt, rbt->root, 1, cb, priv);
 
     return 0;
 }
 
 
-static rbtree_node_t *
-rbtree_grandparent(rbtree_node_t *node)
+static rbt_node_t *
+rbt_grandparent(rbt_node_t *node)
 {
     if (node && node->parent)
         return node->parent->parent;
     return NULL;
 }
 
-static rbtree_node_t *
-rbtree_uncle(rbtree_node_t *node)
+static rbt_node_t *
+rbt_uncle(rbt_node_t *node)
 {
-    rbtree_node_t *gp = rbtree_grandparent(node);
+    rbt_node_t *gp = rbt_grandparent(node);
     if (!gp)
         return NULL;
     if (node->parent == gp->left)
@@ -168,7 +168,7 @@ rbtree_uncle(rbtree_node_t *node)
 
 
 static int
-rbtree_compare_keys(rbtree_t *rbt, void *k1, size_t k1size, void *k2, size_t k2size)
+rbt_compare_keys(rbt_t *rbt, void *k1, size_t k1size, void *k2, size_t k2size)
 {
     int rc;
     if (rbt->cmp_keys_cb) {
@@ -188,9 +188,9 @@ rbtree_compare_keys(rbtree_t *rbt, void *k1, size_t k1size, void *k2, size_t k2s
 }
 
 static int
-_rbtree_add_internal(rbtree_t *rbt, rbtree_node_t *cur_node, rbtree_node_t *new_node)
+_rbt_add_internal(rbt_t *rbt, rbt_node_t *cur_node, rbt_node_t *new_node)
 {
-    int rc = rbtree_compare_keys(rbt, cur_node->key, cur_node->ksize, new_node->key, new_node->ksize);
+    int rc = rbt_compare_keys(rbt, cur_node->key, cur_node->klen, new_node->key, new_node->klen);
 
     if (rc == 0) {
         // key matches, just set the new value
@@ -219,14 +219,14 @@ _rbtree_add_internal(rbtree_t *rbt, rbtree_node_t *cur_node, rbtree_node_t *new_
         return 1;
     } else if (rc > 0) {
         if (cur_node->left) {
-            return _rbtree_add_internal(rbt, cur_node->left, new_node);
+            return _rbt_add_internal(rbt, cur_node->left, new_node);
         } else {
             cur_node->left = new_node;
             new_node->parent = cur_node;
         }
     } else {
         if (cur_node->right) {
-            return _rbtree_add_internal(rbt, cur_node->right, new_node);
+            return _rbt_add_internal(rbt, cur_node->right, new_node);
         } else {
             cur_node->right = new_node;
             new_node->parent = cur_node;
@@ -236,9 +236,9 @@ _rbtree_add_internal(rbtree_t *rbt, rbtree_node_t *cur_node, rbtree_node_t *new_
 }
 
 static void 
-rbtree_rotate_right(rbtree_t *rbt, rbtree_node_t *node)
+rbt_rotate_right(rbt_t *rbt, rbt_node_t *node)
 {
-    rbtree_node_t *p = node->left;
+    rbt_node_t *p = node->left;
     node->left = p ? p->right : NULL;
     if (p)
         p->right = node;
@@ -246,7 +246,7 @@ rbtree_rotate_right(rbtree_t *rbt, rbtree_node_t *node)
     if (node->left)
          node->left->parent = node;
 
-    rbtree_node_t *parent = node->parent;
+    rbt_node_t *parent = node->parent;
     node->parent = p;
     if (p) {
         p->parent = parent;
@@ -265,9 +265,9 @@ rbtree_rotate_right(rbtree_t *rbt, rbtree_node_t *node)
 }
 
 static void
-rbtree_rotate_left(rbtree_t *rbt, rbtree_node_t *node)
+rbt_rotate_left(rbt_t *rbt, rbt_node_t *node)
 {
-    rbtree_node_t *p = node->right;
+    rbt_node_t *p = node->right;
     node->right = p ? p->left : NULL;
     if (p) 
         p->left = node;
@@ -275,7 +275,7 @@ rbtree_rotate_left(rbtree_t *rbt, rbtree_node_t *node)
     if (node->right)
         node->right->parent = node;
 
-    rbtree_node_t *parent = node->parent;
+    rbt_node_t *parent = node->parent;
     node->parent = p;
     if (p) {
         p->parent = parent;
@@ -293,20 +293,20 @@ rbtree_rotate_left(rbtree_t *rbt, rbtree_node_t *node)
 }
 
 int
-rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
+rbt_add(rbt_t *rbt, void *k, size_t klen, void *v, size_t vlen)
 {
     int rc = 0;
-    rbtree_node_t *node = calloc(1, sizeof(rbtree_node_t));
-    node->key = malloc(ksize);
-    memcpy(node->key, k, ksize);
-    node->ksize = ksize;
+    rbt_node_t *node = calloc(1, sizeof(rbt_node_t));
+    node->key = malloc(klen);
+    memcpy(node->key, k, klen);
+    node->klen = klen;
     node->value = v;
-    node->vsize = vsize;
+    node->vlen = vlen;
     if (!rbt->root) {
         PAINT_BLACK(node);
         rbt->root = node;
     } else {
-        rc = _rbtree_add_internal(rbt, rbt->root, node);
+        rc = _rbt_add_internal(rbt, rbt->root, node);
 
         if (IS_BLACK(node)) {
             // if the node just added is now black it means
@@ -328,34 +328,34 @@ rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
             return rc;
         } else {
             // case 3
-            rbtree_node_t *uncle = rbtree_uncle(node);
-            rbtree_node_t *grandparent = rbtree_grandparent(node);
+            rbt_node_t *uncle = rbt_uncle(node);
+            rbt_node_t *grandparent = rbt_grandparent(node);
 
             if (IS_RED(uncle)) {
                 PAINT_BLACK(node->parent);
                 PAINT_BLACK(uncle);
                 if (grandparent) {
                     PAINT_RED(grandparent);
-                    rbtree_add(rbt, grandparent->key, grandparent->ksize, grandparent->value, grandparent->vsize);
+                    rbt_add(rbt, grandparent->key, grandparent->klen, grandparent->value, grandparent->vlen);
                 }
             } else if (grandparent) {
                 // case 4
                 if (node == node->parent->right && node->parent == grandparent->left) {
-                    rbtree_rotate_left(rbt, node->parent);
+                    rbt_rotate_left(rbt, node->parent);
                     node = node->left;
                 } else if (node == node->parent->left && node->parent == grandparent->right) {
-                    rbtree_rotate_right(rbt, node->parent);
+                    rbt_rotate_right(rbt, node->parent);
                     node = node->right;
                 }
                 // case 5
-                grandparent = rbtree_grandparent(node);
+                grandparent = rbt_grandparent(node);
                 if (node->parent) {
                     PAINT_BLACK(node->parent);
                     PAINT_RED(grandparent);
                     if (node == node->parent->left)
-                        rbtree_rotate_right(rbt, grandparent);
+                        rbt_rotate_right(rbt, grandparent);
                     else
-                        rbtree_rotate_left(rbt, grandparent);
+                        rbt_rotate_left(rbt, grandparent);
                 } else {
                     fprintf(stderr, "Corrupted tree\n");
                     return -1;
@@ -366,53 +366,53 @@ rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize)
     return rc;
 }
 
-static rbtree_node_t *
-_rbtree_find_internal(rbtree_t *rbt, rbtree_node_t *node, void *key, size_t ksize)
+static rbt_node_t *
+_rbt_find_internal(rbt_t *rbt, rbt_node_t *node, void *key, size_t klen)
 {
     if (!node)
         return NULL;
 
-    int rc = rbtree_compare_keys(rbt, node->key, node->ksize, key, ksize);
+    int rc = rbt_compare_keys(rbt, node->key, node->klen, key, klen);
 
     if (rc == 0) {
         return node;
     }
     else if (rc > 0) {
-        return _rbtree_find_internal(rbt, node->left, key, ksize);
+        return _rbt_find_internal(rbt, node->left, key, klen);
     } else {
-        return _rbtree_find_internal(rbt, node->right, key, ksize);
+        return _rbt_find_internal(rbt, node->right, key, klen);
     }
 
     return NULL;
 }
 
 int
-rbtree_find(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize)
+rbt_find(rbt_t *rbt, void *k, size_t klen, void **v, size_t *vlen)
 {
-    rbtree_node_t *node = _rbtree_find_internal(rbt, rbt->root, k, ksize);
+    rbt_node_t *node = _rbt_find_internal(rbt, rbt->root, k, klen);
     if (!node)
         return -1;
 
     *v = node->value;
-    *vsize = node->vsize;
+    *vlen = node->vlen;
     return 0;
 }
 
-static rbtree_node_t *
-rbtree_sibling(rbtree_node_t *node)
+static rbt_node_t *
+rbt_sibling(rbt_node_t *node)
 {
     return (node == node->parent->left)
            ? node->parent->right
            : node->parent->left;
 }
 
-static rbtree_node_t *
-rbtree_find_next(rbtree_t *rbt, rbtree_node_t *node)
+static rbt_node_t *
+rbt_find_next(rbt_t *rbt, rbt_node_t *node)
 {
     if (!node->right)
         return NULL;
 
-    rbtree_node_t *next = node->right;
+    rbt_node_t *next = node->right;
 
     while (next->left)
         next = next->left;
@@ -420,13 +420,13 @@ rbtree_find_next(rbtree_t *rbt, rbtree_node_t *node)
     return next;
 }
 
-static rbtree_node_t *
-rbtree_find_prev(rbtree_t *rbt, rbtree_node_t *node)
+static rbt_node_t *
+rbt_find_prev(rbt_t *rbt, rbt_node_t *node)
 {
     if (!node->left)
         return NULL;
 
-    rbtree_node_t *prev = node->left;
+    rbt_node_t *prev = node->left;
 
     while (prev->right)
         prev = prev->right;
@@ -435,7 +435,7 @@ rbtree_find_prev(rbtree_t *rbt, rbtree_node_t *node)
 }
 
 void
-rbtree_paint_onremove(rbtree_t *rbt, rbtree_node_t *node)
+rbt_paint_onremove(rbt_t *rbt, rbt_node_t *node)
 {
     if (!node)
         return;
@@ -443,14 +443,14 @@ rbtree_paint_onremove(rbtree_t *rbt, rbtree_node_t *node)
     // delete case 1
     if (node->parent != NULL) {
         // delete case 2
-        rbtree_node_t *sibling = rbtree_sibling(node);
+        rbt_node_t *sibling = rbt_sibling(node);
         if (IS_RED(sibling)) {
             PAINT_RED(node->parent);
             PAINT_BLACK(sibling);
             if (node == node->parent->left) {
-                rbtree_rotate_left(rbt, node->parent);
+                rbt_rotate_left(rbt, node->parent);
             } else {
-                rbtree_rotate_right(rbt, node->parent);
+                rbt_rotate_right(rbt, node->parent);
             }
         }
 
@@ -462,7 +462,7 @@ rbtree_paint_onremove(rbtree_t *rbt, rbtree_node_t *node)
             IS_BLACK(sibling->right))
         {
             PAINT_RED(sibling);
-            rbtree_paint_onremove(rbt, node->parent);
+            rbt_paint_onremove(rbt, node->parent);
         } else {
             // delete case 4
             if (IS_RED(node->parent) &&
@@ -483,7 +483,7 @@ rbtree_paint_onremove(rbtree_t *rbt, rbtree_node_t *node)
                     {
                         PAINT_RED(sibling);
                         PAINT_BLACK(sibling->left);
-                        rbtree_rotate_right(rbt, sibling);
+                        rbt_rotate_right(rbt, sibling);
                     } else if (node == node->parent->right &&
                                sibling &&
                                IS_BLACK(sibling->left) &&
@@ -491,7 +491,7 @@ rbtree_paint_onremove(rbtree_t *rbt, rbtree_node_t *node)
                     {
                         PAINT_RED(sibling);
                         PAINT_BLACK(sibling->right);
-                        rbtree_rotate_left(rbt, sibling);
+                        rbt_rotate_left(rbt, sibling);
 
                     }
                 }
@@ -502,11 +502,11 @@ rbtree_paint_onremove(rbtree_t *rbt, rbtree_node_t *node)
                 if (node == node->parent->left) {
                     if (sibling)
                         PAINT_BLACK(sibling->right);
-                    rbtree_rotate_left(rbt, node->parent);
+                    rbt_rotate_left(rbt, node->parent);
                 } else {
                     if (sibling)
                         PAINT_BLACK(sibling->left);
-                    rbtree_rotate_right(rbt, node->parent);
+                    rbt_rotate_right(rbt, node->parent);
                 }
             }
         }
@@ -514,9 +514,9 @@ rbtree_paint_onremove(rbtree_t *rbt, rbtree_node_t *node)
 }
 
 int
-rbtree_remove(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize)
+rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v, size_t *vlen)
 {
-    rbtree_node_t *node = _rbtree_find_internal(rbt, rbt->root, k, ksize);
+    rbt_node_t *node = _rbt_find_internal(rbt, rbt->root, k, klen);
     if (!node)
         return -1;
 
@@ -525,19 +525,19 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize)
         // now check if it has two children or just one
         if (node->left && node->right) {
             // two children case
-            rbtree_node_t *n = NULL;
+            rbt_node_t *n = NULL;
             static int prevnext = 0;
             int isprev = (prevnext++%2 == 0);
             if (isprev)
-                n = rbtree_find_prev(rbt, node);
+                n = rbt_find_prev(rbt, node);
             else
-                n = rbtree_find_next(rbt, node);
-            node->key = realloc(node->key, n->ksize);
-            memcpy(node->key, n->key, n->ksize);
+                n = rbt_find_next(rbt, node);
+            node->key = realloc(node->key, n->klen);
+            memcpy(node->key, n->key, n->klen);
             void *prev_value = node->value;
-            size_t prev_vsize = node->vsize;
+            size_t prev_vlen = node->vlen;
             node->value = n->value;
-            node->vsize = n->vsize;
+            node->vlen = n->vlen;
             if (isprev) {
                 if (n == node->left) {
                     node->left = n->left;
@@ -563,13 +563,13 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize)
             else if (rbt->free_value_cb)
                 rbt->free_value_cb(prev_value);
 
-            if (vsize)
-                *vsize = prev_vsize;
+            if (vlen)
+                *vlen = prev_vlen;
             free(n);
             return 0;
         } else {
             // one child case
-            rbtree_node_t *child = node->right ? node->right : node->left;
+            rbt_node_t *child = node->right ? node->right : node->left;
             // replace node with child
             child->parent = node->parent;
             if (child->parent) {
@@ -582,7 +582,7 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize)
                 if (IS_RED(child)) {
                     PAINT_BLACK(child);
                 } else {
-                    rbtree_paint_onremove(rbt, child);
+                    rbt_paint_onremove(rbt, child);
                 }
             }
             if (v)
@@ -590,8 +590,8 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize)
             else if (rbt->free_value_cb)
                 rbt->free_value_cb(node->value);
 
-            if (vsize)
-                *vsize = node->vsize;
+            if (vlen)
+                *vlen = node->vlen;
 
             free(node->key);
             free(node);
@@ -611,8 +611,8 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize)
     else if (rbt->free_value_cb && node->value)
         rbt->free_value_cb(node->value);
 
-    if (vsize)
-        *vsize = node->vsize;
+    if (vlen)
+        *vlen = node->vlen;
 
     free(node->key);
     free(node);
@@ -620,7 +620,7 @@ rbtree_remove(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize)
 }
 
 #ifdef DEBUG_RBTREE
-int _rbtree_print_internal(rbtree_node_t *node, int is_left, int offset, int depth, char s[20][255])
+int _rbt_print_internal(rbt_node_t *node, int is_left, int offset, int depth, char s[20][255])
 {
     char b[20];
     memset(b, 0, sizeof(b));
@@ -630,8 +630,8 @@ int _rbtree_print_internal(rbtree_node_t *node, int is_left, int offset, int dep
     sprintf(b, "(%d %C)", *((int *)node->value), node->color ? 'B' : 'R');
     int width = strlen(b);
 
-    int left  = _rbtree_print_internal(node->left,  1, offset,                depth + 1, s);
-    int right = _rbtree_print_internal(node->right, 0, offset + left + width, depth + 1, s);
+    int left  = _rbt_print_internal(node->left,  1, offset,                depth + 1, s);
+    int right = _rbt_print_internal(node->right, 0, offset + left + width, depth + 1, s);
 
     int i;
 
@@ -678,7 +678,7 @@ int _rbtree_print_internal(rbtree_node_t *node, int is_left, int offset, int dep
     return left + width + right;
 }
 
-void rbtree_print(rbtree_t *rbt)
+void rbt_print(rbt_t *rbt)
 {
     int i;
     char s[20][255];
@@ -692,7 +692,7 @@ void rbtree_print(rbtree_t *rbt)
     for (i = 0; i < 20; i++)
         sprintf(s[i], format, " ");
 
-    _rbtree_print_internal(rbt->root, 0, 0, 0, s);
+    _rbt_print_internal(rbt->root, 0, 0, 0, s);
 
     for (i = 0; i < 20; i++)
         printf("%s\n", s[i]);

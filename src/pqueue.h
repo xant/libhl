@@ -60,10 +60,12 @@ int pqueue_insert(pqueue_t *pq, uint64_t prio, void *value, size_t len);
 /**
  * @brief Pull the the highest priority value out of the queue
  * @param pq A valid pointer to an initialized pqueue_t structure
- * @param value If not null it will be set to point to the value
+ * @param value If not NULL it will be set to point to the value
  *              with the highest priority just pulled out of the
  *              queue
- * @param prio If not null the priority of the pulled item will
+ * @param len  If not NULL the size of the pulled-out value will be
+ *             stored at the memory pointed by it
+ * @param prio If not NULL the priority of the pulled item will
  *             be stored in the memory pointed by prio
  * @return 0 if a value has been found and successfully pulled out
  *         of the queue;\n-1 in case of errors
@@ -73,10 +75,12 @@ int pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 /**
  * @brief Pull the the lowest priority value out of the queue
  * @param pq A valid pointer to an initialized pqueue_t structure
- * @param value If not null it will be set to point to the value
+ * @param value If not NULL it will be set to point to the value
  *              with the lowest priority just pulled out of the
  *              queue
- * @param prio If not null the priority of the pulled item will
+ * @param len  If not NULL the size of the pulled-out value will be
+ *             stored at the memory pointed by it
+ * @param prio If not NULL the priority of the pulled item will
  *             be stored in the memory pointed by prio
  * @return 0 if a value has been found and successfully pulled out
  *         of the queue;\n-1 in case of errors

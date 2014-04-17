@@ -19,14 +19,15 @@
 /**
  * @brief Opaque structure representing the tree
  */
-typedef struct __rbtree_s rbtree_t;
+typedef struct __rbt_s rbt_t;
 
 /**
  * @brief Callback that, if provided, will be called to release the value
  *        resources when an item is being overwritten or when removed from
  *        the tree
+ * @param v the pointer to free
  */
-typedef void (*rbtree_free_value_callback)(void *v);
+typedef void (*rbt_free_value_callback_t)(void *v);
 
 /**
  * @brief Create a new red/black tree
@@ -36,92 +37,98 @@ typedef void (*rbtree_free_value_callback)(void *v);
  *                      is removed or overwritten
  * @return              A valid and initialized red/black tree (empty)
  */
-rbtree_t *rbtree_create(libhl_cmp_callback_t cmp_keys_cb,
-                        rbtree_free_value_callback free_value_cb);
+rbt_t *rbt_create(libhl_cmp_callback_t cmp_keys_cb,
+                        rbt_free_value_callback_t free_value_cb);
 
 /**
  * @brief Release all the resources used by a red/black tree
- * @param rbt A valid pointer to an initialized rbtree_t structure
+ * @param rbt A valid pointer to an initialized rbt_t structure
  */
-void rbtree_destroy(rbtree_t *rbt);
+void rbt_destroy(rbt_t *rbt);
 
 /**
  * @brief Add a new value into the tree
- * @param rbt   A valid pointer to an initialized rbtree_t structure
- * @param k     The key of the node where to store the new value
- * @param ksize The size of the key
+ * @param rbt   A valid pointer to an initialized rbt_t structure
+ * @param key   The key of the node where to store the new value
+ * @param klen  The size of the key
  * @param v     The new value to store
  * @param vsize The size of the value
  * @return 0 if a new node has been created successfully;
  *         1 if an existing node has been found and the value has been updated;
  *         -1 otherwise
  */
-int rbtree_add(rbtree_t *rbt, void *k, size_t ksize, void *v, size_t vsize);
+int rbt_add(rbt_t *rbt, void *key, size_t klen, void *v, size_t vsize);
 
 
 /**
  * @brief Remove a node from the tree
- * @param rbt   A valid pointer to an initialized rbtree_t structure
- * @param k     The key of the node to remove
- * @param ksize The size of the key
+ * @param rbt   A valid pointer to an initialized rbt_t structure
+ * @param key  The key of the node to remove
+ * @param klen The size of the key
+ * @param value If not NULL the address of the value hold by the removed node
+ *              will be stored at the memory pointed by the 'value' argument.
+ *              If NULL and a free_value_callback is set, the value hold by
+ *              the removed node will be released using the free_value_callback
+ * @param vlen  If not NULL the size of the value hold by the removed node
+ *              will be stored at the memory pointed by the 'vlen' argument
  * @return 0 on success; -1 otherwise
  */
-int rbtree_remove(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize);
+int rbt_remove(rbt_t *rbt, void *key, size_t klen, void **value, size_t *vlen);
 
 /**
  * @brief Find the value stored in the node node matching a specific key
  *        (if any)
- * @param rbt   A valid pointer to an initialized rbtree_t structure
- * @param k     The key of the node where to store the new value
- * @param ksize The size of the key
+ * @param rbt   A valid pointer to an initialized rbt_t structure
+ * @param key   The key of the node where to store the new value
+ * @param klen The size of the key
  * @param v     A reference to the pointer which will set to point to the
  *              actual value if found
  * @param vsize A pointer to the memory where to store the size of the value
  * @return 0 on success and both *v and *vsize are set to point to the stored
  *         value and its size;\n-1 if not found
  */
-int rbtree_find(rbtree_t *rbt, void *k, size_t ksize, void **v, size_t *vsize);
+int rbt_find(rbt_t *rbt, void *key, size_t klen, void **v, size_t *vsize);
 
 /**
  * @brief Callback called for each node when walking the tree
- * @param rbt   A valid pointer to an initialized rbtree_t structure
- * @param k     The key of the node where to store the new value
- * @param ksize The size of the key
+ * @param rbt   A valid pointer to an initialized rbt_t structure
+ * @param key  The key of the node where to store the new value
+ * @param klen The size of the key
  * @param v     The new value to store
  * @param vsize The size of the value
- * @param priv  The private pointer passed to either rbtree_walk() or rbtree_walk_sorted()
+ * @param priv  The private pointer passed to either rbt_walk() or rbt_walk_sorted()
  * @return 1 If the walker can go ahead visiting the next node,
  *         0 if the walker should stop and return
  *        -1 if the current node should be removed and the walker can go ahead
  *        -2 if the current node should be removed and the walker should stop
  */
-typedef int (*rbtree_walk_callback)(rbtree_t *rbt,
+typedef int (*rbt_walk_callback)(rbt_t *rbt,
                                     void *key,
-                                    size_t ksize,
+                                    size_t klen,
                                     void *value,
                                     size_t vsize,
                                     void *priv);
 
 /**
  * @brief Walk the entire tree and call the callback for each visited node
- * @param rbt  A valid pointer to an initialized rbtree_t structure
+ * @param rbt  A valid pointer to an initialized rbt_t structure
  * @param cb   The callback to call for each visited node
  * @param priv A pointer to private data provided passed as argument to the
  *             callback when invoked.
  * @return The number of visited nodes
  */
-int rbtree_walk(rbtree_t *rbt, rbtree_walk_callback cb, void *priv);
+int rbt_walk(rbt_t *rbt, rbt_walk_callback cb, void *priv);
 
 /**
  * @brief Walk the entire tree visiting nodes in ascending order and call the callback
  *        for each visited node
- * @param rbt  A valid pointer to an initialized rbtree_t structure
+ * @param rbt  A valid pointer to an initialized rbt_t structure
  * @param cb   The callback to call for each visited node
  * @param priv A pointer to private data provided passed as argument to the
  *             callback when invoked.
  * @return The number of visited nodes
  */
-int rbtree_walk_sorted(rbtree_t *rbt, rbtree_walk_callback cb, void *priv);
+int rbt_walk_sorted(rbt_t *rbt, rbt_walk_callback cb, void *priv);
 
 #ifdef DEBUG_RBTREE
 /**

@@ -11,15 +11,69 @@ typedef struct __avlt_s avlt_t;
  * @brief Callback that, if provided, will be called to release the value
  *        resources when an item is being overwritten or when removed from
  *        the tree
+ * @param v the pointer to free
  */
 typedef void (*avlt_free_value_callback_t)(void *v);
 
+/**
+ * @brief Create a new AVL tree
+ * @param cmp_keys_cb   The comparator callback to use when comparing
+ *                      keys (defaults to memcmp())
+ * @param free_value_cb The callback used to release values when a node
+ *                      is removed or overwritten
+ * @return              A valid and initialized AVL tree (empty)
+ */
 avlt_t *avlt_create(libhl_cmp_callback_t cmp_keys_cb,
                     avlt_free_value_callback_t free_value_cb);
 
+
+/**
+ * @brief Release all the resources used by an AVL tree
+ * @param tree A valid pointer to an initialized avlt_t structure
+ */
+void avlt_destroy(avlt_t *tree);
+
+/**
+ * @brief Add a new value into the tree
+ * @param tree  A valid pointer to an initialized avlt_t structure
+ * @param key   The key of the node where to store the new value
+ * @param klen  The size of the key
+ * @param value The new value to store
+ * @param vlen  The size of the value
+ * @return 0 if a new node has been created successfully;
+ *         1 if an existing node has been found and the value has been updated;
+ *         -1 otherwise
+ */
 int avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen);
+
+/**
+ * @brief Remove a node from the tree
+ * @param tree  A valid pointer to an initialized avlt_t structure
+ * @param key   The key of the node to remove
+ * @param klen  The size of the key
+ * @param value If not NULL the address of the value hold by the removed node
+ *              will be stored at the memory pointed by the 'value' argument.
+ *              If NULL and a free_value_callback is set, the value hold by
+ *              the removed node will be released using the free_value_callback
+ * @param vlen  If not NULL the size of the value hold by the removed node
+ *              will be stored at the memory pointed by the 'vlen' argument
+ * @return 0 on success; -1 otherwise
+ */
 int avlt_remove(avlt_t *tree, void *key, size_t klen, void **value, size_t *vlen);
 
+/**
+ * @brief Callback called for each node when walking the tree
+ * @param tree  A valid pointer to an initialized avlt_t structure
+ * @param k     The key of the node where to store the new value
+ * @param ksize The size of the key
+ * @param v     The new value to store
+ * @param vsize The size of the value
+ * @param priv  The private pointer passed to either avlt_walk() or avlt_walk_sorted()
+ * @return 1 If the walker can go ahead visiting the next node,
+ *         0 if the walker should stop and return
+ *        -1 if the current node should be removed and the walker can go ahead
+ *        -2 if the current node should be removed and the walker should stop
+ */
 typedef int (*avlt_walk_callback_t)(avlt_t *tree,
                                     void *key,
                                     size_t klen,
@@ -27,95 +81,31 @@ typedef int (*avlt_walk_callback_t)(avlt_t *tree,
                                     size_t vlen,
                                     void *priv);
 
+/**
+ * @brief Walk the entire tree and call the callback for each visited node
+ * @param tree  A valid pointer to an initialized avlt_t structure
+ * @param cb   The callback to call for each visited node
+ * @param priv A pointer to private data provided passed as argument to the
+ *             callback when invoked.
+ * @return The number of visited nodes
+ */
 int avlt_walk(avlt_t *tree, avlt_walk_callback_t cb, void *priv);
+
+/**
+ * @brief Walk the entire tree visiting nodes in ascending order and call the callback
+ *        for each visited node
+ * @param tree  A valid pointer to an initialized avlt_t structure
+ * @param cb   The callback to call for each visited node
+ * @param priv A pointer to private data provided passed as argument to the
+ *             callback when invoked.
+ * @return The number of visited nodes
+ */
 int avlt_walk_sorted(avlt_t *tree, avlt_walk_callback_t cb, void *priv);
 
-void avlt_destroy(avlt_t *tree);
-
-
-#define AVLT_CMP_KEYS_TYPE(__type, __k1, __k1s, __k2, __k2s) \
-{ \
-    if (__k1s < sizeof(__type) || __k2s < sizeof(__type) || __k1s != __k2s) \
-        return __k1s - __k2s; \
-    __type __k1i = *((__type *)__k1); \
-    __type __k2i = *((__type *)__k2); \
-    return __k1i - __k2i; \
-}
-
-/**
- * @brief 16bit signed integers comparator
- */
-static inline int
-avlt_cmp_keys_int16(void *k1, size_t k1size, void *k2, size_t k2size)
-{
-    AVLT_CMP_KEYS_TYPE(int16_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 32bit signed integers comparator
- */
-static inline int avlt_cmp_keys_int32(void *k1, size_t k1size,
-                                        void *k2, size_t k2size)
-{
-    AVLT_CMP_KEYS_TYPE(int32_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 64bit signed integers comparator
- */
-static inline int avlt_cmp_keys_int64(void *k1, size_t k1size,
-                                        void *k2, size_t k2size)
-{
-    AVLT_CMP_KEYS_TYPE(int64_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 16bit unsigned integers comparator
- */
-static inline int
-avlt_cmp_keys_uint16(void *k1, size_t k1size,
-                       void *k2, size_t k2size)
-{
-    AVLT_CMP_KEYS_TYPE(uint16_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 32bit unsigned integers comparator
- */
-static inline int avlt_cmp_keys_uint32(void *k1, size_t k1size,
-                                         void *k2, size_t k2size)
-{
-    AVLT_CMP_KEYS_TYPE(uint32_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief 64bit unsigned integers comparator
- */
-static inline int avlt_cmp_keys_uint64(void *k1, size_t k1size,
-                                         void *k2, size_t k2size)
-{
-    AVLT_CMP_KEYS_TYPE(uint64_t, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief float comparator
- */
-static inline int avlt_cmp_keys_float(void *k1, size_t k1size,
-                                        void *k2, size_t k2size)
-{
-    AVLT_CMP_KEYS_TYPE(float, k1, k1size, k2, k2size);
-}
-
-/**
- * @brief double comparator
- */
-static inline int avlt_cmp_keys_double(void *k1, size_t k1size,
-                                         void *k2, size_t k2size)
-{
-    AVLT_CMP_KEYS_TYPE(double, k1, k1size, k2, k2size);
-}
-
 #ifdef DEBUG_AVLT
+/**
+ * @brief Print out the whole tree on stdout (for debugging purposes only)
+ */
 void avlt_print(avlt_t *tree);
 #endif
 

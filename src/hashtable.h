@@ -191,7 +191,9 @@ int ht_set_copy(hashtable_t *table, void *key, size_t klen, void *data, size_t d
  * @param klen  : The length of the key
  * @param data  : A pointer to the data to store
  * @param dlen  : The size of the data
- * @return 0 on success;\n1 if a value was already set;\n-1 in case of errors
+ * @return 0 on success;\n
+ *         1 if a value was already set;\n
+ *         -1 in case of errors
  */
 int ht_set_if_not_exists(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen);
 
