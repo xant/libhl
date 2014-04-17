@@ -51,13 +51,13 @@ void rbt_destroy(rbt_t *rbt);
  * @param rbt   A valid pointer to an initialized rbt_t structure
  * @param key   The key of the node where to store the new value
  * @param klen  The size of the key
- * @param v     The new value to store
+ * @param value The new value to store
  * @param vsize The size of the value
  * @return 0 if a new node has been created successfully;
  *         1 if an existing node has been found and the value has been updated;
  *         -1 otherwise
  */
-int rbt_add(rbt_t *rbt, void *key, size_t klen, void *v, size_t vsize);
+int rbt_add(rbt_t *rbt, void *key, size_t klen, void *value, size_t vsize);
 
 
 /**
@@ -81,20 +81,20 @@ int rbt_remove(rbt_t *rbt, void *key, size_t klen, void **value, size_t *vlen);
  * @param rbt   A valid pointer to an initialized rbt_t structure
  * @param key   The key of the node where to store the new value
  * @param klen The size of the key
- * @param v     A reference to the pointer which will set to point to the
+ * @param value A reference to the pointer which will set to point to the
  *              actual value if found
  * @param vsize A pointer to the memory where to store the size of the value
- * @return 0 on success and both *v and *vsize are set to point to the stored
+ * @return 0 on success and both *value and *vsize are set to point to the stored
  *         value and its size;\n-1 if not found
  */
-int rbt_find(rbt_t *rbt, void *key, size_t klen, void **v, size_t *vsize);
+int rbt_find(rbt_t *rbt, void *key, size_t klen, void **value, size_t *vsize);
 
 /**
  * @brief Callback called for each node when walking the tree
  * @param rbt   A valid pointer to an initialized rbt_t structure
  * @param key  The key of the node where to store the new value
  * @param klen The size of the key
- * @param v     The new value to store
+ * @param value The new value to store
  * @param vsize The size of the value
  * @param priv  The private pointer passed to either rbt_walk() or rbt_walk_sorted()
  * @return 1 If the walker can go ahead visiting the next node,
