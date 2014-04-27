@@ -426,6 +426,7 @@ int queue_push_right(queue_t *q, void *value)
     retain_ref(next->refcnt, ATOMIC_READ(next->node));
     queue_entry_t *prev = get_node_ptr(deref_link(next->refcnt, &next->prev));
     if (!prev) {
+        destroy_entry(entry);
         return -1;
     }
     while (1) {
