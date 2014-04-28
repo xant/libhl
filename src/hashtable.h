@@ -104,7 +104,7 @@ int ht_exists(hashtable_t *table, void *key, size_t klen);
  */
 void *ht_get_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen);
 
-typedef void *(*ht_deep_copy_callback_t)(void *data, size_t dlen);
+typedef void *(*ht_deep_copy_callback_t)(void *data, size_t dlen, void *user);
 
 /**
  * @brief Get a copy of the value stored at a specific key
@@ -119,7 +119,7 @@ typedef void *(*ht_deep_copy_callback_t)(void *data, size_t dlen);
  *       hence the caller knows if memory will need to be disposed or not and
  *       how to fully release the structured value which has been deep copied
  */
-void *ht_get_deep_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen, ht_deep_copy_callback_t copy_cb);
+void *ht_get_deep_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen, ht_deep_copy_callback_t copy_cb, void *user);
 
 /**
  * @brief Set the value for a specific key

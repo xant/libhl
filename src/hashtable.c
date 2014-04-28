@@ -598,7 +598,8 @@ void
                   size_t klen,
                   size_t *dlen,
                   int copy,
-                  ht_deep_copy_callback_t copy_cb)
+                  ht_deep_copy_callback_t copy_cb,
+                  void *user)
 {
     uint32_t hash = 0;
     PERL_HASH(hash, key, klen);
@@ -620,7 +621,7 @@ void
         {
             if (copy) {
                 if (copy_cb) {
-                    data = copy_cb(item->data, item->dlen);
+                    data = copy_cb(item->data, item->dlen, user);
                 } else {
                     data = malloc(item->dlen);
                     memcpy(data, item->data, item->dlen);
@@ -643,20 +644,20 @@ void
 void
 *ht_get(hashtable_t *table, void *key, size_t klen, size_t *dlen)
 {
-    return _ht_get_internal(table, key, klen, dlen, 0, NULL);
+    return _ht_get_internal(table, key, klen, dlen, 0, NULL, NULL);
 }
 
 void
 *ht_get_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen)
 {
-    return _ht_get_internal(table, key, klen, dlen, 1, NULL);
+    return _ht_get_internal(table, key, klen, dlen, 1, NULL, NULL);
 }
 
 void
 *ht_get_deep_copy(hashtable_t *table, void *key, size_t klen,
-        size_t *dlen, ht_deep_copy_callback_t copy_cb)
+        size_t *dlen, ht_deep_copy_callback_t copy_cb, void *user)
 {
-    return _ht_get_internal(table, key, klen, dlen, 1, copy_cb);
+    return _ht_get_internal(table, key, klen, dlen, 1, copy_cb, user);
 }
 
 static void
