@@ -136,17 +136,17 @@ int main(int argc, char **argv) {
     int check_item_count = 0;
     ht_foreach_pair(table, check_item, &check_item_count);
     ut_result(check_item_count == num_parallel_items,
-            "not all items were valid (%d were valid, should have been %d)",
-            check_item_count,
-            num_parallel_items);
+              "not all items were valid (%d were valid, should have been %d)",
+              check_item_count,
+              num_parallel_items);
 
     ut_testing("ht_get_all_values()");
     linked_list_t *values = ht_get_all_values(table);
     ut_result(list_count(values) == ht_count(table),
-            "returned list doesn't match the table count (%u != %u)",
-            list_count(values),
-            ht_count(table));
-    destroy_list(values);
+              "returned list doesn't match the table count (%u != %u)",
+              list_count(values),
+              ht_count(table));
+    list_destroy(values);
 
     ht_set_free_item_callback(table, free_item);
     ut_testing("ht_clear() and free_item_callback");

@@ -114,6 +114,7 @@ typedef void *(*ht_deep_copy_callback_t)(void *data, size_t dlen, void *user);
  * @param dlen  : If not NULL, the size of the returned data will be stored
  *               at the address pointed by dlen
  * @param copy_cb : The callback which will take care of deep-copying the data
+ * @param user    : A private pointer which will be passed back to the copy_cb
  * @return The stored value if any, NULL otherwise
  * @note The returned value is eventually created by the deep_copy callback
  *       hence the caller knows if memory will need to be disposed or not and

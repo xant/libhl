@@ -6,6 +6,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include <sys/types.h>
 #include <libgen.h>
@@ -13,10 +14,10 @@
 #include "fbuf.h"
 #include "ut.h"
 
-#define TESTFILENAME1	"test/fbuf_test.txt"
-#define TESTFILENAME2	"test/fbuf_test.out"
+#define TESTFILENAME1        "test/fbuf_test.txt"
+#define TESTFILENAME2        "test/fbuf_test.out"
 
-#define FBUFMAXLEN 10
+#define FBUFMAXLEN 13
 
 const unsigned char *
 ascii_escape(const unsigned char *buf, int buflen)
@@ -28,10 +29,10 @@ ascii_escape(const unsigned char *buf, int buflen)
     fbuf_clear(&fbuf);
 
     for (i = 0; i < buflen; i++) {
-	switch(buf[i]) {
-	    case '\0':
-		fbuf_add(&fbuf, "\\0");
-		break;
+        switch(buf[i]) {
+            case '\0':
+                fbuf_add(&fbuf, "\\0");
+                break;
             case '\b':
                 fbuf_add(&fbuf, "\\b");
                 break;
@@ -70,13 +71,15 @@ failure(fbuf_t *fbuf, const char *fmt, ...)
     va_start(args, fmt);
     ut_vfailure(fmt, args);
     const char *fdata = fbuf_data(fbuf);
-    printf("  fbuf: data = %p, len = %d, prefmaxlen = %d, used = %d\n",
-	   fdata, fbuf->len, fbuf->prefmaxlen, fbuf->used);
+    printf("  fbuf: data = %p, len = %u, prefmaxlen = %u, used = %u, "
+           " minlen = %u, slowgrowsize = %u, fastgrowsize = %u \n",
+           fdata, fbuf->len, fbuf->prefmaxlen, fbuf->used, fbuf->minlen,
+           fbuf->slowgrowsize, fbuf->fastgrowsize);
     printf("  contents: ");
     if (fdata)
-	printf("\"%s\" (%lub)\n", ascii_escape(fdata, strlen(fdata)), strlen(fdata));
+        printf("\"%s\" (%lub)\n", ascii_escape(fdata, strlen(fdata)), strlen(fdata));
     else
-	printf("<empty>\n");
+        printf("<empty>\n");
 
     return 0;
 }
@@ -85,10 +88,10 @@ static int
 fileopcheck(const char *filename, int n)
 {
     if (n == -1) {
-	ut_failure("%s", strerror(errno));
-	return 0;
+        ut_failure("%s", strerror(errno));
+        return 0;
     } else {
-	return 1;
+        return 1;
     }
 }
 
@@ -96,33 +99,33 @@ static int
 validate(fbuf_t *fbuf, const char *data, int prefmaxlen, int flags)
 {
     // Flag bits
-#   define NO_FLAGS			0x00
-#   define IGNORE_STRLEN_MISMATCH	0x01
+#   define NO_FLAGS                        0x00
+#   define IGNORE_STRLEN_MISMATCH        0x01
 
     if (fbuf->used > 0 && fbuf->used >= fbuf->len) {
-	return failure(fbuf, "used > len (%d > %d)", fbuf->used, fbuf->len);
+        return failure(fbuf, "used > len (%d > %d)", fbuf->used, fbuf->len);
     } else if (data != NULL) {
         const char *fdata = fbuf_data(fbuf);
-	if (strlen(data) == 0) {
-	    if (fdata != NULL && strlen(fdata) != 0)
-		return failure(fbuf, "buffer not empty: '%s'",
-			       ascii_escape(fdata, strlen(fdata)));
-	} else if (fdata == NULL || strlen(fdata) == 0) {
-	    return failure(fbuf, "buffer empty, should be '%s'",
-			   ascii_escape(data, strlen(data)));
-	} else if (strcmp(fdata, data) != 0) {
-	    char *buf1 = strdup(ascii_escape(fdata, strlen(fdata)));
-	    char *buf2 = strdup(ascii_escape(data, strlen(data)));
-	    failure(fbuf, "buffer is '%s' (%d), should be '%s' (%d)",
-		    buf1, strlen(fdata),
-		    buf2, strlen(data));
-	    free(buf1);
-	    free(buf2);
-	    return 0;
-	} else if (!(flags&IGNORE_STRLEN_MISMATCH) && strlen(fdata) != fbuf->used) {
-	    return failure(fbuf, "strlen vs. used mismatch (%d vs. %d)",
-			   strlen(fdata), fbuf->used);
-	}
+        if (strlen(data) == 0) {
+            if (fdata != NULL && strlen(fdata) != 0)
+                return failure(fbuf, "buffer not empty: '%s'",
+                               ascii_escape(fdata, strlen(fdata)));
+        } else if (fdata == NULL || strlen(fdata) == 0) {
+            return failure(fbuf, "buffer empty, should be '%s'",
+                           ascii_escape(data, strlen(data)));
+        } else if (strcmp(fdata, data) != 0) {
+            char *buf1 = strdup(ascii_escape(fdata, strlen(fdata)));
+            char *buf2 = strdup(ascii_escape(data, strlen(data)));
+            failure(fbuf, "buffer is '%s' (%d), should be '%s' (%d)",
+                    buf1, strlen(fdata),
+                    buf2, strlen(data));
+            free(buf1);
+            free(buf2);
+            return 0;
+        } else if (!(flags&IGNORE_STRLEN_MISMATCH) && strlen(fdata) != fbuf->used) {
+            return failure(fbuf, "strlen vs. used mismatch (%d vs. %d)",
+                           strlen(fdata), fbuf->used);
+        }
     }
 
     return ut_success();
@@ -195,6 +198,7 @@ main(int argc, char **argv)
     ut_testing("fbuf_swap(fb1, fb2) (2)");
     validate(fb2, "", FBUFMAXLEN, NO_FLAGS);
 
+    fbuf_minlen(fb1, 16);
     ut_testing("fbuf_add(fb1, \"<8>\") (honour prefmaxlen)");
     // prefmaxlen is 10, buflen is FBUF_MINLEN (16), and 11 bytes are used, so
     // adding 8 bytes exceeds the current buffer length and exceeds prefmaxlen,
@@ -205,14 +209,17 @@ main(int argc, char **argv)
     ut_testing("fbuf_data(fb1)");
     p = fbuf_data(fb1);
     if (strcmp(p, "Hello world") != 0)
-	ut_failure("'%s' should be 'Hello world'", p);
+        ut_failure("'%s' should be 'Hello world'", p);
     else
-	ut_success();
+        ut_success();
     ut_testing("fbuf_end(fb1)");
     if (strcmp(fbuf_end(fb1)-strlen("world"), "world") != 0)
-	ut_failure("'%s' should be 'd'", fbuf_end(fb1)-strlen("world"));
+        ut_failure("'%s' should be 'd'", fbuf_end(fb1)-strlen("world"));
     else
-	ut_success();
+        ut_success();
+
+    // fbuf2 now has the prefmaxlen from fb1 , we need to reset it
+    fbuf_prefmaxlen(fb2, 0);
 
     ut_testing("fbuf_printf(fb2, \"%%s\", \"hello\")");
     fbuf_printf(fb2, "%s", "hello");
@@ -276,15 +283,15 @@ main(int argc, char **argv)
 
     fd1 = open(TESTFILENAME1, O_RDONLY);
     if (fd1 == -1)
-	err(1, "open(%s, O_RDONLY)", TESTFILENAME1);
+        err(1, "open(%s, O_RDONLY)", TESTFILENAME1);
     fd2 = open(TESTFILENAME2, O_RDWR|O_CREAT|O_TRUNC, 0644);
     if (fd2 == -1)
-	err(1, "open(%s, O_RDONLY)", TESTFILENAME2);
+        err(1, "open(%s, O_RDONLY)", TESTFILENAME2);
 
     ut_testing("fbuf_read(fb2, fd1, 5)");
     fbuf_clear(fb2);
     fileopcheck(TESTFILENAME1, fbuf_read(fb2, fd1, 5));
-	validate(fb2, "First", 0, NO_FLAGS);
+        validate(fb2, "First", 0, NO_FLAGS);
 
     ut_testing("fbuf_write(fb2, fd1, 100)");
     fbuf_set(fb2, "Hello world!");
@@ -322,67 +329,67 @@ main(int argc, char **argv)
     ut_testing("fbuf_printf(fb2, \"%%d\") (100000x)");
     fbuf_clear(fb2);
     for (i = 0; i < 10000; i++)
-	if (fbuf_printf(fb2, "%d", i) == -1)
-	    break;
+        if (fbuf_printf(fb2, "%d", i) == -1)
+            break;
     if (i < 10000) 
-	ut_failure("fbuf_printf() failed: prefmaxlen = %d", fbuf_prefmaxlen(fb2));
+        ut_failure("fbuf_printf() failed: prefmaxlen = %d", fbuf_prefmaxlen(fb2, UINT_MAX));
     else if (fb2->used != 38890)
-	ut_failure("length %d, should be 38890 ('%s')", fb2->used, fbuf_data(fb2));
+        ut_failure("length %d, should be 38890 ('%s')", fb2->used, fbuf_data(fb2));
     else
-	ut_success();
+        ut_success();
 
-    ut_testing("fbuf_extend() after fbuf_set_prefmaxlen(fb2, 10)");
-    fbuf_set_prefmaxlen(fb2, 10);
+    ut_testing("fbuf_extend() after fbuf_prefmaxlen(fb2, 10)");
+    fbuf_prefmaxlen(fb2, 10);
     n = fbuf_extend(fb2, fbuf_len(fb2)+1);
     if (n != 0)
-	ut_failure("fbuf_extend() returned %d instead of -1", n);
+        ut_failure("fbuf_extend() returned %d instead of 0", n);
     else
-	ut_success();
+        ut_success();
 
-    fbuf_set_prefmaxlen(fb2, 1000000);
-    fbuf_set_maxlen(10000);
+    fbuf_prefmaxlen(fb2, 1000000);
+    fbuf_maxlen(10000);
     ut_testing("fbuf_extend() after fbuf_maxlen(10000)");
-    n = fbuf_extend(fb2, fbuf_len(fb2)+1);
+    n = fbuf_extend(fb2, 10001);
     if (n != 0)
-	ut_failure("fbuf_extend() returned %d instead of -1", n);
+        ut_failure("fbuf_extend() returned %d instead of 0", n);
     else
-	ut_success();
+        ut_success();
 
     ut_testing("fbuf_shrink(fb2)");
     u = fbuf_len(fb2);
     fbuf_set(fb2, "Hello world!");
     if (fbuf_shrink(fb2) == u)
-	ut_failure("buffer still %d bytes", u);
+        ut_failure("buffer still %d bytes", u);
     else
-	validate(fb2, NULL, FBUFMAXLEN, NO_FLAGS);
+        validate(fb2, NULL, FBUFMAXLEN, NO_FLAGS);
 
     ut_testing("fbuf_shrink(fb2) after clear");
     u = fbuf_len(fb2);
     fbuf_clear(fb2);
     if (fbuf_shrink(fb2) == 0)
-	validate(fb2, NULL, FBUFMAXLEN, NO_FLAGS);
+        validate(fb2, NULL, FBUFMAXLEN, NO_FLAGS);
     else
-	ut_failure("buffer still %d bytes", u);
+        ut_failure("buffer still %d bytes", u);
 
-    ut_testing("fbuf_add(fb2, \"LMOPQRSTVWXYZ\") after fbuf_set_prefmaxlen(fb2, 5)");
+    ut_testing("fbuf_add(fb2, \"LMOPQRSTVWXYZ\") after fbuf_prefmaxlen(fb2, 5)");
     fbuf_set(fb2, "ABCDEFGHIJK");
     fbuf_shrink(fb2);
-    fbuf_set_prefmaxlen(fb2, 5);
+    fbuf_prefmaxlen(fb2, 5);
     n = fbuf_add(fb2, "LMOPQRSTVWXYZ");
     if (n != -1)
-	ut_failure("added while it should not have");
+        ut_failure("added while it should not have");
     else
-	validate(fb2, "ABCDEFGHIJK", FBUFMAXLEN, NO_FLAGS);
+        validate(fb2, "ABCDE", FBUFMAXLEN, NO_FLAGS);
     
-    ut_testing("fbuf_printf(fb2, \"%%d%%s\", 1, \"LMOPQRSTVWXYZ\") after fbuf_set_prefmaxlen(fb2, 5)");
-    fbuf_set(fb2, "ABCDEFGHIJK");
+    ut_testing("fbuf_printf(fb2, \"%%d%%s\", 1, \"LMOPQRSTVWXYZ\") after fbuf_prefmaxlen(fb2, 5)");
+    fbuf_set(fb2, "ABCDE");
     fbuf_shrink(fb2);
-    fbuf_set_prefmaxlen(fb2, 5);
+    fbuf_prefmaxlen(fb2, 5);
     n = fbuf_printf(fb2, "%d%s", 1, "KLMOPQRSTVWXYZ");
     if (n != -1)
-	ut_failure("added while it should not have");
+        ut_failure("added while it should not have");
     else
-	validate(fb2, "ABCDEFGHIJK", FBUFMAXLEN, NO_FLAGS);
+        validate(fb2, "ABCDE", FBUFMAXLEN, NO_FLAGS);
 
     ut_testing("fbuf_destroy(fb1)");
     fbuf_destroy(fb1);

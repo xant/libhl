@@ -672,8 +672,8 @@ ht_get_all_keys(hashtable_t *table)
 {
     uint32_t i;
 
-    linked_list_t *output = create_list();
-    set_free_value_callback(output, (free_value_callback_t)free_key);
+    linked_list_t *output = list_create();
+    list_set_free_value_callback(output, (free_value_callback_t)free_key);
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
         ht_items_list_t *list = ATOMIC_READ(table->items[i]);
@@ -691,7 +691,7 @@ ht_get_all_keys(hashtable_t *table)
             memcpy(key->data, item->key, item->klen);
             key->len = item->klen;
             key->vlen = item->dlen;
-            push_value(output, key);
+            list_push_value(output, key);
         }
 
         SPIN_UNLOCK(list->lock);
@@ -704,7 +704,7 @@ ht_get_all_values(hashtable_t *table)
 {
     uint32_t i;
 
-    linked_list_t *output = create_list();
+    linked_list_t *output = list_create();
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
         ht_items_list_t *list = ATOMIC_READ(table->items[i]);
@@ -720,7 +720,7 @@ ht_get_all_values(hashtable_t *table)
             hashtable_value_t *v = malloc(sizeof(hashtable_value_t));
             v->data = malloc(item->dlen);
             v->len = item->dlen;
-            push_value(output, v);
+            list_push_value(output, v);
         }
 
         SPIN_UNLOCK(list->lock);

@@ -230,7 +230,7 @@ __binheap_maxmin(binheap_t *bh, uint32_t *index, int maxmin)
     int i;
     binomial_tree_node_t *node = NULL;
     for (i = 0; i < list_count(bh->trees); i ++) {
-        binomial_tree_node_t *curtree = pick_value(bh->trees, i);
+        binomial_tree_node_t *curtree = list_pick_value(bh->trees, i);
         if (!node) {
             node = curtree;
             if (index)
@@ -319,10 +319,10 @@ binomial_tree_node_destroy(binomial_tree_node_t *node, int rindex)
         // the node is a root node, let's first remove it from the list of trees
         int item_num = 0;
         if (rindex) {
-            (void)fetch_value(node->bh->trees, rindex);
+            (void)list_fetch_value(node->bh->trees, rindex);
             item_num = rindex + 1;
         } else {
-            item_num = foreach_list_value(node->bh->trees, binheap_remove_root_node, node);
+            item_num = list_foreach_value(node->bh->trees, binheap_remove_root_node, node);
         }
         if (node->num_children) {
             int child_index = node->bh->mode == BINHEAP_MODE_MAX
@@ -340,7 +340,7 @@ binomial_tree_node_destroy(binomial_tree_node_t *node, int rindex)
                 node->num_children--;
                 new_parent->parent = NULL;
                 if (item_num > 0) // and finally add one of its child back to the list of trees
-                    insert_value(node->bh->trees, new_parent, item_num - 1);
+                    list_insert_value(node->bh->trees, new_parent, item_num - 1);
             }
         }
     }
@@ -364,7 +364,7 @@ binheap_t *
 binheap_create(const binheap_callbacks_t *keys_callbacks, binheap_mode_t mode)
 {
     binheap_t *bh = calloc(1, sizeof(binheap_t));
-    bh->trees = create_list();
+    bh->trees = list_create();
     bh->cbs = keys_callbacks ? keys_callbacks : &__keys_callbacks_default;
     bh-> mode = mode;
     return bh;
@@ -382,7 +382,7 @@ binheap_destroy(binheap_t *bh)
              ? binheap_get_minimum(bh, NULL)
              : binheap_get_maximum(bh, NULL);
     }
-    destroy_list(bh->trees);
+    list_destroy(bh->trees);
     free(bh);
 }
 
@@ -405,7 +405,7 @@ binheap_insert(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen)
     node->value = value;
     node->vlen = vlen;
     int order = 0;
-    binomial_tree_node_t *tree = shift_value(bh->trees);
+    binomial_tree_node_t *tree = list_shift_value(bh->trees);
     while (tree && tree->num_children == order) {
         if (HAS_PRECEDENCE(bh, node->key, node->klen, tree->key, tree->klen)) {
             binomial_tree_merge(node, tree);
@@ -414,11 +414,11 @@ binheap_insert(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen)
             node = tree;
         }
         order++;
-        tree = shift_value(bh->trees);
+        tree = list_shift_value(bh->trees);
     }
     if (tree)
-        unshift_value(bh->trees, tree);
-    unshift_value(bh->trees, node);
+        list_unshift_value(bh->trees, tree);
+    list_unshift_value(bh->trees, node);
 
     bh->count++;
 
@@ -436,7 +436,7 @@ binheap_delete(binheap_t *bh, void *key, size_t klen, void **value, size_t *vlen
     binomial_tree_node_t *tree = NULL;
     int i;
     for (i = 0; i < list_count(bh->trees); i++) {
-        binomial_tree_node_t *cur_tree = pick_value(bh->trees, i);
+        binomial_tree_node_t *cur_tree = list_pick_value(bh->trees, i);
         if (HAS_PRECEDENCE(bh, cur_tree->key, cur_tree->klen, key, klen)) {
             if (tree) {
                 if (HAS_PRECEDENCE(bh, tree->key, tree->klen, cur_tree->key, cur_tree->klen)) {
@@ -576,10 +576,10 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
         return NULL;
     }
 
-    linked_list_t *new_list = create_list();
+    linked_list_t *new_list = list_create();
 
-    binomial_tree_node_t *node1 = shift_value(bh1->trees);
-    binomial_tree_node_t *node2 = shift_value(bh2->trees);
+    binomial_tree_node_t *node1 = list_shift_value(bh1->trees);
+    binomial_tree_node_t *node2 = list_shift_value(bh2->trees);
     binomial_tree_node_t *carry = NULL;
 
     while (node1 || node2 || carry) {
@@ -598,7 +598,7 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
                 if (!node1 && !node2) {
                     // if we have the carry but there is neither node1 nor node2
                     // we can just add the carry to the list and forget about it
-                    push_value(new_list, carry);
+                    list_push_value(new_list, carry);
                     carry = NULL;
                     continue;
                 }
@@ -635,17 +635,17 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
         // so now if either node1 or node2 is missing 
         // we can just add the other to the list and go ahead
         if (node1 && !node2) {
-            push_value(new_list, node1);
-            node1 = shift_value(bh1->trees);
+            list_push_value(new_list, node1);
+            node1 = list_shift_value(bh1->trees);
             continue;
         } else if (node2 && !node1) {
-            push_value(new_list, node2);
-            node2 = shift_value(bh2->trees);
+            list_push_value(new_list, node2);
+            node2 = list_shift_value(bh2->trees);
             continue;
         } else if (carry && !node1 && !node2) {
             // XXX - this case should have already been handled earlier
             //       (we have a carry but neither node1 nor node2)
-            push_value(new_list, carry);
+            list_push_value(new_list, carry);
             carry = NULL;
             continue;
         }
@@ -657,12 +657,12 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
         // compare node1 and node2 and if they are of different orders
         // let's add the lower one to the list and go ahead
         if (order1 < order2) {
-            push_value(new_list, node1);
-            node1 = shift_value(bh1->trees);
+            list_push_value(new_list, node1);
+            node1 = list_shift_value(bh1->trees);
             continue;
         } else if (order1 > order2) {
-            push_value(new_list, node2);
-            node2 = shift_value(bh2->trees);
+            list_push_value(new_list, node2);
+            node2 = list_shift_value(bh2->trees);
             continue;
         }
 
@@ -696,8 +696,8 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
 
         // the two trees (node1 and node2) have been merged and put into carry,
         // so let's get the next two nodes (if any) and go ahead
-        node1 = shift_value(bh1->trees);
-        node2 = shift_value(bh2->trees);
+        node1 = list_shift_value(bh1->trees);
+        node2 = list_shift_value(bh2->trees);
     }
 
     binheap_t *merged_heap = calloc(1, sizeof(binheap_t));
@@ -803,7 +803,7 @@ binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv)
     int cnt = 0;
     int i;
     for (i = 0; i < list_count(bh->trees); i++) {
-        binomial_tree_node_t *curtree = pick_value(bh->trees, i);
+        binomial_tree_node_t *curtree = list_pick_value(bh->trees, i);
         if (!binomial_tree_walk(curtree, &cnt, cb, priv))
             break;
     }
