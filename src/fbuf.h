@@ -33,18 +33,25 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 
+#define FBUF_MINLEN       128     //!< Minimum size of buffer
+#define FBUF_FASTGROWSIZE 1<<18   //!< Grow quickly up to 256KB ...
+#define FBUF_SLOWGROWSIZE 1<<16   //!< ... and slowly after that (+64kB)
 #define FBUF_MAXLEN_NONE 0 //!< No preferred maximum length for fbuf.
-#define FBUF_STATIC_INITIALIZER { 0, NULL, 0, 0, 0, 0 }
+#define FBUF_STATIC_INITIALIZER { 0, NULL, 0, FBUF_MAXLEN_NONE, FBUF_MINLEN, \
+                                  FBUF_FASTGROWSIZE, FBUF_SLOWGROWSIZE, 0, 0 }
 
 typedef struct __fbuf {
-    unsigned int id;          //!< unique ID for the buffer for reference
-    char *data;               //!< buffer. the caller should never access it directly but use 
-                              //   the fbuf_data() function instead. If accessed directly,
-                              //   the 'skip' member needs to be taken into account
-    unsigned int len;         //!< allocated length of buffer
-    unsigned int prefmaxlen;  //!< preferred maximum size of buffer
-    unsigned int used;        //!< number of bytes used in buffer
-    unsigned int skip;        //!< how many bytes to ignore from the beginning buffer
+    unsigned int id;           //!< unique ID for the buffer for reference
+    char *data;                //!< buffer. the caller should never access it directly but use 
+                               //   the fbuf_data() function instead. If accessed directly,
+                               //   the 'skip' member needs to be taken into account
+    unsigned int len;          //!< allocated length of buffer
+    unsigned int prefmaxlen;   //!< preferred maximum allocated length of buffer
+    unsigned int minlen;       //!< the minimum allocated length of the buffer
+    unsigned int fastgrowsize; //!< the size to quickly grow up to if writing more than misize bytes
+    unsigned int slowgrowsize;
+    unsigned int used;         //!< number of bytes used in buffer
+    unsigned int skip;         //!< how many bytes to ignore from the beginning buffer
 } fbuf_t;
 
 /**
@@ -91,9 +98,8 @@ fbuf_t *fbuf_duplicate(fbuf_t *fbufsrc);
  *   - prefmaxlen is set but smaller than the length of the buffer.
  *
  * @note fbuf_extend() extends beyond prefmaxlen, but only once.
- * @note if globalMaxLen is reached:
- *  - if prefmaxlen is set for the buffer is not extended.
- *  - if prefmaxlen is not set for the buffer exit(99) is called.
+ * @note if globalMaxLen is reached for a buffer an error will returned
+ *       by any write/extend operation on that buffer
  */
 unsigned int fbuf_extend(fbuf_t *fbuf, unsigned int newlen);
 
@@ -279,7 +285,7 @@ int fbuf_rtrim(fbuf_t *fbuf);
 char *fbuf_data(fbuf_t *fbuf);
 
 /**
- * @brief Return a pointer to the end of the buffer ('\0').
+ * @brief Return a pointer to the end of the buffer ('\\0').
  * @param fbuf fbuf
  * @return returns pointer to actual buffer, or NULL.
  *
@@ -312,33 +318,31 @@ unsigned int fbuf_len(fbuf_t *fbuf);
 /**
  * @brief Set the prefmaxlen value on the fbuf.
  * @param fbuf fbuf
- * @param newprefmaxlen new value for prefmaxlen
- * @returns new value for prefmaxlen
- * @note prefmaxlen is set, but buffer is not resized.
+ * @param prefmaxlen new value for prefmaxlen. If UINT_MAX is passed no new
+ *             value will be set but the current value will be still returned.
+ * @returns Previous value for prefmaxlen.
+ * @note if the buffer is already bigger than the newly configured prefmaxlen
+ *       it will be truncated to to fit the actual prefmaxlen value
  */
-
-unsigned int fbuf_set_prefmaxlen(fbuf_t *fbuf, unsigned int newprefmaxlen);
-/**
- * @brief Return the currently set preferred maximum length of the buffer.
- * @param fbuf fbuf
- * @returns Current value for prefmaxlen.
- */
-unsigned int fbuf_prefmaxlen(fbuf_t *fbuf);
+unsigned int fbuf_prefmaxlen(fbuf_t *fbuf, unsigned int prefmaxlen);
 
 /**
- * @brief Set a hard limit on the size of all buffers.
- * @param maxlen hard limit on the size of a buffer.
+ * @brief Set a hard limit on the size of all buffers and return the
+ *        previously configured value.
+ * @param maxlen hard limit on the size of a buffer. If UINT_MAX is passed no new
+ *               value will be set but the current value will be still returned.
+ *               0 means no limit.
+ * @return Return the previous hard limit on the size of all buffers.
  *
- * @note If this limits is reached for a buffer:
- * - if a prefmaxlen is set for a buffer an error is returned
- * - exit(99) is called otherwise.
+ * @note If this limits is reached for a buffer an error will returned by any
+ *       write/extend operation on the buffer
  */
-unsigned int fbuf_set_maxlen(unsigned int maxlen);
+unsigned int fbuf_maxlen(unsigned int maxlen);
 
-/**
- * @brief Return the current hard limit on the size of all buffers.
- */
-unsigned int fbuf_maxlen(void);
+unsigned int fbuf_minlen(fbuf_t *fbuf, unsigned int minlen);
+
+unsigned int fbuf_fastgrowsize(fbuf_t *fbuf, unsigned int size);
+unsigned int fbuf_slowgrowsize(fbuf_t *fbuf, unsigned int size);
 
 #ifdef __cplusplus
 }
