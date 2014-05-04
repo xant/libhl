@@ -391,6 +391,22 @@ main(int argc, char **argv)
     else
         validate(fb2, "ABCDE", FBUFMAXLEN, NO_FLAGS);
 
+    ut_testing("fbuf_remove(fb2, 2) uses fbuf->skip");
+    fbuf_remove(fb2, 2);
+    if (memcmp(fbuf_data(fb2), "CDE", 3) == 0 && fb2->skip == 2)
+        ut_success();
+    else
+        ut_failure("skip is not set or buffer is not equal to 'CDE'");
+
+    ut_testing("fbuf_remove(fb2, 1) resets the skip offset because past half of the buffer");
+    fbuf_remove(fb2, 1);
+    if (memcmp(fbuf_data(fb2), "DE", 2) == 0 && fb2->skip == 0)
+        ut_success();
+    else
+        ut_failure("skip is has not been set back to 0 or buffer is not equal to 'DE'");
+
+
+
     ut_testing("fbuf_destroy(fb1)");
     fbuf_destroy(fb1);
     validate(fb1, "", FBUFMAXLEN, NO_FLAGS);
