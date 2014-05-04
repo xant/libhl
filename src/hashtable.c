@@ -10,17 +10,6 @@
 #include <libkern/OSAtomic.h>
 #endif
 
-#define PERL_HASH_FUNC_ONE_AT_A_TIME
-#define PERL_STATIC_INLINE static inline
-#define U8  uint8_t
-#define U16 uint16_t
-#define U32 uint32_t
-#define I32 int32_t
-#define STRLEN ssize_t
-#define STMT_START
-#define STMT_END
-#include <hv_func.h>
-
 #include "bsd_queue.h"
 
 #ifdef THREAD_SAFE
@@ -61,50 +50,6 @@
     } while (!__b);\
 }
 
-
-#define ATOMIC_GETLIST(__t, __h, __l) \
-{ \
-    uint32_t __i = (__h)%ATOMIC_READ((__t)->size); \
-    __l = ATOMIC_READ((__t)->items[__i]); \
-    if (__l) { \
-        SPIN_LOCK((__l)->lock); \
-    } \
-    if (ATOMIC_READ((__t)->growing) > __i) { \
-        if (__l) {\
-            SPIN_UNLOCK((__l)->lock); \
-        } \
-        MUTEX_LOCK((__t)->lock); \
-        __i = (__h)%ATOMIC_READ((__t)->size); \
-        (__l) = ATOMIC_READ((__t)->items[__i]); \
-        if (__l) \
-            SPIN_LOCK((__l)->lock); \
-        MUTEX_UNLOCK((__t)->lock); \
-    } \
-}
-
-#define ATOMIC_SETLIST(__t, __h, __l) \
-{ \
-    (__l) = malloc(sizeof(ht_items_list_t)); \
-    SPIN_INIT((__l)->lock); \
-    TAILQ_INIT(&(__l)->head); \
-    SPIN_LOCK((__l)->lock); \
-    MUTEX_LOCK((__t)->lock); \
-    while (!__sync_bool_compare_and_swap(&(__t)->items[(__h)%ATOMIC_READ((__t)->size)], NULL, (__l))) \
-    { \
-        ht_items_list_t *l = ATOMIC_READ((__t)->items[(__h)%ATOMIC_READ((__t)->size)]); \
-        if (l) { \
-            SPIN_LOCK(l->lock); \
-            SPIN_UNLOCK((__l)->lock); \
-            SPIN_DESTROY((__l)->lock); \
-            free((__l)); \
-            (__l) = l; \
-            break; \
-        } \
-    } \
-    MUTEX_UNLOCK((__t)->lock); \
-}
-
-
 #define HT_SIZE_MIN 128
 
 typedef struct __ht_item {
@@ -134,6 +79,7 @@ struct __hashtable {
     uint32_t max_size;
     uint32_t count;
     uint32_t growing;
+    uint32_t seed;
     ht_items_list_t **items;
 #ifdef THREAD_SAFE
     pthread_mutex_t lock;
@@ -152,6 +98,22 @@ typedef struct __ht_collector_arg {
     linked_list_t *output;
     uint32_t count;
 } ht_collector_arg_t;
+
+static inline uint32_t
+ht_hash_one_at_a_time(hashtable_t *table, const unsigned char *str, const ssize_t len)
+{
+    const unsigned char * const end = (const unsigned char *)str + len;
+    uint32_t hash = table->seed + len;
+    while (str < end) {
+        hash += *str++;
+        hash += (hash << 10);
+        hash ^= (hash >> 6);
+    }
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    return (hash + (hash << 15));
+}
+
 
 hashtable_t *
 ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb)
@@ -178,6 +140,11 @@ ht_init(hashtable_t *table,
         MUTEX_INIT(table->lock);
 
     ht_set_free_item_callback(table, cb);
+#ifdef BSD
+    table->seed = arc4random()%UINT32_MAX;
+#else
+    table->seed = random()%UINT32_MAX;
+#endif
 }
 
 void
@@ -296,8 +263,56 @@ ht_grow_table(hashtable_t *table)
     //fprintf(stderr, "Done growing table\n");
 }
 
-int
-_ht_set_internal(hashtable_t *table,
+static inline ht_items_list_t *
+ht_get_list(hashtable_t *table, uint32_t hash)
+{
+    uint32_t idx = hash%ATOMIC_READ(table->size);
+    ht_items_list_t *list = ATOMIC_READ(table->items[idx]);
+    if (list) {
+        SPIN_LOCK(list->lock);
+    }
+    if (ATOMIC_READ(table->growing) > idx) {
+        if (list) {
+            SPIN_UNLOCK(list->lock);
+        }
+        MUTEX_LOCK(table->lock);
+        idx = hash%ATOMIC_READ(table->size);
+        list = ATOMIC_READ(table->items[idx]);
+        if (list)
+            SPIN_LOCK(list->lock);
+        MUTEX_UNLOCK(table->lock);
+    }
+    return list;
+}
+
+
+static inline ht_items_list_t *
+ht_set_list(hashtable_t *table, uint32_t hash)
+{ 
+    ht_items_list_t *list = malloc(sizeof(ht_items_list_t));
+    SPIN_INIT(list->lock);
+    TAILQ_INIT(&list->head);
+    SPIN_LOCK(list->lock);
+    MUTEX_LOCK(table->lock);
+    while (!__sync_bool_compare_and_swap(&table->items[hash%ATOMIC_READ(table->size)], NULL, list))
+    {
+        ht_items_list_t *other = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
+        if (other) {
+            SPIN_LOCK(other->lock);
+            SPIN_UNLOCK(list->lock);
+            SPIN_DESTROY(list->lock);
+            free(list);
+            list = other;
+            break;
+        }
+    }
+    MUTEX_UNLOCK(table->lock);
+    return list;
+}
+
+
+static inline int
+ht_set_internal(hashtable_t *table,
                  void *key,
                  size_t klen,
                  void *data,
@@ -313,14 +328,12 @@ _ht_set_internal(hashtable_t *table,
     if (!klen)
         return -1;
 
-    uint32_t hash;
-    PERL_HASH(hash, key, klen);
+    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
 
-    ht_items_list_t *list;
-    ATOMIC_GETLIST(table, hash, list);
+    ht_items_list_t *list  = ht_get_list(table, hash);
 
     if (!list)
-        ATOMIC_SETLIST(table, hash, list);
+        list = ht_set_list(table, hash);
 
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
@@ -413,13 +426,13 @@ _ht_set_internal(hashtable_t *table,
 int
 ht_set(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen)
 {
-    return _ht_set_internal(table, key, klen, data, dlen, NULL, NULL, 0, 0);
+    return ht_set_internal(table, key, klen, data, dlen, NULL, NULL, 0, 0);
 }
 
 int
 ht_set_if_not_exists(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen)
 {
-    return _ht_set_internal(table, key, klen, data, dlen, NULL, NULL, 0, 1);
+    return ht_set_internal(table, key, klen, data, dlen, NULL, NULL, 0, 1);
 }
 
 int
@@ -431,7 +444,7 @@ ht_get_or_set(hashtable_t *table,
               void **cur_data,
               size_t *cur_len)
 {
-    return _ht_set_internal(table, key, klen, data, dlen, cur_data, cur_len, 0, 1);
+    return ht_set_internal(table, key, klen, data, dlen, cur_data, cur_len, 0, 1);
 }
 
 int
@@ -443,7 +456,7 @@ ht_get_and_set(hashtable_t *table,
                void **prev_data,
                size_t *prev_len)
 {
-    return _ht_set_internal(table, key, klen, data, dlen, prev_data, prev_len, 0, 0);
+    return ht_set_internal(table, key, klen, data, dlen, prev_data, prev_len, 0, 0);
 }
 
 int
@@ -455,7 +468,7 @@ ht_set_copy(hashtable_t *table,
             void **prev_data,
             size_t *prev_len)
 {
-    return _ht_set_internal(table, key, klen, data, dlen, prev_data, prev_len, 1, 0);
+    return ht_set_internal(table, key, klen, data, dlen, prev_data, prev_len, 1, 0);
 }
 
 int
@@ -465,13 +478,10 @@ ht_unset(hashtable_t *table,
          void **prev_data,
          size_t *prev_len)
 {
-    uint32_t hash;
-    PERL_HASH(hash, key, klen);
+    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
 
 
-    ht_items_list_t *list;
-    ATOMIC_GETLIST(table, hash, list);
-
+    ht_items_list_t *list  = ht_get_list(table, hash);
     if (!list)
         return -1;
 
@@ -517,12 +527,9 @@ ht_delete(hashtable_t *table,
 {
     int ret = -1;
 
-    uint32_t hash;
-    PERL_HASH(hash, key, klen);
+    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
 
-    ht_items_list_t *list;
-    ATOMIC_GETLIST(table, hash, list);
-
+    ht_items_list_t *list  = ht_get_list(table, hash);
     if (!list)
         return ret;
 
@@ -567,12 +574,9 @@ ht_delete(hashtable_t *table,
 int
 ht_exists(hashtable_t *table, void *key, size_t klen)
 {
-    uint32_t hash = 0;
-    PERL_HASH(hash, key, klen);
+    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
 
-    ht_items_list_t *list;
-    ATOMIC_GETLIST(table, hash, list);
-
+    ht_items_list_t *list  = ht_get_list(table, hash);
     if (!list)
         return 0;
 
@@ -593,7 +597,7 @@ ht_exists(hashtable_t *table, void *key, size_t klen)
 }
 
 void
-*_ht_get_internal(hashtable_t *table,
+*ht_get_internal(hashtable_t *table,
                   void *key,
                   size_t klen,
                   size_t *dlen,
@@ -601,12 +605,9 @@ void
                   ht_deep_copy_callback_t copy_cb,
                   void *user)
 {
-    uint32_t hash = 0;
-    PERL_HASH(hash, key, klen);
+    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
 
-    ht_items_list_t *list;
-    ATOMIC_GETLIST(table, hash, list);
-
+    ht_items_list_t *list  = ht_get_list(table, hash);
     if (!list)
         return NULL;
 
@@ -644,20 +645,20 @@ void
 void
 *ht_get(hashtable_t *table, void *key, size_t klen, size_t *dlen)
 {
-    return _ht_get_internal(table, key, klen, dlen, 0, NULL, NULL);
+    return ht_get_internal(table, key, klen, dlen, 0, NULL, NULL);
 }
 
 void
 *ht_get_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen)
 {
-    return _ht_get_internal(table, key, klen, dlen, 1, NULL, NULL);
+    return ht_get_internal(table, key, klen, dlen, 1, NULL, NULL);
 }
 
 void
 *ht_get_deep_copy(hashtable_t *table, void *key, size_t klen,
         size_t *dlen, ht_deep_copy_callback_t copy_cb, void *user)
 {
-    return _ht_get_internal(table, key, klen, dlen, 1, copy_cb, user);
+    return ht_get_internal(table, key, klen, dlen, 1, copy_cb, user);
 }
 
 static void
@@ -770,9 +771,7 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
 
     for (i = 0; i < ATOMIC_READ(table->size) && count < ATOMIC_READ(table->count); i++)
     {
-        ht_items_list_t *list;
-        ATOMIC_GETLIST(table, i, list);
-
+        ht_items_list_t *list  = ht_get_list(table, i);
         if (!list)
             continue;
 
