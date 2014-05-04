@@ -174,6 +174,7 @@ fbuf_extend(fbuf_t *fbuf, unsigned int newlen)
         else
             fbuf->data[0] = '\0';
         fbuf->skip = 0;
+        return fbuf->len;
     }
 
     // We may only extend the buffer the current length of the buffer is less
@@ -585,8 +586,9 @@ fbuf_remove(fbuf_t *fbuf, unsigned int len)
     } else if (len) {
         fbuf->skip += len;
         fbuf->used -= len;
-        if (fbuf->skip > fbuf->len / 2) {
+        if (fbuf->skip >= fbuf->len / 2) {
             memmove(fbuf->data, fbuf->data + fbuf->skip, fbuf->used+1);
+            fbuf->skip = 0;
         }
     }
     return fbuf->used;
