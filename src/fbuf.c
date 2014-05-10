@@ -193,13 +193,15 @@ fbuf_extend(fbuf_t *fbuf, unsigned int newlen)
     // - Grow quickly at first.
     // - Grow more slowly once the threshold has been reached.
     // - Cap the new length if it exceeds global maximum if set.
+    unsigned int fastgrowsize = fbuf->fastgrowsize ? fbuf->fastgrowsize : FBUF_FASTGROWSIZE;
+    unsigned int slowgrowsize = fbuf->slowgrowsize ? fbuf->slowgrowsize : FBUF_SLOWGROWSIZE;
     while (newlen > fbuf->len) {
         if (fbuf->len == 0)
             fbuf->len = fbuf->minlen ? fbuf->minlen : FBUF_MINLEN;
-        else if (fbuf->len < fbuf->fastgrowsize)
-            fbuf->len = fbuf->fastgrowsize;
+        else if (fbuf->len < fastgrowsize)
+            fbuf->len = fastgrowsize;
         else
-            fbuf->len += fbuf->slowgrowsize;
+            fbuf->len += slowgrowsize;
     }
     if ((max_len && fbuf->len > max_len + 1) ||
         (fbuf->prefmaxlen && fbuf->len > fbuf->prefmaxlen))
@@ -246,14 +248,17 @@ fbuf_shrink(fbuf_t *fbuf)
     if (fbuf->used == 0)
         len = 0;
 
+    unsigned int fastgrowsize = fbuf->fastgrowsize ? fbuf->fastgrowsize : FBUF_FASTGROWSIZE;
+    unsigned int slowgrowsize = fbuf->slowgrowsize ? fbuf->slowgrowsize : FBUF_SLOWGROWSIZE;
+
     do {
         newlen = len;
         if (len <= fbuf->minlen)
             break;
-        else if (len <= fbuf->fastgrowsize)
+        else if (len <= fastgrowsize)
             len /= 2;
         else
-            len -= fbuf->slowgrowsize;
+            len -= slowgrowsize;
     } while (len >= fbuf->used+1);
     // len is now the first size smaller than required, newlen is the last
     // size that fits the buffer.
