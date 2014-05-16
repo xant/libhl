@@ -58,6 +58,8 @@ static void
 avlt_rotate_left(avlt_node_t *node)
 {
     avlt_node_t *right = node->right;
+    if (!right)
+        return;
     avlt_node_t *rl = right->left;
     avlt_node_t *parent = node->parent;
 
@@ -87,6 +89,8 @@ static void
 avlt_rotate_right(avlt_node_t *node)
 {
     avlt_node_t *left = node->left;
+    if (!left)
+        return;
     avlt_node_t *lr = left->right;
     avlt_node_t *parent = node->parent;
 
@@ -144,7 +148,7 @@ avlt_balance(avlt_t *tree, avlt_node_t *node)
         if (balance_factor <= -2) {
             avlt_node_t *right = node->right;
             // check for right-left case
-            if ((right->hl - right->hr) == 1)
+            if (right && (right->hl - right->hr) == 1)
                 avlt_rotate_right(right);
             avlt_rotate_left(node);
             if (tree->root == node)
@@ -152,7 +156,7 @@ avlt_balance(avlt_t *tree, avlt_node_t *node)
         } else if (balance_factor >= 2) {
             avlt_node_t *left = node->left;
             // check for left-right case
-            if ((left->hl - left->hr) == -1)
+            if (left && (left->hl - left->hr) == -1)
                 avlt_rotate_left(left);
             avlt_rotate_right(node);
             if (tree->root == node)

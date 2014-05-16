@@ -52,15 +52,16 @@ fbuf_t *
 fbuf_create(unsigned int prefmaxlen)
 {
     fbuf_t *fbuf = (fbuf_t *)calloc(1, sizeof(fbuf_t));
+
     if (fbuf) {
         DEBUG_FBUF_INFO(fbuf, "creating");
         fbuf->id = __sync_fetch_and_add(&fbuf_count, 1);
         fbuf->prefmaxlen = prefmaxlen;
+        fbuf->fastgrowsize = FBUF_FASTGROWSIZE;
+        fbuf->slowgrowsize = FBUF_SLOWGROWSIZE;
+        fbuf->minlen = FBUF_MINLEN;
     }
 
-    fbuf->fastgrowsize = FBUF_FASTGROWSIZE;
-    fbuf->slowgrowsize = FBUF_SLOWGROWSIZE;
-    fbuf->minlen = FBUF_MINLEN;
     return fbuf;
 }
 
@@ -203,12 +204,16 @@ fbuf_extend(fbuf_t *fbuf, unsigned int newlen)
         else
             fbuf->len += slowgrowsize;
     }
+
     if ((max_len && fbuf->len > max_len + 1) ||
         (fbuf->prefmaxlen && fbuf->len > fbuf->prefmaxlen))
     {
         fbuf->len = MIN(max_len ? max_len : UINT_MAX,
                         fbuf->prefmaxlen ? fbuf->prefmaxlen : UINT_MAX) + 1;
     }
+
+    if (fbuf->len == 0)
+        return 0;
 
     if (fbuf->skip) {
         p = (char *)malloc(fbuf->len);
