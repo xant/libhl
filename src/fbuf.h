@@ -122,6 +122,14 @@ unsigned int fbuf_shrink(fbuf_t *fbuf);
 void fbuf_clear(fbuf_t *fbuf);
 
 /**
+ * @brief Detach the underlying buffer and reset the fbuf
+ * @param fbuf fbuf
+ * @param buf A reference to the pointer where to store the addres of the actual buffer
+ * @returns The size of the detached buffer (now stored in *buf)
+ */
+unsigned int fbuf_detach(fbuf_t *fbuf, char **buf);
+
+/**
  * @brief Destroys all information in the fbuf.
  * @param fbuf fbuf
  * 

@@ -293,6 +293,26 @@ fbuf_clear(fbuf_t *fbuf)
         fbuf->data[0] = '\0';
 }
 
+unsigned int fbuf_detach(fbuf_t *fbuf, char **buf)
+{
+    if (!fbuf->used)
+        return 0;
+
+    if (fbuf->skip)
+        fbuf_shrink(fbuf);
+
+    unsigned int len = fbuf->used;
+
+    *buf = fbuf->data;
+
+    fbuf->used = 0;
+    fbuf->skip = 0;
+    fbuf->len = 0;
+    fbuf->data = NULL;
+
+    return len;
+}
+
 void
 fbuf_destroy(fbuf_t *fbuf)
 {
