@@ -1,7 +1,6 @@
 #include "refcnt.h"
 #include <stdint.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <rqueue.h>
 #include <stdio.h>
 
@@ -99,6 +98,7 @@ refcnt_node_t *release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
 
     if (REFCNT_ATOMIC_READ(ref->count) > 0)
         REFCNT_ATOMIC_DECREMENT(ref->count, 1);
+
     if (REFCNT_ATOMIC_CMPXCHG(ref->delete, 0, 1)) {
         if (REFCNT_ATOMIC_READ(ref->count) == 0) {
             if (refcnt->terminate_node_cb)
@@ -116,8 +116,6 @@ refcnt_node_t *release_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
 }
 
 int compare_and_swap_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *old, refcnt_node_t *ref) {
-    if (refcnt) { } // suppress warnings
-
     if (__sync_bool_compare_and_swap(link, old, ref)) {
         if (ref != NULL) {
             REFCNT_ATOMIC_INCREMENT(ref->count, 1);
@@ -131,8 +129,6 @@ int compare_and_swap_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *
 }
 
 void store_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *ref) {
-    if (refcnt) { } // suppress warnings
-
     refcnt_node_t *old = REFCNT_MARK_OFF(*link);
     REFCNT_ATOMIC_CMPXCHG(*link, old, ref);
     if (ref != NULL) {
@@ -145,7 +141,6 @@ void store_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *ref) {
 
 refcnt_node_t *retain_ref(refcnt_t *refcnt, refcnt_node_t *ref) {
     ref = deref_link(refcnt, &ref);
-    if (ref) { } // suppress warnings
     return ref;
 }
 
@@ -162,3 +157,6 @@ void *get_node_ptr(refcnt_node_t *node) {
     return NULL;
 }
 
+int get_node_refcount(refcnt_node_t *node) {
+    return REFCNT_ATOMIC_READ(node->count);
+}

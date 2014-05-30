@@ -145,10 +145,25 @@ refcnt_node_t *retain_ref(refcnt_t *refcnt, refcnt_node_t *ref);
  * @param refcnt : A pointer to a valid refcounted context
  * @param link   : The address where to store the pointer to the reference
  * @param ref    : The reference to store into *link
+ * @return       : The pointer passed as refcnt argument (whose refcount 
+ *                 has been increased by 1)
  * @note         : The refcount of the provided reference is increased by 1
  *               : If link points to an existing reference, its refcount will be
  *                 decreased by 1 before storing the new reference
  */
 void store_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *ref);
+
+/**
+ * @brief Returns the actual refcount for a given node
+ * @param node   : A pointer to a valid refcounted object 
+ * @return       : The actual refcount of the node passed as argument
+ * @note         : The returned is the actual value at the moment the call
+ *                 is done, in a multithreaded environment where other threads
+ *                 can retain/release the same objects this value can be
+ *                 very volatile and the caller shouldn't rely on it unless
+ *                 really knowing what he is doing.\n
+ *                 This function has been introduced solely for debugging purposes
+ */
+int get_node_refcount(refcnt_node_t *node);
 
 #endif
