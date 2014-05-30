@@ -153,6 +153,20 @@ ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
     ATOMIC_SET(table->free_item_cb, cb);
 }
 
+static inline ht_items_list_t *
+ht_get_list_at_index(hashtable_t *table, uint32_t index)
+{
+    ht_items_list_t *list = NULL;
+    if (ATOMIC_READ(table->growing) > index) {
+        MUTEX_LOCK(table->lock);
+        list = ATOMIC_READ(table->items[index]);
+        MUTEX_UNLOCK(table->lock);
+    } else {
+        list = ATOMIC_READ(table->items[index]);
+    }
+    return list;
+}
+
 void
 ht_clear(hashtable_t *table)
 {
@@ -163,7 +177,7 @@ ht_clear(hashtable_t *table)
         ht_item_t *item = NULL;
         ht_item_t *tmp;
 
-        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
+        ht_items_list_t *list = ht_get_list_at_index(table, i);
 
         if (!list)
             continue;
@@ -267,21 +281,9 @@ static inline ht_items_list_t *
 ht_get_list(hashtable_t *table, uint32_t hash)
 {
     uint32_t idx = hash%ATOMIC_READ(table->size);
-    ht_items_list_t *list = ATOMIC_READ(table->items[idx]);
-    if (list) {
+    ht_items_list_t *list = ht_get_list_at_index(table, idx);
+    if (list)
         SPIN_LOCK(list->lock);
-    }
-    if (ATOMIC_READ(table->growing) > idx) {
-        if (list) {
-            SPIN_UNLOCK(list->lock);
-        }
-        MUTEX_LOCK(table->lock);
-        idx = hash%ATOMIC_READ(table->size);
-        list = ATOMIC_READ(table->items[idx]);
-        if (list)
-            SPIN_LOCK(list->lock);
-        MUTEX_UNLOCK(table->lock);
-    }
     return list;
 }
 
@@ -677,7 +679,7 @@ ht_get_all_keys(hashtable_t *table)
     list_set_free_value_callback(output, (free_value_callback_t)free_key);
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
-        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
+        ht_items_list_t *list = ht_get_list_at_index(table, i);
 
         if (!list) {
             continue;
@@ -708,7 +710,7 @@ ht_get_all_values(hashtable_t *table)
     linked_list_t *output = list_create();
 
     for (i = 0; i < ATOMIC_READ(table->size); i++) {
-        ht_items_list_t *list = ATOMIC_READ(table->items[i]);
+        ht_items_list_t *list = ht_get_list_at_index(table, i);
 
         if (!list) {
             continue;
