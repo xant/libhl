@@ -107,14 +107,6 @@ int queue_push_left(queue_t *q, void *val);
 void *queue_pop_left(queue_t *q);
 
 /**
- * @brief Remove the value at the specified position
- * @param q : A valid pointer to a queue_t structure
- * @param pos : The position of the value to extract
- * @return The value stored at pos or NULL if nothing is found
- */
-void *queue_pop_position(queue_t *q, uint32_t pos);
-
-/**
  * @brief Push a new value at a specific position
  * @param q : A valid pointer to a queue_t structure
  * @param pos : The position where to insert the new item
