@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
         .direction = 0
     };
 
-    int num_queued_items = 100000;
+    int num_queued_items = 10000;
     ut_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
               num_parallel_threads, num_queued_items);
 
