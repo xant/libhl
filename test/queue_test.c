@@ -36,13 +36,14 @@ typedef struct {
     queue_t *queue;
     int count;
     int leave;
+    int direction;
 } queue_worker_arg;
 
 void *queue_worker(void *user) {
     void *v;
     queue_worker_arg *arg = (queue_worker_arg *)user;
     while (!__sync_fetch_and_add(&arg->leave, 0)) {
-        v = queue_pop_left(arg->queue);
+        v = arg->direction ? queue_pop_right(arg->queue) : queue_pop_left(arg->queue);
         if (v) {
             __sync_add_and_fetch(&arg->count, 1);
             free(v);
@@ -111,16 +112,13 @@ int main(int argc, char **argv) {
     queue_worker_arg arg = {
         .queue = queue_create(),
         .count = 0,
-        .leave = 0
+        .leave = 0,
+        .direction = 0
     };
 
-    int num_queued_items = 10000;
+    int num_queued_items = 100000;
     ut_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
               num_parallel_threads, num_queued_items);
-
-    for (i = 0; i < num_parallel_threads; i++) {
-        pthread_create(&threads[i], NULL, queue_worker, &arg);
-    }
 
     for (i = 0; i < num_queued_items; i++) {
         char *val = malloc(21);
@@ -128,12 +126,48 @@ int main(int argc, char **argv) {
         queue_push_right(arg.queue, val);
     }
 
+    for (i = 0; i < num_parallel_threads; i++) {
+        pthread_create(&threads[i], NULL, queue_worker, &arg);
+    }
+
     while(queue_count(arg.queue))
         usleep(500);
 
     __sync_add_and_fetch(&arg.leave, 1);
     for (i = 0; i < num_parallel_threads; i++) {
-        pthread_cancel(threads[i]);
+        pthread_join(threads[i], NULL);
+    }
+
+
+    ut_result(arg.count == num_queued_items, "Handled items should have been %d (was %d)", num_queued_items, arg.count);
+
+    queue_destroy(arg.queue);
+
+    // now try the same but pushing to the left and pulling from the right
+    arg.queue = queue_create();
+    arg.count = 0;
+    arg.leave = 0;
+    arg.direction = 1;
+
+    ut_testing("Threaded queue reverse (%d pull-workers, %d items pushed to the queue from the main thread)",
+              num_parallel_threads, num_queued_items);
+
+    for (i = 0; i < num_queued_items; i++) {
+        char *val = malloc(21);
+        sprintf(val, "%d", i);
+        queue_push_left(arg.queue, val);
+    }
+
+    for (i = 0; i < num_parallel_threads; i++) {
+        pthread_create(&threads[i], NULL, queue_worker, &arg);
+    }
+
+    while(queue_count(arg.queue))
+        usleep(500);
+
+    __sync_add_and_fetch(&arg.leave, 1);
+    for (i = 0; i < num_parallel_threads; i++) {
+        pthread_join(threads[i], NULL);
     }
 
     ut_result(arg.count == num_queued_items, "Handled items should have been %d (was %d)", num_queued_items, arg.count);
