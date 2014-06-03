@@ -74,6 +74,9 @@ refcnt_node_t *deref_link_internal(refcnt_t *refcnt, refcnt_node_t **link, int s
         if (node) {
             REFCNT_ATOMIC_INCREMENT(node->count, 1);
             return node;
+        } else {
+            // XXX - should never happen
+            return NULL;
         }
     }
 }

@@ -234,7 +234,7 @@ static inline void help_delete(queue_entry_t *entry) {
     while (1) {
         if (prev == next)
             break;
-        if (REFCNT_IS_MARKED(next->next)) {
+        if (next && REFCNT_IS_MARKED(next->next)) {
             mark_prev(next);
             queue_entry_t *next2 = get_node_ptr(deref_link_d(next->refcnt, &next->next));
             release_ref(next->refcnt, ATOMIC_READ(next->node));
@@ -246,10 +246,12 @@ static inline void help_delete(queue_entry_t *entry) {
             if (last != NULL) {
                 mark_prev(prev);
                 queue_entry_t *next2 = get_node_ptr(deref_link_d(prev->refcnt, &prev->next));
-                if (ATOMIC_CMPXCHG(last->next, ATOMIC_READ(prev->node), ATOMIC_READ(next2->node))) {
-                    release_ref(prev->refcnt, ATOMIC_READ(prev->node));
-                } else {
-                    release_ref(next2->refcnt, ATOMIC_READ(next2->node));
+                if (next2) {
+                    if (ATOMIC_CMPXCHG(last->next, ATOMIC_READ(prev->node), ATOMIC_READ(next2->node))) {
+                        release_ref(prev->refcnt, ATOMIC_READ(prev->node));
+                    } else {
+                        release_ref(next2->refcnt, ATOMIC_READ(next2->node));
+                    }
                 }
                 release_ref(prev->refcnt, ATOMIC_READ(prev->node));
                 prev = last;
@@ -293,6 +295,9 @@ void *queue_pop_right(queue_t *q)
     void *v = NULL;
     queue_entry_t *next = ATOMIC_READ(q->tail);
     queue_entry_t *entry = get_node_ptr(deref_link(q->refcnt, &next->prev));
+    if (!entry)
+        return NULL;
+
     while (1) {
         if (ATOMIC_READ(entry->next) != ATOMIC_READ(next->node)) {
             entry = help_insert(entry, next);
@@ -324,7 +329,7 @@ void *queue_pop_right(queue_t *q)
 static inline void push_common(queue_entry_t *entry, queue_entry_t *next) {
     while (1) {
         refcnt_node_t *link1 = deref_link(next->refcnt, &next->prev);
-        if ((((intptr_t)link1 & 0x01) == 0x01) || ATOMIC_READ(entry->next) != ATOMIC_READ(next->node)) {
+        if (!link1 || (((intptr_t)link1 & 0x01) == 0x01) || ATOMIC_READ(entry->next) != ATOMIC_READ(next->node)) {
             release_ref(next->refcnt, link1);
             break;
         }
@@ -393,7 +398,7 @@ inline int queue_push_position(queue_t *q, uint32_t pos, void *value)
 
     queue_entry_t *next = get_node_ptr(deref_link(prev->refcnt, &prev->next));
 
-    while (1) {
+    while (next) {
         if (ATOMIC_READ(prev->next) != next->node) {
             release_ref(next->refcnt, next->node);
             next = get_node_ptr(deref_link(prev->refcnt, &prev->next));
@@ -478,7 +483,7 @@ void *queue_pop_position(queue_t *q, uint32_t pos)
     retain_ref(prev->refcnt, ATOMIC_READ(prev->node));
     while(1) {
         entry = get_node_ptr(deref_link(prev->refcnt, &prev->next));
-        if (entry == ATOMIC_READ(q->tail)) {
+        if (!entry || entry == ATOMIC_READ(q->tail)) {
             release_ref(q->refcnt, ATOMIC_READ(entry->node));
             release_ref(q->refcnt, ATOMIC_READ(prev->node));
             return NULL;
