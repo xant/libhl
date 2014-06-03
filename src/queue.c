@@ -437,9 +437,7 @@ int queue_push_right(queue_t *q, void *value)
     }
     while (prev) {
         if (ATOMIC_READ(prev->next) != ATOMIC_READ(next->node)) {
-            queue_entry_t *prev2 = prev;
-            prev = help_insert(prev2, next);
-            release_ref(prev2->refcnt, ATOMIC_READ(prev2->node));
+            prev = help_insert(prev, next);
             continue;
         }
         entry->prev = ATOMIC_READ(prev->node);
