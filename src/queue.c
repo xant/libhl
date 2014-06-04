@@ -90,7 +90,7 @@ void queue_init(queue_t *q)
 {
     memset(q,  0, sizeof(queue_t));
     if (!q->refcnt)
-        q->refcnt = refcnt_create(1<<12, terminate_node_callback, free);
+        q->refcnt = refcnt_create(1<<10, terminate_node_callback, free);
     if (!q->head) {
         q->head = create_entry(q->refcnt);
     }
@@ -311,26 +311,14 @@ inline int queue_push_left(queue_t *q, void *value)
 
     retain_ref(q->refcnt, prev->node);
 
-    queue_entry_t *next = NULL;
+    queue_entry_t *next = get_node_ptr(deref_link(prev->refcnt, &prev->next));
 
-    while (1)
-    {
-        refcnt_node_t *prev_next = retain_ref(prev->refcnt, prev->next);
+    if (!next) {
+        destroy_entry(entry);
+        return -1;
+    }
 
-        if (!prev_next) {
-            // hard error
-            release_ref(q->refcnt, prev->node);
-            destroy_entry(entry);
-            return -1;
-        }
-
-        next = get_node_ptr(prev_next);
-
-        if (!next) {
-            release_ref(prev->refcnt, prev_next);
-            continue;
-        }
-
+    while (next) {
         refcnt_node_t *link = ATOMIC_READ(prev->node);
         entry->prev = ATOMIC_READ(prev->node);
         entry->next = ATOMIC_READ(next->node);
@@ -341,6 +329,7 @@ inline int queue_push_left(queue_t *q, void *value)
                 next = get_node_ptr(deref_link(prev->refcnt, &prev->next));
                 continue;
             }
+            retain_ref(entry->refcnt, ATOMIC_READ(entry->node));
             break;
         } 
 
@@ -371,26 +360,14 @@ int queue_push_right(queue_t *q, void *value)
 
     retain_ref(next->refcnt, ATOMIC_READ(next->node));
 
-    queue_entry_t *prev = NULL;
+    queue_entry_t *prev = get_node_ptr(deref_link(next->refcnt, &next->prev));
 
-    while (1)
-    {
-        refcnt_node_t *next_prev = retain_ref(next->refcnt, next->prev);
+    if (!prev) {
+        destroy_entry(entry);
+        return -1;
+    }
 
-        if (!next_prev) {
-            // hard error
-            release_ref(q->refcnt, next->node);
-            destroy_entry(entry);
-            return -1;
-        }
-
-        prev = get_node_ptr(next_prev);
-
-        if (!prev) {
-            release_ref(next->refcnt, next_prev);
-            continue;
-        }
-
+    while (prev) {
         refcnt_node_t *link = ATOMIC_READ(next->node);
         entry->prev = ATOMIC_READ(prev->node);
         entry->next = ATOMIC_READ(next->node);
@@ -402,6 +379,7 @@ int queue_push_right(queue_t *q, void *value)
                 prev = get_node_ptr(deref_link(next->refcnt, &next->prev));
                 continue;
             }
+            retain_ref(entry->refcnt, ATOMIC_READ(entry->node));
             break;
         } 
 
@@ -463,7 +441,7 @@ void *queue_pop_left(queue_t *q)
     //remove_cross_reference(entry);
     if (entry) {
         ATOMIC_DECREMENT(q->length, 1);
-        //release_ref(entry->refcnt, entry->node);
+        release_ref(entry->refcnt, entry->node);
         destroy_entry(entry);
     }
     return v;
@@ -516,11 +494,10 @@ void *queue_pop_right(queue_t *q)
     //remove_cross_reference(entry);
     if (entry) {
         ATOMIC_DECREMENT(q->length, 1);
-        //release_ref(entry->refcnt, entry->node);
+        release_ref(entry->refcnt, entry->node);
         destroy_entry(entry);
     }
     return v;
-
 }
 
 
