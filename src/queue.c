@@ -42,7 +42,6 @@ queue_t *queue_create()
         queue_init(q);
         q->free = 1;
     } else {
-        //fprintf(stderr, "Can't create new queue: %s", strerror(errno));
         return NULL;
     }
     return q;
@@ -73,11 +72,6 @@ static inline queue_entry_t *create_entry(refcnt_t *refcnt)
     queue_entry_t *new_entry = (queue_entry_t *)calloc(1, sizeof(queue_entry_t));
     new_entry->refcnt = refcnt;
     new_entry->node = new_node(refcnt, new_entry);
-    /*
-    if (!new_entry) {
-        fprintf(stderr, "Can't create new entry: %s", strerror(errno));
-    }
-    */
     return new_entry;
 }
 
@@ -280,14 +274,11 @@ static inline queue_entry_t *help_delete(queue_entry_t *entry) {
                 retain_ref(next->refcnt, ATOMIC_READ(next->node));
             release_ref(entry->refcnt, ATOMIC_READ(entry->node));
             break;
-            // back off
         }
         release_ref(prev2->refcnt, ATOMIC_READ(prev2->node));
     }
     if (last != NULL)
         release_ref(last->refcnt, ATOMIC_READ(last->node));
-
-//    release_ref(prev->refcnt, ATOMIC_READ(prev->node));
 
     if (next)
         release_ref(next->refcnt, ATOMIC_READ(next->node));
@@ -371,7 +362,6 @@ int queue_push_right(queue_t *q, void *value)
         refcnt_node_t *link = ATOMIC_READ(next->node);
         entry->prev = ATOMIC_READ(prev->node);
         entry->next = ATOMIC_READ(next->node);
-        //if (ATOMIC_CMPXCHG(prev->next, REFCNT_MARK_OFF(link), ATOMIC_READ(entry->node))) {
         if (ATOMIC_CMPXCHG(next->prev, ATOMIC_READ(prev->node), ATOMIC_READ(entry->node))) {
             retain_ref(entry->refcnt, ATOMIC_READ(entry->node));
             while (!ATOMIC_CMPXCHG(prev->next, REFCNT_MARK_OFF(link), ATOMIC_READ(entry->node))) {
@@ -490,8 +480,6 @@ void *queue_pop_right(queue_t *q)
         release_ref(entry->refcnt, ATOMIC_READ(entry->node));
     }
     release_ref(next->refcnt, ATOMIC_READ(next->node));
-    // XXX - implement
-    //remove_cross_reference(entry);
     if (entry) {
         ATOMIC_DECREMENT(q->length, 1);
         release_ref(entry->refcnt, entry->node);
