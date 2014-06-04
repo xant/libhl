@@ -42,8 +42,10 @@ refcnt_t *refcnt_create(uint32_t gc_threshold,
 
 static void gc(refcnt_t *refcnt, int force) {
 
-    int limit = force ? 0 : refcnt->gc_threshold/3;
-    do {
+    int limit = force ? 0 : refcnt->gc_threshold/2;
+
+    while (rqueue_write_count(refcnt->free_list) - rqueue_read_count(refcnt->free_list) > limit)
+    {
         refcnt_node_t *ref = rqueue_read(refcnt->free_list);
         if (!ref)
             break;
@@ -52,7 +54,7 @@ static void gc(refcnt_t *refcnt, int force) {
             refcnt->free_node_ptr_cb(REFCNT_ATOMIC_READ(ref->ptr));
         }
         free(ref);
-    } while (rqueue_write_count(refcnt->free_list) - rqueue_read_count(refcnt->free_list) > limit);
+    }
 }
 
 void refcnt_destroy(refcnt_t *refcnt) {

@@ -90,7 +90,7 @@ void queue_init(queue_t *q)
 {
     memset(q,  0, sizeof(queue_t));
     if (!q->refcnt)
-        q->refcnt = refcnt_create(1<<10, terminate_node_callback, free);
+        q->refcnt = refcnt_create(1<<12, terminate_node_callback, free);
     if (!q->head) {
         q->head = create_entry(q->refcnt);
     }
@@ -311,15 +311,26 @@ inline int queue_push_left(queue_t *q, void *value)
 
     retain_ref(q->refcnt, prev->node);
 
-    queue_entry_t *next = get_node_ptr(deref_link(prev->refcnt, &prev->next));
+    queue_entry_t *next = NULL;
 
-    if (!next) {
-        release_ref(prev->refcnt, ATOMIC_READ(prev->node));
-        destroy_entry(entry);
-        return -1;
-    }
+    while (1)
+    {
+        refcnt_node_t *prev_next = retain_ref(prev->refcnt, prev->next);
 
-    while (next) {
+        if (!prev_next) {
+            // hard error
+            release_ref(q->refcnt, prev->node);
+            destroy_entry(entry);
+            return -1;
+        }
+
+        next = get_node_ptr(prev_next);
+
+        if (!next) {
+            release_ref(prev->refcnt, prev_next);
+            continue;
+        }
+
         refcnt_node_t *link = ATOMIC_READ(prev->node);
         entry->prev = ATOMIC_READ(prev->node);
         entry->next = ATOMIC_READ(next->node);
@@ -360,15 +371,26 @@ int queue_push_right(queue_t *q, void *value)
 
     retain_ref(next->refcnt, ATOMIC_READ(next->node));
 
-    queue_entry_t *prev = get_node_ptr(deref_link(next->refcnt, &next->prev));
+    queue_entry_t *prev = NULL;
 
-    if (!prev) {
-        release_ref(next->refcnt, ATOMIC_READ(next->node));
-        destroy_entry(entry);
-        return -1;
-    }
+    while (1)
+    {
+        refcnt_node_t *next_prev = retain_ref(next->refcnt, next->prev);
 
-    while (prev) {
+        if (!next_prev) {
+            // hard error
+            release_ref(q->refcnt, next->node);
+            destroy_entry(entry);
+            return -1;
+        }
+
+        prev = get_node_ptr(next_prev);
+
+        if (!prev) {
+            release_ref(next->refcnt, next_prev);
+            continue;
+        }
+
         refcnt_node_t *link = ATOMIC_READ(next->node);
         entry->prev = ATOMIC_READ(prev->node);
         entry->next = ATOMIC_READ(next->node);
