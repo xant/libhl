@@ -1,5 +1,5 @@
 /* linked queue management library - by xant */
- 
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -31,11 +31,12 @@ struct __queue {
     queue_free_value_callback_t free_value_cb;
 };
 
-/* 
- * Create a new queue_t. Allocates resources and returns 
- * a queue_t opaque structure for later use 
+/*
+ * Create a new queue_t. Allocates resources and returns
+ * a queue_t opaque structure for later use
  */
-queue_t *queue_create() 
+queue_t *
+queue_create()
 {
     queue_t *q = (queue_t *)malloc(sizeof(queue_t));
     if(q) {
@@ -47,27 +48,20 @@ queue_t *queue_create()
     return q;
 }
 
-static void terminate_node_callback(refcnt_node_t *node, int concurrent) {
+static void
+terminate_node_callback(refcnt_node_t *node)
+{
     queue_entry_t *node_entry = get_node_ptr(node);
-    if (!concurrent) {
-        store_ref(node_entry->refcnt, &node_entry->next, NULL);
-        store_ref(node_entry->refcnt, &node_entry->prev, NULL);
-    } else {
-        refcnt_node_t *n;
-        do {
-            n = node_entry->next;
-        } while(!compare_and_swap_ref(node_entry->refcnt, &node_entry->next, n, NULL));
-        do {
-            n = node_entry->prev;
-        } while(!compare_and_swap_ref(node_entry->refcnt, &node_entry->prev, n, NULL));
-    }
+    store_ref(node_entry->refcnt, &node_entry->next, NULL);
+    store_ref(node_entry->refcnt, &node_entry->prev, NULL);
 }
 
-/* 
- * Create a new queue_entry_t structure. Allocates resources and returns  
+/*
+ * Create a new queue_entry_t structure. Allocates resources and returns
  * a pointer to the just created queue_entry_t opaque structure
  */
-static inline queue_entry_t *create_entry(refcnt_t *refcnt) 
+static inline queue_entry_t *
+create_entry(refcnt_t *refcnt)
 {
     queue_entry_t *new_entry = (queue_entry_t *)calloc(1, sizeof(queue_entry_t));
     new_entry->refcnt = refcnt;
@@ -77,10 +71,11 @@ static inline queue_entry_t *create_entry(refcnt_t *refcnt)
 
 
 /*
- * Initialize a preallocated queue_t pointed by q 
+ * Initialize a preallocated queue_t pointed by q
  * useful when using static queue handlers
- */ 
-void queue_init(queue_t *q) 
+ */
+void
+queue_init(queue_t *q)
 {
     memset(q,  0, sizeof(queue_t));
     if (!q->refcnt)
@@ -96,23 +91,25 @@ void queue_init(queue_t *q)
     store_ref(q->refcnt, &q->tail->prev, q->head->node);
 }
 
-/* 
- * Free resources allocated for a queue_entry_t structure. 
+/*
+ * Free resources allocated for a queue_entry_t structure.
  * If the entry is linked in a queue this routine will also unlink correctly
  * the entry from the queue.
  */
-static inline void destroy_entry(queue_entry_t *entry) 
+static inline void
+destroy_entry(queue_entry_t *entry)
 {
-    if(entry) 
+    if(entry)
         release_ref(entry->refcnt, ATOMIC_READ(entry->node)); // this will also release the entry itself
 }
 
 /*
  * Destroy a queue_t. Free resources allocated for q
  */
-void queue_destroy(queue_t *q) 
+void
+queue_destroy(queue_t *q)
 {
-    if(q) 
+    if(q)
     {
         queue_clear(q);
         q->head->next = NULL;
@@ -133,13 +130,14 @@ void queue_destroy(queue_t *q)
  * queue_clear() can be used safely with entry-based and tagged-based api,
  * otherwise you must really know what you are doing
  */
-void queue_clear(queue_t *q) 
+void
+queue_clear(queue_t *q)
 {
-    void *v; 
+    void *v;
     /* Destroy all entries still in q */
     while((v = queue_pop_left(q)) != NULL)
     {
-        /* if there is a tagged_value_t associated to the entry, 
+        /* if there is a tagged_value_t associated to the entry,
         * let's free memory also for it */
         if (q->free_value_cb)
             q->free_value_cb(v);
@@ -147,14 +145,17 @@ void queue_clear(queue_t *q)
 }
 
 /* Returns actual lenght of queue_t pointed by l */
-uint32_t queue_count(queue_t *q) 
+uint32_t
+queue_count(queue_t *q)
 {
     uint32_t len;
     len = ATOMIC_READ(q->length);
     return len;
 }
 
-void queue_set_free_value_callback(queue_t *q, queue_free_value_callback_t free_value_cb) {
+void
+queue_set_free_value_callback(queue_t *q, queue_free_value_callback_t free_value_cb)
+{
     q->free_value_cb = free_value_cb;
 }
 
@@ -168,7 +169,9 @@ static inline void mark_prev(queue_entry_t *entry) {
     } while (1);
 }
 
-static inline queue_entry_t *help_insert(queue_entry_t *prev, queue_entry_t *entry) {
+static inline
+queue_entry_t *help_insert(queue_entry_t *prev, queue_entry_t *entry)
+{
     queue_entry_t *last = NULL;
     while (prev) {
         queue_entry_t *prev2 = get_node_ptr(deref_link(prev->refcnt, &prev->next));
@@ -222,10 +225,12 @@ static inline queue_entry_t *help_insert(queue_entry_t *prev, queue_entry_t *ent
     }
     if (last != NULL)
         release_ref(last->refcnt, ATOMIC_READ(last->node));
-    return prev; 
+    return prev;
 }
 
-static inline queue_entry_t *help_delete(queue_entry_t *entry) {
+static inline queue_entry_t *
+help_delete(queue_entry_t *entry)
+{
     mark_prev(entry);
     queue_entry_t *last = NULL;
     queue_entry_t *next = get_node_ptr(deref_link_d(entry->refcnt, &entry->next));
@@ -256,7 +261,7 @@ static inline queue_entry_t *help_delete(queue_entry_t *entry) {
                 prev = last;
                 last = NULL;
             } else {
-                release_ref(prev->refcnt, ATOMIC_READ(prev->node)); 
+                release_ref(prev->refcnt, ATOMIC_READ(prev->node));
                 prev = get_node_ptr(deref_link_d(prev->refcnt, &prev->prev));
             }
             continue;
@@ -287,10 +292,11 @@ static inline queue_entry_t *help_delete(queue_entry_t *entry) {
 }
 
 
-/* 
+/*
  * Insert a queue_entry_t at the beginning of a queue (or at the top if the stack)
  */
-inline int queue_push_left(queue_t *q, void *value)
+inline int
+queue_push_left(queue_t *q, void *value)
 {
     queue_entry_t *entry = create_entry(q->refcnt);
     if (!entry)
@@ -322,7 +328,7 @@ inline int queue_push_left(queue_t *q, void *value)
             }
             retain_ref(entry->refcnt, ATOMIC_READ(entry->node));
             break;
-        } 
+        }
 
         release_ref(next->refcnt, ATOMIC_READ(next->node));
         next = get_node_ptr(deref_link(next->refcnt, &next->prev));
@@ -335,11 +341,12 @@ inline int queue_push_left(queue_t *q, void *value)
     release_ref(prev->refcnt, ATOMIC_READ(prev->node));
     return 0;
 }
- 
+
 /*
  * Pushs a queue_entry_t at the end of a queue
  */
-int queue_push_right(queue_t *q, void *value)
+int
+queue_push_right(queue_t *q, void *value)
 {
     queue_entry_t *entry = create_entry(q->refcnt);
     if(!entry)
@@ -371,7 +378,7 @@ int queue_push_right(queue_t *q, void *value)
             }
             retain_ref(entry->refcnt, ATOMIC_READ(entry->node));
             break;
-        } 
+        }
 
         release_ref(prev->refcnt, ATOMIC_READ(prev->node));
         prev = get_node_ptr(deref_link(next->refcnt, &next->prev));
@@ -382,13 +389,14 @@ int queue_push_right(queue_t *q, void *value)
     release_ref(next->refcnt, ATOMIC_READ(next->node));
     return 0;
 }
- 
+
 /*
  * Retreive a queue_entry_t from the beginning of a queue (or top of the stack
- * if you are using the queue as a stack) 
+ * if you are using the queue as a stack)
  */
 
-void *queue_pop_left(queue_t *q)
+void *
+queue_pop_left(queue_t *q)
 {
     void *v = NULL;
     queue_entry_t *entry = NULL;
@@ -441,7 +449,8 @@ void *queue_pop_left(queue_t *q)
  * Pops a queue_entry_t from the end of the queue (or bottom of the stack
  * if you are using the queue as a stack)
  */
-void *queue_pop_right(queue_t *q) 
+void *
+queue_pop_right(queue_t *q)
 {
     void *v = NULL;
     queue_entry_t *entry = NULL;

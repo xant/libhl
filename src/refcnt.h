@@ -40,12 +40,8 @@ typedef struct __refcnt_node refcnt_node_t;
  *         links have any claim on any other node.
  *         The callback is called on a deleted node when there are no claims
  *         from any other node or thread to the node.
- *         When the argument concurrent is false, refcnt guarantees that there
- *         wannot be any concurrent updates of the node, thereby allowing the
- *         terminate_node callaback to use the cheaper StoreRef instead of
- *         CompareAndSwapRef to update the node’s links.
 */
-typedef void (*refcnt_terminate_node_callback_t)(refcnt_node_t *node, int concurrent);
+typedef void (*refcnt_terminate_node_callback_t)(refcnt_node_t *node);
 
 /**
  * @brief Callback called when a node is going to be released and the
@@ -134,6 +130,9 @@ void *get_node_ptr(refcnt_node_t *node);
  *
  * @param refcnt : A pointer to a valid refcounted context
  * @param ref    : The reference to retain
+ * @return       : The pointer passed as ref argument (whose refcount
+ *                 has been increased by 1) if success;\n NULL in case of error
+ *                 (and the refcount has not been increased)
  * @note         : The refcount of the provided reference is increased by 1
  */
 refcnt_node_t *retain_ref(refcnt_t *refcnt, refcnt_node_t *ref);
@@ -145,8 +144,6 @@ refcnt_node_t *retain_ref(refcnt_t *refcnt, refcnt_node_t *ref);
  * @param refcnt : A pointer to a valid refcounted context
  * @param link   : The address where to store the pointer to the reference
  * @param ref    : The reference to store into *link
- * @return       : The pointer passed as refcnt argument (whose refcount 
- *                 has been increased by 1)
  * @note         : The refcount of the provided reference is increased by 1
  *               : If link points to an existing reference, its refcount will be
  *                 decreased by 1 before storing the new reference
@@ -155,7 +152,7 @@ void store_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *ref);
 
 /**
  * @brief Returns the actual refcount for a given node
- * @param node   : A pointer to a valid refcounted object 
+ * @param node   : A pointer to a valid refcounted object
  * @return       : The actual refcount of the node passed as argument
  * @note         : The returned is the actual value at the moment the call
  *                 is done, in a multithreaded environment where other threads
