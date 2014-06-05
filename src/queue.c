@@ -439,7 +439,7 @@ queue_pop_left(queue_t *q)
     //remove_cross_reference(entry);
     if (entry) {
         ATOMIC_DECREMENT(q->length, 1);
-        release_ref(entry->refcnt, entry->node);
+        release_ref(entry->refcnt, ATOMIC_READ(entry->node));
         destroy_entry(entry);
     }
     return v;
@@ -491,7 +491,7 @@ queue_pop_right(queue_t *q)
     release_ref(next->refcnt, ATOMIC_READ(next->node));
     if (entry) {
         ATOMIC_DECREMENT(q->length, 1);
-        release_ref(entry->refcnt, entry->node);
+        release_ref(entry->refcnt, ATOMIC_READ(entry->node));
         destroy_entry(entry);
     }
     return v;
