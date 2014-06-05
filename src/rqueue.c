@@ -136,26 +136,28 @@ void *rqueue_read(rqueue_t *rb) {
                 break;
             }
 
-            ATOMIC_CMPXCHG(rb->reader->next, old_next, RQUEUE_FLAG_ON(next, RQUEUE_FLAG_HEAD));
-            rb->reader->prev = head->prev;
+            if (ATOMIC_CMPXCHG(rb->reader->next, old_next, RQUEUE_FLAG_ON(next, RQUEUE_FLAG_HEAD))) {
+                rb->reader->prev = head->prev;
 
-            if (ATOMIC_CMPXCHG(head->prev->next, RQUEUE_FLAG_ON(head, RQUEUE_FLAG_HEAD), rb->reader)) {
-                ATOMIC_CMPXCHG(rb->head, head, next);
-                next->prev = rb->reader;
-                rb->reader = head;
-                /*
-                rb->reader->next = next;
-                rb->reader->prev = next->prev;
-                */
-                v = ATOMIC_READ(rb->reader->value); 
-                ATOMIC_CMPXCHG(rb->reader->value, v, NULL);
-                ATOMIC_INCREMENT(rb->reads, 1);
-                ATOMIC_CMPXCHG(rb->read_sync, 1, 0);
-                break;
+                if (ATOMIC_CMPXCHG(head->prev->next, RQUEUE_FLAG_ON(head, RQUEUE_FLAG_HEAD), rb->reader)) {
+                    ATOMIC_CMPXCHG(rb->head, head, next);
+                    next->prev = rb->reader;
+                    rb->reader = head;
+                    /*
+                    rb->reader->next = next;
+                    rb->reader->prev = next->prev;
+                    */
+                    v = ATOMIC_READ(rb->reader->value);
+                    ATOMIC_CMPXCHG(rb->reader->value, v, NULL);
+                    ATOMIC_INCREMENT(rb->reads, 1);
+                    ATOMIC_CMPXCHG(rb->read_sync, 1, 0);
+                    break;
+                } else {
+                    fprintf(stderr, "head swap failed\n");
+                }
             } else {
-                fprintf(stderr, "head swap failed\n");
+                fprintf(stderr, "reader->next swap failed\n");
             }
-
             ATOMIC_CMPXCHG(rb->read_sync, 1, 0);
         }
     }
