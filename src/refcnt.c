@@ -79,7 +79,9 @@ deref_link_internal(refcnt_t *refcnt, refcnt_node_t **link, int skip_deleted)
             else
                 node = REFCNT_MARK_OFF(node);
         }
-        if (node) {
+        if (node && !(REFCNT_ATOMIC_READ(node->delete) == 1 &&
+                      REFCNT_ATOMIC_READ(node->count) == 0))
+        {
             REFCNT_ATOMIC_INCREMENT(node->count, 1);
             return node;
         } else {
