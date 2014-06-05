@@ -408,6 +408,8 @@ queue_pop_left(queue_t *q)
     retain_ref(prev->refcnt, ATOMIC_READ(prev->node));
     while(1) {
         entry = get_node_ptr(deref_link(prev->refcnt, &prev->next));
+        if (!entry)
+            continue;
 
         if (ATOMIC_READ(entry->prev) != ATOMIC_READ(prev->node)) {
             release_ref(entry->refcnt, ATOMIC_READ(entry->node));
@@ -462,6 +464,8 @@ queue_pop_right(queue_t *q)
     retain_ref(next->refcnt, ATOMIC_READ(next->node));
     while(1) {
         entry = get_node_ptr(deref_link(next->refcnt, &next->prev));
+        if (!entry)
+            continue;
 
         if (ATOMIC_READ(entry->next) != ATOMIC_READ(next->node)) {
             release_ref(entry->refcnt, ATOMIC_READ(entry->node));
