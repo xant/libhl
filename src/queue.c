@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
+#include <sched.h>
 #include "queue.h"
 #include "refcnt.h"
 
@@ -51,9 +52,6 @@ queue_create()
 static void
 terminate_node_callback(refcnt_node_t *node)
 {
-    queue_entry_t *node_entry = get_node_ptr(node);
-    store_ref(node_entry->refcnt, &node_entry->next, NULL);
-    store_ref(node_entry->refcnt, &node_entry->prev, NULL);
 }
 
 /*
@@ -112,11 +110,9 @@ queue_destroy(queue_t *q)
     if(q)
     {
         queue_clear(q);
-        q->head->next = NULL;
-        release_ref(q->refcnt, q->head->node);
+        store_ref(q->refcnt, &q->head->next, NULL);
         destroy_entry(q->head);
-        q->tail->prev = NULL;
-        release_ref(q->refcnt, q->tail->node);
+        store_ref(q->refcnt, &q->tail->prev, NULL);
         destroy_entry(q->tail);
         refcnt_destroy(q->refcnt);
         if(q->free)
@@ -169,137 +165,6 @@ static inline void mark_prev(queue_entry_t *entry) {
     } while (1);
 }
 
-static inline
-queue_entry_t *help_insert(queue_entry_t *prev, queue_entry_t *entry)
-{
-    queue_entry_t *last = NULL;
-    while (prev) {
-        queue_entry_t *prev2 = get_node_ptr(deref_link(prev->refcnt, &prev->next));
-        if (prev2 == NULL) {
-            if (last != NULL) {
-                mark_prev(prev);
-                queue_entry_t *next2 = get_node_ptr(deref_link_d(prev->refcnt, &prev->next));
-                if (next2) {
-                    if (ATOMIC_CMPXCHG(last->next, ATOMIC_READ(prev->node), ATOMIC_READ(next2->node))) {
-                        release_ref(prev->refcnt, ATOMIC_READ(prev->node));
-                    } else {
-                        release_ref(next2->refcnt, ATOMIC_READ(next2->node));
-                    }
-                }
-                release_ref(prev->refcnt, ATOMIC_READ(prev->node));
-                prev = last;
-                last = NULL;
-            } else {
-                prev2 = get_node_ptr(deref_link_d(prev->refcnt, &prev->prev));
-                release_ref(prev->refcnt, ATOMIC_READ(prev->node));
-                prev = prev2;
-            }
-            continue;
-        }
-        refcnt_node_t *link1 = ATOMIC_READ(entry->prev);
-        if (REFCNT_IS_MARKED(link1)) {
-            release_ref(prev2->refcnt, ATOMIC_READ(prev2->node));
-            prev = prev2;
-            break;
-        }
-        if (prev2 != entry) {
-            if (last != NULL)
-                release_ref(last->refcnt, ATOMIC_READ(last->node));
-            last = prev;
-            prev = prev2;
-            continue;
-        }
-        release_ref(prev2->refcnt, ATOMIC_READ(prev2->node));
-        if (get_node_ptr(link1) == prev)
-            break;
-
-        if (ATOMIC_READ(prev->next) == ATOMIC_READ(entry->node) &&
-            ATOMIC_CMPXCHG(entry->prev, link1, ATOMIC_READ(prev->node)))
-        {
-            retain_ref(prev->refcnt, ATOMIC_READ(prev->node));
-            release_ref(entry->refcnt, link1);
-            if (REFCNT_IS_MARKED(prev->prev))
-                break;
-        }
-
-    }
-    if (last != NULL)
-        release_ref(last->refcnt, ATOMIC_READ(last->node));
-    return prev;
-}
-
-static inline queue_entry_t *
-help_delete(queue_entry_t *entry)
-{
-    mark_prev(entry);
-    queue_entry_t *last = NULL;
-    queue_entry_t *next = get_node_ptr(deref_link_d(entry->refcnt, &entry->next));
-    queue_entry_t *prev = get_node_ptr(deref_link_d(entry->refcnt, &entry->prev));
-    while (1) {
-        if (prev == next)
-            break;
-        if (next && REFCNT_IS_MARKED(next->prev)) {
-            mark_prev(next);
-            queue_entry_t *next2 = get_node_ptr(deref_link_d(next->refcnt, &next->next));
-            release_ref(next->refcnt, ATOMIC_READ(next->node));
-            next = next2;
-            continue;
-        }
-        queue_entry_t *prev2 = get_node_ptr(deref_link(prev->refcnt, &prev->next));
-        if (prev2 == NULL) {
-            if (last != NULL) {
-                mark_prev(prev);
-                queue_entry_t *next2 = get_node_ptr(deref_link_d(prev->refcnt, &prev->next));
-                if (next2) {
-                    if (ATOMIC_CMPXCHG(last->next, ATOMIC_READ(prev->node), ATOMIC_READ(next2->node))) {
-                        release_ref(prev->refcnt, ATOMIC_READ(prev->node));
-                    } else {
-                        release_ref(next2->refcnt, ATOMIC_READ(next2->node));
-                    }
-                }
-                release_ref(prev->refcnt, ATOMIC_READ(prev->node));
-                prev = last;
-                last = NULL;
-            } else {
-                release_ref(prev->refcnt, ATOMIC_READ(prev->node));
-                prev = get_node_ptr(deref_link_d(prev->refcnt, &prev->prev));
-            }
-            continue;
-        }
-        if (prev2 != entry) {
-            if (last != NULL)
-                release_ref(last->refcnt, ATOMIC_READ(last->node));
-            last = prev;
-            prev = prev2;
-            continue;
-        }
-        if (ATOMIC_CMPXCHG(prev->next, ATOMIC_READ(entry->node), ATOMIC_READ(next->node))) {
-            refcnt_node_t *next_prev = ATOMIC_READ(next->prev);
-            if (!ATOMIC_CMPXCHG(next->prev, next_prev, ATOMIC_READ(prev->node))) {
-                next_prev = ATOMIC_READ(next->prev); 
-            }
-            if (REFCNT_MARK_OFF(next_prev) != ATOMIC_READ(prev2->node))
-                release_ref(next->refcnt, next_prev);
-            release_ref(prev2->refcnt, ATOMIC_READ(prev2->node));
-
-            retain_ref(next->refcnt, ATOMIC_READ(next->node));
-            retain_ref(prev->refcnt, prev->node);
-
-            release_ref(entry->refcnt, ATOMIC_READ(entry->node));
-            break;
-        }
-        release_ref(prev2->refcnt, ATOMIC_READ(prev2->node));
-    }
-    if (last != NULL)
-        release_ref(last->refcnt, ATOMIC_READ(last->node));
-
-    if (next)
-        release_ref(next->refcnt, ATOMIC_READ(next->node));
-
-    return prev;
-}
-
-
 /*
  * Insert a queue_entry_t at the beginning of a queue (or at the top if the stack)
  */
@@ -307,19 +172,16 @@ int
 queue_push_left(queue_t *q, void *value)
 {
     queue_entry_t *entry = create_entry(q->refcnt);
-    if (!entry)
-        return -1;
 
     entry->value = value;
 
     queue_entry_t *prev = ATOMIC_READ(q->head);
 
-    retain_ref(q->refcnt, ATOMIC_READ(prev->node));
-
     while (1) {
         queue_entry_t *next = get_node_ptr(deref_link(prev->refcnt, &prev->next));
-        if (!next)
+        if (!next) {
             continue;
+        }
 
         store_ref(entry->refcnt, &entry->prev, ATOMIC_READ(prev->node));
         store_ref(entry->refcnt, &entry->next, ATOMIC_READ(next->node));
@@ -328,8 +190,9 @@ queue_push_left(queue_t *q, void *value)
             release_ref(prev->refcnt, ATOMIC_READ(prev->node));
             retain_ref(entry->refcnt, ATOMIC_READ(entry->node));
             while (!ATOMIC_CMPXCHG(prev->next, ATOMIC_READ(next->node), ATOMIC_READ(entry->node))) {
-                queue_entry_t *next2 = get_node_ptr(deref_link(prev->refcnt, &prev->next));
                 release_ref(next->refcnt, next->node);
+                sched_yield();
+                queue_entry_t *next2 = get_node_ptr(deref_link(prev->refcnt, &prev->next));
                 next = next2;
                 store_ref(entry->refcnt, &entry->next, ATOMIC_READ(next->node));
             }
@@ -341,10 +204,12 @@ queue_push_left(queue_t *q, void *value)
 
         if (next)
             release_ref(next->refcnt, ATOMIC_READ(next->node));
+
+        store_ref(entry->refcnt, &entry->next, NULL);
+        store_ref(entry->refcnt, &entry->prev, NULL);
     }
 
     ATOMIC_INCREMENT(q->length, 1);
-    release_ref(prev->refcnt, ATOMIC_READ(prev->node));
     return 0;
 }
 
@@ -355,19 +220,16 @@ int
 queue_push_right(queue_t *q, void *value)
 {
     queue_entry_t *entry = create_entry(q->refcnt);
-    if(!entry)
-        return -1;
 
     entry->value = value;
 
     queue_entry_t *next = ATOMIC_READ(q->tail);
 
-    retain_ref(next->refcnt, ATOMIC_READ(next->node));
-
     while (1) {
         queue_entry_t *prev = get_node_ptr(deref_link(next->refcnt, &next->prev));
-        if (!prev)
+        if (!prev) {
             continue;
+        }
 
         store_ref(entry->refcnt, &entry->next, ATOMIC_READ(next->node));
         store_ref(entry->refcnt, &entry->prev, ATOMIC_READ(prev->node));
@@ -376,12 +238,13 @@ queue_push_right(queue_t *q, void *value)
             release_ref(next->refcnt, ATOMIC_READ(next->node));
             retain_ref(entry->refcnt, ATOMIC_READ(entry->node));
             while (!ATOMIC_CMPXCHG(next->prev, ATOMIC_READ(prev->node), ATOMIC_READ(entry->node))) {
-                queue_entry_t *prev2 = get_node_ptr(deref_link(next->refcnt, &next->prev));
                 release_ref(prev->refcnt, prev->node);
+                sched_yield();
+                queue_entry_t *prev2 = get_node_ptr(deref_link(next->refcnt, &next->prev));
                 prev = prev2;
                 store_ref(entry->refcnt, &entry->prev, ATOMIC_READ(prev->node));
             }
-            release_ref(prev->refcnt, prev->node);
+            release_ref(prev->refcnt, ATOMIC_READ(prev->node));
             retain_ref(entry->refcnt, ATOMIC_READ(entry->node));
             release_ref(prev->refcnt, ATOMIC_READ(prev->node));
             break;
@@ -389,9 +252,12 @@ queue_push_right(queue_t *q, void *value)
 
         if (prev)
             release_ref(prev->refcnt, ATOMIC_READ(prev->node));
+
+        store_ref(entry->refcnt, &entry->next, NULL);
+        store_ref(entry->refcnt, &entry->prev, NULL);
     }
+
     ATOMIC_INCREMENT(q->length, 1);
-    release_ref(next->refcnt, ATOMIC_READ(next->node));
     return 0;
 }
 
@@ -410,14 +276,13 @@ queue_pop_left(queue_t *q)
     if (!prev)
         return NULL;
 
-    retain_ref(prev->refcnt, ATOMIC_READ(prev->node));
     while(1) {
-        entry = get_node_ptr(deref_link(prev->refcnt, &prev->next));
+        refcnt_node_t *entry_node = deref_link(prev->refcnt, &prev->next);
+        entry = get_node_ptr(entry_node);
 
         if (!entry || entry == ATOMIC_READ(q->tail)) {
-            if (entry)
-                release_ref(q->refcnt, ATOMIC_READ(entry->node));
-            release_ref(q->refcnt, ATOMIC_READ(prev->node));
+            if (entry_node)
+                release_ref(q->refcnt, entry_node);
             return NULL;
         }
 
@@ -427,40 +292,44 @@ queue_pop_left(queue_t *q)
         }
 
         refcnt_node_t *link1 = ATOMIC_READ(entry->next);
+        if (!REFCNT_MARK_OFF(link1)) {
+            release_ref(entry->refcnt, ATOMIC_READ(entry->node));
+            continue;
+        }
 
         if (ATOMIC_CMPXCHG(entry->next, REFCNT_MARK_OFF(link1), REFCNT_MARK_ON(link1))) {
             refcnt_node_t *link2;
             do {
                 link2 = ATOMIC_READ(entry->prev);
-            } while (!ATOMIC_CMPXCHG(entry->prev, link2, REFCNT_MARK_ON(link2)));
+            } while (!link2 || !ATOMIC_CMPXCHG(entry->prev, link2, REFCNT_MARK_ON(link2)));
 
             queue_entry_t *next = NULL;
             do {
                 if (next)
                     release_ref(next->refcnt, ATOMIC_READ(next->node));
                 next = get_node_ptr(deref_link_d(entry->refcnt, &entry->next));
-            } while(!ATOMIC_CMPXCHG(next->prev, ATOMIC_READ(entry->node), ATOMIC_READ(prev->node)));
+            } while(!next || !ATOMIC_CMPXCHG(next->prev, ATOMIC_READ(entry->node), ATOMIC_READ(prev->node)));
 
-            release_ref(entry->refcnt, entry->node);
+            release_ref(entry->refcnt, ATOMIC_READ(entry->node));
             retain_ref(prev->refcnt, ATOMIC_READ(prev->node));
             
             if (ATOMIC_CMPXCHG(prev->next, ATOMIC_READ(entry->node), ATOMIC_READ(next->node))) {
                 release_ref(entry->refcnt, ATOMIC_READ(entry->node));
                 retain_ref(next->refcnt, ATOMIC_READ(next->node));
             }
-
-            if (next)
-                release_ref(next->refcnt, ATOMIC_READ(next->node));
+    
+            release_ref(next->refcnt, ATOMIC_READ(next->node));
 
             v = entry->value;
+            release_ref(entry->refcnt, ATOMIC_READ(entry->node));
             break;
         }
         release_ref(entry->refcnt, ATOMIC_READ(entry->node));
     }
-    release_ref(prev->refcnt, ATOMIC_READ(prev->node));
     if (entry) {
         ATOMIC_DECREMENT(q->length, 1);
-        release_ref(entry->refcnt, ATOMIC_READ(entry->node));
+        store_ref(entry->refcnt, &entry->next, NULL);
+        store_ref(entry->refcnt, &entry->prev, NULL);
         destroy_entry(entry);
     }
     return v;
@@ -480,14 +349,13 @@ queue_pop_right(queue_t *q)
     if (!next)
         return NULL;
 
-    retain_ref(next->refcnt, ATOMIC_READ(next->node));
     while(1) {
-        entry = get_node_ptr(deref_link(next->refcnt, &next->prev));
+        refcnt_node_t *entry_node = deref_link(next->refcnt, &next->prev);
+        entry = get_node_ptr(entry_node);
 
         if (!entry || entry == ATOMIC_READ(q->head)) {
-            if (entry)
-                release_ref(q->refcnt, ATOMIC_READ(entry->node));
-            release_ref(q->refcnt, ATOMIC_READ(next->node));
+            if (entry_node)
+                release_ref(q->refcnt, entry_node);
             return NULL;
         }
 
@@ -497,6 +365,10 @@ queue_pop_right(queue_t *q)
         }
 
         refcnt_node_t *link1 = ATOMIC_READ(entry->prev);
+        if (!REFCNT_MARK_OFF(link1)) {
+            release_ref(entry->refcnt, ATOMIC_READ(entry->node));
+            continue;
+        }
 
         if (ATOMIC_CMPXCHG(entry->prev, REFCNT_MARK_OFF(link1), REFCNT_MARK_ON(link1))) {
             refcnt_node_t *link2;
@@ -509,27 +381,29 @@ queue_pop_right(queue_t *q)
                 if (prev)
                     release_ref(prev->refcnt, ATOMIC_READ(prev->node));
                 prev = get_node_ptr(deref_link_d(entry->refcnt, &entry->prev));
-            } while(!ATOMIC_CMPXCHG(prev->next, ATOMIC_READ(entry->node), ATOMIC_READ(next->node)));
-            release_ref(entry->refcnt, entry->node);
+            } while(!prev || !ATOMIC_CMPXCHG(prev->next, ATOMIC_READ(entry->node), ATOMIC_READ(next->node)));
+
+
+            release_ref(entry->refcnt, ATOMIC_READ(entry->node));
             retain_ref(next->refcnt, ATOMIC_READ(next->node));
 
             if (ATOMIC_CMPXCHG(next->prev, ATOMIC_READ(entry->node), ATOMIC_READ(prev->node))) {
                 release_ref(entry->refcnt, ATOMIC_READ(entry->node));
                 retain_ref(prev->refcnt, ATOMIC_READ(prev->node));
-            }
+            } 
 
-            if (prev)
-                release_ref(prev->refcnt, ATOMIC_READ(prev->node));
+            release_ref(prev->refcnt, ATOMIC_READ(prev->node));
             
             v = entry->value;
+            release_ref(entry->refcnt, ATOMIC_READ(entry->node));
             break;
         }
         release_ref(entry->refcnt, ATOMIC_READ(entry->node));
     }
-    release_ref(next->refcnt, ATOMIC_READ(next->node));
     if (entry) {
         ATOMIC_DECREMENT(q->length, 1);
-        release_ref(entry->refcnt, ATOMIC_READ(entry->node));
+        store_ref(entry->refcnt, &entry->next, NULL);
+        store_ref(entry->refcnt, &entry->prev, NULL);
         destroy_entry(entry);
     }
     return v;
