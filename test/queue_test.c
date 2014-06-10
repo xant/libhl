@@ -120,14 +120,14 @@ int main(int argc, char **argv) {
     ut_testing("Threaded queue (%d pull-workers, %d items pushed to the queue from the main thread)",
               num_parallel_threads, num_queued_items);
 
+    for (i = 0; i < num_parallel_threads; i++) {
+        pthread_create(&threads[i], NULL, queue_worker, &arg);
+    }
+
     for (i = 0; i < num_queued_items; i++) {
         char *val = malloc(21);
         sprintf(val, "%d", i);
         queue_push_right(arg.queue, val);
-    }
-
-    for (i = 0; i < num_parallel_threads; i++) {
-        pthread_create(&threads[i], NULL, queue_worker, &arg);
     }
 
     while(queue_count(arg.queue))
@@ -137,7 +137,6 @@ int main(int argc, char **argv) {
     for (i = 0; i < num_parallel_threads; i++) {
         pthread_join(threads[i], NULL);
     }
-
 
     ut_result(arg.count == num_queued_items, "Handled items should have been %d (was %d)", num_queued_items, arg.count);
 
@@ -152,14 +151,14 @@ int main(int argc, char **argv) {
     ut_testing("Threaded queue reverse (%d pull-workers, %d items pushed to the queue from the main thread)",
               num_parallel_threads, num_queued_items);
 
+    for (i = 0; i < num_parallel_threads; i++) {
+        pthread_create(&threads[i], NULL, queue_worker, &arg);
+    }
+
     for (i = 0; i < num_queued_items; i++) {
         char *val = malloc(21);
         sprintf(val, "%d", i);
         queue_push_left(arg.queue, val);
-    }
-
-    for (i = 0; i < num_parallel_threads; i++) {
-        pthread_create(&threads[i], NULL, queue_worker, &arg);
     }
 
     while(queue_count(arg.queue))
