@@ -61,8 +61,6 @@ typedef struct __ht_item {
     TAILQ_ENTRY(__ht_item) next;
 } ht_item_t;
 
-typedef TAILQ_HEAD(__ht_items_list_head, __ht_item) ht_items_list_head_t;
-
 typedef struct {
     TAILQ_HEAD(, __ht_item) head;
 #ifdef THREAD_SAFE
