@@ -22,7 +22,7 @@ struct __skl_item_wrapper_s {
 struct __skiplist_s {
     int num_layers;
     int probability;
-    libhl_cmp_callback_t compare_cb;
+    libhl_cmp_callback_t cmp_keys_cb;
     skiplist_free_value_callback_t free_value_cb;
     TAILQ_HEAD(layer_list, __skl_item_wrapper_s) *layers;
 };
@@ -31,7 +31,7 @@ struct __skiplist_s {
 skiplist_t *
 skiplist_create(int num_layers,
                 int probability,
-                libhl_cmp_callback_t compare_cb,
+                libhl_cmp_callback_t cmp_keys_cb,
                 skiplist_free_value_callback_t free_value_cb)
 {
     skiplist_t *skl = calloc(1, sizeof(skiplist_t));
@@ -41,7 +41,7 @@ skiplist_create(int num_layers,
         TAILQ_INIT(&skl->layers[i]);
     skl->num_layers = num_layers;
     skl->probability = probability;
-    skl->compare_cb = compare_cb;
+    skl->cmp_keys_cb = cmp_keys_cb;
     skl->free_value_cb = free_value_cb;
     return skl;
 }
@@ -59,7 +59,7 @@ skiplist_search_internal(skiplist_t *skl, void *key, size_t klen)
             item = TAILQ_FIRST(&skl->layers[i]);
 
         while (item) {
-            if (skl->compare_cb(item->data->key, item->data->klen, key, klen) > 0)
+            if (skl->cmp_keys_cb(item->data->key, item->data->klen, key, klen) > 0)
                 break;
             prev_item = item;
             item = TAILQ_NEXT(item, next);
@@ -72,7 +72,7 @@ void *
 skiplist_search(skiplist_t *skl, void *key, size_t klen)
 {
     skl_item_t *prev_item = skiplist_search_internal(skl, key, klen);
-    if (prev_item && skl->compare_cb(prev_item->key, prev_item->klen, key, klen) == 0)
+    if (prev_item && skl->cmp_keys_cb(prev_item->key, prev_item->klen, key, klen) == 0)
         return prev_item->value;
     return NULL;
 }
@@ -81,12 +81,12 @@ int
 skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
 {
     skl_item_t *prev_item = skiplist_search_internal(skl, key, klen);
-    if (prev_item && skl->compare_cb(prev_item->key, prev_item->klen, key, klen) == 0) {
+    if (prev_item && skl->cmp_keys_cb(prev_item->key, prev_item->klen, key, klen) == 0) {
         // we have found an item with the same key, let's just update the value
         if (skl->free_value_cb)
             skl->free_value_cb(prev_item->value);
         prev_item->value = value;
-        return 0;
+        return 1;
     }
 
     // create a new item
@@ -137,7 +137,7 @@ int
 skiplist_remove(skiplist_t *skl, void *key, size_t klen, void **value)
 {
     skl_item_t *prev_item = skiplist_search_internal(skl, key, klen);
-    if (prev_item && skl->compare_cb(prev_item->key, prev_item->klen, key, klen) == 0) {
+    if (prev_item && skl->cmp_keys_cb(prev_item->key, prev_item->klen, key, klen) == 0) {
         skiplist_remove_internal(skl, prev_item, value);
         return 0;
     }
