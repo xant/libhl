@@ -105,24 +105,29 @@ int skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
     return 0;
 }
 
+static inline void skiplist_remove_internal(skiplist_t *skl, skl_item_t *item, void **value)
+{
+    if (value)
+        *value = item->value;
+    else if (skl->free_value_cb)
+        skl->free_value_cb(item->value);
+
+    int i;
+    for (i = 0; i < skl->num_layers; i++) {
+        if (item->layer_check[i]) 
+            TAILQ_REMOVE(&skl->layers[i], &item->wrappers[i], next);
+    }
+    free(item->wrappers);
+    free(item->layer_check);
+    free(item->key);
+    free(item);
+}
+
 int skiplist_remove(skiplist_t *skl, void *key, size_t klen, void **value)
 {
     skl_item_t *prev_item = skiplist_search_internal(skl, key, klen);
     if (prev_item && skl->compare_cb(prev_item->key, prev_item->klen, key, klen) == 0) {
-        if (value)
-            *value = prev_item->value;
-        else if (skl->free_value_cb)
-            skl->free_value_cb(prev_item->value);
-
-        int i;
-        for (i = 0; i < skl->num_layers; i++) {
-            if (prev_item->layer_check[i]) 
-                TAILQ_REMOVE(&skl->layers[i], &prev_item->wrappers[i], next);
-        }
-        free(prev_item->wrappers);
-        free(prev_item->layer_check);
-        free(prev_item->key);
-        free(prev_item);
+        skiplist_remove_internal(skl, prev_item, value);
         return 0;
     }
     return -1;
@@ -130,6 +135,13 @@ int skiplist_remove(skiplist_t *skl, void *key, size_t klen, void **value)
 
 void skiplist_destroy(skiplist_t *skl)
 {
+    int tail = skl->num_layers - 1;
+    skl_item_wrapper_t *item = TAILQ_FIRST(&skl->layers[tail]);
+    while (item) {
+        skl_item_wrapper_t *next = TAILQ_NEXT(item, next);
+        skiplist_remove_internal(skl, item->data, NULL);
+        item = next;
+    }
     free(skl->layers);
     free(skl);
 }
