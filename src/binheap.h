@@ -30,28 +30,6 @@ typedef enum {
 typedef struct __binheap_s binheap_t;
 
 /**
- * @brief Callback used to compare two keys
- * @param key1     The first key to compare
- * @param key1size The size of the first key to compare
- * @param key2     The second key to compare
- * @param key2size The size of the second key to compare
- * @return The distance between the two keys.
- *         0 will be returned if the keys match (both size and value);\n
- *         "k1size - k2size" will be returned if the two sizes don't match;\n
- *         The difference between the two keys is returned if the two sizes
- *         match but the value doesn't
- * @note By default memcmp() is be used to compare the value, a custom
- *       comparator can be registered at creation time (part of the
- *       binheap_callbacks_t passed as parameter to binheap_create())
- * @note If integers bigger than 8 bits are going to be used as keys,
- *       an integer comparator should be used instead of the default one
- *       (either a custom comparator or one of the binheap_cmp_keys_int16(),
- *       binheap_cmp_keys_int32() and binheap_cmp_keys_int64() helpers provided
- *       by the library).
- *
- */
-
-/**
  * @brief Callback used to increment a given key by an arbitrary amount
  * @param key         The key to increment
  * @param keysize     The size of the key
