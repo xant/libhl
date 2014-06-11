@@ -39,7 +39,7 @@
 #define SPIN_UNLOCK(__mutex)
 #endif
 
-#define ATOMIC_READ(__v) __sync_fetch_and_add(&(__v), 0)
+#define ATOMIC_READ(__v) __sync_or_and_fetch(&(__v), 0)
 #define ATOMIC_INCREMENT(__v) (void)__sync_add_and_fetch(&(__v), 1)
 #define ATOMIC_DECREMENT(__v) (void)__sync_sub_and_fetch(&(__v), 1)
 
