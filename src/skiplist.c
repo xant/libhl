@@ -47,7 +47,7 @@ skiplist_create(int num_layers,
 }
 
 static inline skl_item_t *
-skiplist_search_internal(skiplist_t *skl, void *key, size_t klen)
+skiplist_search_internal(skiplist_t *skl, void *key, size_t klen, skl_item_wrapper_t **path)
 {
     int i = skl->num_layers-1;
     skl_item_wrapper_t *prev_item = NULL;
@@ -64,6 +64,9 @@ skiplist_search_internal(skiplist_t *skl, void *key, size_t klen)
             prev_item = item;
             item = TAILQ_NEXT(item, next);
         }
+        if (path)
+            path[i] = prev_item;
+        i--;
     }
     return prev_item->data;
 }
@@ -71,7 +74,7 @@ skiplist_search_internal(skiplist_t *skl, void *key, size_t klen)
 void *
 skiplist_search(skiplist_t *skl, void *key, size_t klen)
 {
-    skl_item_t *prev_item = skiplist_search_internal(skl, key, klen);
+    skl_item_t *prev_item = skiplist_search_internal(skl, key, klen, NULL);
     if (prev_item && skl->cmp_keys_cb(prev_item->key, prev_item->klen, key, klen) == 0)
         return prev_item->value;
     return NULL;
@@ -80,12 +83,14 @@ skiplist_search(skiplist_t *skl, void *key, size_t klen)
 int
 skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
 {
-    skl_item_t *prev_item = skiplist_search_internal(skl, key, klen);
+    skl_item_wrapper_t **path = calloc(skl->num_layers, sizeof(skl_item_wrapper_t *));
+    skl_item_t *prev_item = skiplist_search_internal(skl, key, klen, path);
     if (prev_item && skl->cmp_keys_cb(prev_item->key, prev_item->klen, key, klen) == 0) {
         // we have found an item with the same key, let's just update the value
         if (skl->free_value_cb)
             skl->free_value_cb(prev_item->value);
         prev_item->value = value;
+        free(path);
         return 1;
     }
 
@@ -103,14 +108,24 @@ skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
 
     // always insert the new item to the tail list
     i = 0;
-    TAILQ_INSERT_AFTER(&skl->layers[i], &prev_item->wrappers[i], &new_item->wrappers[i], next);
+    if (prev_item)
+        TAILQ_INSERT_AFTER(&skl->layers[i], &prev_item->wrappers[i], &new_item->wrappers[i], next);
+    else
+        TAILQ_INSERT_TAIL(&skl->layers[i], &new_item->wrappers[i], next);
+
     while (++i < skl->num_layers) {
         if (random()%100 > skl->probability)
             break;
+
         // then insert it to the upper layers as well if we got the chance
-        TAILQ_INSERT_AFTER(&skl->layers[i], &prev_item->wrappers[i], &new_item->wrappers[i], next);
+        if (path[i])
+            TAILQ_INSERT_AFTER(&skl->layers[i], path[i], &new_item->wrappers[i], next);
+        else
+            TAILQ_INSERT_TAIL(&skl->layers[i], &new_item->wrappers[i], next);
+
         new_item->layer_check[i] = 1;
     }
+    free(path);
     return 0;
 }
 
@@ -136,7 +151,7 @@ skiplist_remove_internal(skiplist_t *skl, skl_item_t *item, void **value)
 int
 skiplist_remove(skiplist_t *skl, void *key, size_t klen, void **value)
 {
-    skl_item_t *prev_item = skiplist_search_internal(skl, key, klen);
+    skl_item_t *prev_item = skiplist_search_internal(skl, key, klen, NULL);
     if (prev_item && skl->cmp_keys_cb(prev_item->key, prev_item->klen, key, klen) == 0) {
         skiplist_remove_internal(skl, prev_item, value);
         return 0;
