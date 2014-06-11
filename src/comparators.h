@@ -1,6 +1,8 @@
 #ifndef __LIBHL_COMPARATORS_H__
 #define __LIBHL_COMPARATORS_H__
 
+#include <sys/types.h>
+#include <stdint.h>
 
 /**
  * @brief Callback that, if provided, will be used to compare node keys.
