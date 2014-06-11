@@ -101,13 +101,13 @@ skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
     for (i = 0; i < skl->num_layers; i++)
         new_item->wrappers[i].data = new_item;
 
-    // insert it in the bottom list
+    // always insert the new item to the tail list
     i = 0;
     TAILQ_INSERT_AFTER(&skl->layers[i], &prev_item->wrappers[i], &new_item->wrappers[i], next);
     while (++i < skl->num_layers) {
         if (random()%100 > skl->probability)
             break;
-        // insert it to the upper layers as well if we got the chance
+        // then insert it to the upper layers as well if we got the chance
         TAILQ_INSERT_AFTER(&skl->layers[i], &prev_item->wrappers[i], &new_item->wrappers[i], next);
         new_item->layer_check[i] = 1;
     }
@@ -147,8 +147,7 @@ skiplist_remove(skiplist_t *skl, void *key, size_t klen, void **value)
 void
 skiplist_destroy(skiplist_t *skl)
 {
-    int tail = skl->num_layers - 1;
-    skl_item_wrapper_t *item = TAILQ_FIRST(&skl->layers[tail]);
+    skl_item_wrapper_t *item = TAILQ_FIRST(&skl->layers[0]);
     while (item) {
         skl_item_wrapper_t *next = TAILQ_NEXT(item, next);
         skiplist_remove_internal(skl, item->data, NULL);
