@@ -1,7 +1,7 @@
 #ifndef __ATOMIC_DEFS_H__
 #define __ATOMIC_DEFS_H__
 
-#define ATOMIC_READ(__v) __sync_add_and_fetch(&(__v), 0)
+#define ATOMIC_READ(__v) __sync_fetch_and_add(&(__v), 0)
 #define ATOMIC_INCREMENT(__v) __sync_fetch_and_add(&(__v), 1)
 #define ATOMIC_DECREMENT(__v) __sync_fetch_and_sub(&(__v), 1)
 #define ATOMIC_INCREASE(__v, __n) __sync_add_and_fetch(&(__v), (__n))
