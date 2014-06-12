@@ -145,7 +145,7 @@ static inline ht_items_list_t *
 ht_get_list_at_index(hashtable_t *table, uint32_t index)
 {
     ht_items_list_t *list = NULL;
-    if (ATOMIC_READ(table->growing) > index) {
+    if (ATOMIC_READ(table->growing)) {
         MUTEX_LOCK(table->lock);
         list = ATOMIC_READ(table->items[index]);
         MUTEX_UNLOCK(table->lock);
@@ -213,15 +213,11 @@ ht_grow_table(hashtable_t *table)
     if (table->max_size && new_size > table->max_size)
         new_size = table->max_size;
 
-    //fprintf(stderr, "Growing table from %u to %u\n", __sync_fetch_and_add(&table->size, 0), new_size);
+    //fprintf(stderr, "Growing table from %u to %u\n",
+    //        __sync_fetch_and_add(&table->size, 0), new_size);
 
     ht_items_list_t **items_list = 
         (ht_items_list_t **)calloc(new_size, sizeof(ht_items_list_t *));
-
-    if (!items_list) {
-        //fprintf(stderr, "Can't create new items array list: %s\n", strerror(errno));
-        return;
-    }
 
     ht_item_t *item = NULL;
 
@@ -393,7 +389,7 @@ ht_set_internal(hashtable_t *table,
     uint32_t current_size = ATOMIC_READ(table->size);
     if (ht_count(table) > (current_size + (current_size/3)) && 
         (!table->max_size || current_size < table->max_size) &&
-        !ATOMIC_READ(table->growing))
+        ATOMIC_CAS(table->growing, 0, 1))
     {
         ht_grow_table(table);
     }
