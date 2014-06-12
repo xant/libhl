@@ -125,6 +125,7 @@ binomial_tree_node_add(binomial_tree_node_t *node,
 {
     node->children = realloc(node->children, sizeof(binomial_tree_node_t *) * (node->num_children + 1));
     node->children[node->num_children++] = child;
+
     if (child->parent) {
         // TODO - remove the node
     }
@@ -306,9 +307,9 @@ binomial_tree_node_destroy(binomial_tree_node_t *node, int rindex)
         if (new_parent->num_children && node_index >= 0) {
             int to_copy = new_parent->num_children - (node_index + 1);
             if (to_copy) {
-                memcpy(&new_parent->children[node_index],
-                       &new_parent->children[node_index+1],
-                       sizeof(binomial_tree_node_t *) * to_copy);
+                memmove(&new_parent->children[node_index],
+                        &new_parent->children[node_index+1],
+                        sizeof(binomial_tree_node_t *) * to_copy);
             } else {
                 // TODO - Error messages
                 // (something is badly corrupted if we are here)
@@ -332,9 +333,9 @@ binomial_tree_node_destroy(binomial_tree_node_t *node, int rindex)
             if (child_index >= 0) {
                 new_parent = node->children[child_index];
                 if (child_index < node->num_children - 1) {
-                    memcpy(&node->children[child_index],
-                           &node->children[child_index + 1],
-                           sizeof(binomial_tree_node_t *) * (node->num_children - (child_index + 1)));
+                    memmove(&node->children[child_index],
+                            &node->children[child_index + 1],
+                            sizeof(binomial_tree_node_t *) * (node->num_children - (child_index + 1)));
                            
                 }
                 node->num_children--;
