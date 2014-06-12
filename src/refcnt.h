@@ -15,16 +15,11 @@
 #define __REFCNT_H__
 
 #include <stdint.h>
+#include "atomic_defs.h"
 
-#define REFCNT_ATOMIC_INCREMENT(__i, __cnt) __sync_fetch_and_add(&__i, __cnt);
-#define REFCNT_ATOMIC_DECREMENT(__i, __cnt) __sync_fetch_and_sub(&__i, __cnt);
-#define REFCNT_ATOMIC_READ(__p) __sync_fetch_and_add(&__p, 0)
-#define REFCNT_ATOMIC_CMPXCHG(__p, __v1, __v2) __sync_bool_compare_and_swap(&__p, __v1, __v2)
-#define REFCNT_ATOMIC_CMPXCHG_RETURN(__p, __v1, __v2) __sync_val_compare_and_swap(&__p, __v1, __v2)
-
-#define REFCNT_MARK_ON(__addr) (refcnt_node_t *)((intptr_t)REFCNT_ATOMIC_READ(__addr) | 1)
-#define REFCNT_MARK_OFF(__addr) (refcnt_node_t *)((intptr_t)REFCNT_ATOMIC_READ(__addr) & -2)
-#define REFCNT_IS_MARKED(__addr) (((intptr_t)REFCNT_ATOMIC_READ(__addr) & 1) == 1)
+#define REFCNT_MARK_ON(__addr) (refcnt_node_t *)((intptr_t)ATOMIC_READ(__addr) | 1)
+#define REFCNT_MARK_OFF(__addr) (refcnt_node_t *)((intptr_t)ATOMIC_READ(__addr) & -2)
+#define REFCNT_IS_MARKED(__addr) (((intptr_t)ATOMIC_READ(__addr) & 1) == 1)
 
 #define REFCNT_RETAIN(__refcnt, __node, __type) ((__type) *)get_node_ptr(retain_ref((__refcnt), (__node)))
 #define REFCNT_RELEASE(__refcnt, __node, __type) ((__type) *)get_node_ptr(release_ref((__refcnt), (__node)))
