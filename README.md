@@ -2,7 +2,7 @@ libhl
 =====
 
 Tiny C library implementing a set of APIs to efficiently manage some basic data structures
-such as : hashtables, linked lists, queues, trees, ringbuffers, red-black trees, priority queues
+such as : hashtables, linked lists, queues, trees, ringbuffers, red-black trees, priority queues, skip lists
 
 The provided APIs are :
 
@@ -16,6 +16,7 @@ The provided APIs are :
 - refcnt.[ch]     :  Reference-count memory manager
 - binheap.[ch]    :  A binomial heap implementation (building block for the priority queue implementation)
 - pqueue.[ch]     :  A priority queue implementation
+- skiplist.[ch]   :  A skip list implementation
 
 Provided APIs typically don't depend on each other and can be simply included in an existing project by 
 copying both the .c and the .h files into the project sourcetree.
