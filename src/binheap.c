@@ -5,7 +5,6 @@ typedef struct __binomial_tree_node_s {
     void *key;
     size_t klen;
     void *value;
-    size_t vlen;
     struct __binomial_tree_node_s *parent;
     struct __binomial_tree_node_s **children;
     int num_children;
@@ -191,17 +190,14 @@ binomial_tree_node_increase_key(binomial_tree_node_t *node, int incr)
         tmp.key = parent->key;
         tmp.klen = parent->klen;
         tmp.value = parent->value;
-        tmp.vlen = parent->vlen;
 
         parent->key = nkey;
         parent->klen = nklen;
         parent->value = node->value;
-        parent->vlen = node->vlen;
 
         node->key = tmp.key;
         node->klen = tmp.klen;
         node->value = tmp.value;
-        node->vlen = tmp.vlen;
 
         binomial_tree_node_t *op = parent;
         parent = parent->parent; 
@@ -396,7 +392,7 @@ int binomial_tree_merge(binomial_tree_node_t *node1, binomial_tree_node_t *node2
 }
 
 int
-binheap_insert(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen)
+binheap_insert(binheap_t *bh, void *key, size_t klen, void *value)
 {
     binomial_tree_node_t *node = calloc(1, sizeof(binomial_tree_node_t));
     node->bh = bh;
@@ -404,7 +400,6 @@ binheap_insert(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen)
     memcpy(node->key, key, klen);
     node->klen = klen;
     node->value = value;
-    node->vlen = vlen;
     int order = 0;
     binomial_tree_node_t *tree = list_shift_value(bh->trees);
     while (tree && tree->num_children == order) {
@@ -432,7 +427,7 @@ binheap_insert(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen)
 }
 
 int
-binheap_delete(binheap_t *bh, void *key, size_t klen, void **value, size_t *vlen)
+binheap_delete(binheap_t *bh, void *key, size_t klen, void **value)
 {
     binomial_tree_node_t *tree = NULL;
     int i;
@@ -476,8 +471,6 @@ binheap_delete(binheap_t *bh, void *key, size_t klen, void **value, size_t *vlen
     if (to_delete) {
         if (value)
             *value = to_delete->value;
-        if (vlen)
-            *vlen = to_delete->vlen;
         binomial_tree_node_destroy(to_delete, 0);
         return 0;
     }
@@ -485,7 +478,7 @@ binheap_delete(binheap_t *bh, void *key, size_t klen, void **value, size_t *vlen
 }
 
 int
-binheap_maximum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *vlen)
+binheap_maximum(binheap_t *bh, void **key, size_t *klen, void **value)
 {
     binomial_tree_node_t *maxitem = binheap_get_maximum(bh, NULL);
 
@@ -498,14 +491,12 @@ binheap_maximum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *v
         *klen = maxitem->klen;
     if (value)
         *value = maxitem->value;
-    if (vlen)
-        *vlen = maxitem->vlen;
 
     return 0;
 }
 
 int
-binheap_minimum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *vlen)
+binheap_minimum(binheap_t *bh, void **key, size_t *klen, void **value)
 {
     binomial_tree_node_t *minitem = binheap_get_minimum(bh, NULL);;
 
@@ -518,13 +509,11 @@ binheap_minimum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *v
         *klen = minitem->klen;
     if (value)
         *value = minitem->value;
-    if (vlen)
-        *vlen = minitem->vlen;
     return 0;
 }
 
 int
-binheap_delete_minimum(binheap_t *bh, void **value, size_t *vlen)
+binheap_delete_minimum(binheap_t *bh, void **value)
 {
     uint32_t minidx = 0;
     binomial_tree_node_t *minitem = binheap_get_minimum(bh, &minidx);
@@ -534,8 +523,6 @@ binheap_delete_minimum(binheap_t *bh, void **value, size_t *vlen)
 
     if (value)
         *value = minitem->value;
-    if (vlen)
-        *vlen = minitem->vlen;
 
     binomial_tree_node_destroy(minitem, minidx);
 
@@ -543,7 +530,7 @@ binheap_delete_minimum(binheap_t *bh, void **value, size_t *vlen)
 }
 
 int
-binheap_delete_maximum(binheap_t *bh, void **value, size_t *vlen)
+binheap_delete_maximum(binheap_t *bh, void **value)
 {
     uint32_t maxidx = 0;
     binomial_tree_node_t *maxitem = binheap_get_maximum(bh, &maxidx);
@@ -553,8 +540,6 @@ binheap_delete_maximum(binheap_t *bh, void **value, size_t *vlen)
 
     if (value)
         *value = maxitem->value;
-    if (vlen)
-        *vlen = maxitem->vlen;
 
     binomial_tree_node_destroy(maxitem, maxidx);
 
@@ -761,7 +746,7 @@ binomial_tree_walk(binomial_tree_node_t *node, int *count, binheap_walk_callback
     int proceed = 0;
     int remove = 0;
     (*count)++;
-    int rc = cb(node->bh, node->key, node->klen, node->value, node->vlen, priv);
+    int rc = cb(node->bh, node->key, node->klen, node->value, priv);
     switch(rc) {
         case -2:
             proceed = 0;

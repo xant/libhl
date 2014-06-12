@@ -53,6 +53,10 @@ int skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value);
  * @param skl  A valid pointer to an initialized skiplist_t structure
  * @param key   The key of the item in the list where to store the new value
  * @param klen  The size of the key
+ * @param value If not NULL the address of the value hold by the removed item
+ *              will be stored at the memory pointed by the 'value' argument.
+ *              If NULL and a free_value_callback is set, the value hold by
+ *              the removed node will be released using the free_value_callback
  * @return 0 if the item has been found and correctly removed; -1 otherwise
  */
 int skiplist_remove(skiplist_t *skl, void *key, size_t klen, void **value);

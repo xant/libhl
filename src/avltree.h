@@ -39,12 +39,11 @@ void avlt_destroy(avlt_t *tree);
  * @param key   The key of the node where to store the new value
  * @param klen  The size of the key
  * @param value The new value to store
- * @param vlen  The size of the value
  * @return 0 if a new node has been created successfully;
  *         1 if an existing node has been found and the value has been updated;
  *         -1 otherwise
  */
-int avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen);
+int avlt_add(avlt_t *tree, void *key, size_t klen, void *value);
 
 /**
  * @brief Remove a node from the tree
@@ -55,11 +54,9 @@ int avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen);
  *              will be stored at the memory pointed by the 'value' argument.
  *              If NULL and a free_value_callback is set, the value hold by
  *              the removed node will be released using the free_value_callback
- * @param vlen  If not NULL the size of the value hold by the removed node
- *              will be stored at the memory pointed by the 'vlen' argument
  * @return 0 on success; -1 otherwise
  */
-int avlt_remove(avlt_t *tree, void *key, size_t klen, void **value, size_t *vlen);
+int avlt_remove(avlt_t *tree, void *key, size_t klen, void **value);
 
 /**
  * @brief Callback called for each node when walking the tree
@@ -67,7 +64,6 @@ int avlt_remove(avlt_t *tree, void *key, size_t klen, void **value, size_t *vlen
  * @param k     The key of the node where to store the new value
  * @param ksize The size of the key
  * @param value The new value to store
- * @param vsize The size of the value
  * @param priv  The private pointer passed to either avlt_walk() or avlt_walk_sorted()
  * @return 1 If the walker can go ahead visiting the next node,
  *         0 if the walker should stop and return
@@ -78,7 +74,6 @@ typedef int (*avlt_walk_callback_t)(avlt_t *tree,
                                     void *key,
                                     size_t klen,
                                     void *value,
-                                    size_t vlen,
                                     void *priv);
 
 /**

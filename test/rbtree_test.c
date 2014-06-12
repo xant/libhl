@@ -7,7 +7,7 @@
 
 /*
 static int
-print_value(rbt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+print_value(rbt_t *rbt, void *key, size_t ksize, void *value, void *priv)
 {
     printf("%d\n", *((int *)value));
     return 0;
@@ -15,7 +15,7 @@ print_value(rbt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void
 */
 
 static int
-sum_value(rbt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+sum_value(rbt_t *rbt, void *key, size_t ksize, void *value, void *priv)
 {
     int *vsum = (int *)priv;
     *vsum += *((int *)value);
@@ -23,7 +23,7 @@ sum_value(rbt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *
 }
 
 static int
-check_sort(rbt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+check_sort(rbt_t *rbt, void *key, size_t ksize, void *value, void *priv)
 {
     int *check = (int *)priv;
     int v = *((int *)value);
@@ -36,7 +36,7 @@ check_sort(rbt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void 
 }
 
 static int
-get_root(rbt_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+get_root(rbt_t *rbt, void *key, size_t ksize, void *value, void *priv)
 {
     void **p = (void **)priv;
     *p = value;
@@ -65,7 +65,7 @@ main(int argc, char **argv)
     for (i = 0; i < 18; i++) {
         v = malloc(sizeof(int));
         *v = i;
-        rbt_add(rbt, v, sizeof(int), v, sizeof(int));
+        rbt_add(rbt, v, sizeof(int), v);
         sum += i;
     }
     int vsum = 0;
@@ -89,7 +89,7 @@ main(int argc, char **argv)
 
     ut_testing("Removing '7'");
     i = 7;
-    rbt_remove(rbt, &i, sizeof(int), NULL, NULL);
+    rbt_remove(rbt, &i, sizeof(int), NULL);
     vsum = 0;
     rbt_walk(rbt, sum_value, &vsum);
     ut_validate_int(vsum, sum - 7);

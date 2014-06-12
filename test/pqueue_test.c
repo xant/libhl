@@ -14,7 +14,7 @@ void free_item(void *item)
 }
 
 static int
-test_walk(pqueue_t *pq, uint64_t prio, void *value, size_t len, void *priv)
+test_walk(pqueue_t *pq, uint64_t prio, void *value, void *priv)
 {
     int *count = (int *)priv;
     (*count)++;
@@ -38,14 +38,14 @@ main(int argc, char **argv)
     for (i = 0; i < 100; i++) { 
         int *v = malloc(sizeof(int));
         *v = i;
-        pqueue_insert(pq, i, (void *)v, sizeof(int));
+        pqueue_insert(pq, i, (void *)v);
     }
     ut_validate_int(pqueue_count(pq), 100);
 
     ut_testing("pqueue_pull_highest() == 99");
     int *max = NULL;
     uint64_t maxprio;
-    pqueue_pull_highest(pq, (void **)&max, NULL, &maxprio);
+    pqueue_pull_highest(pq, (void **)&max, &maxprio);
     ut_validate_int(maxprio, 99);
     ut_testing("pqueue_pull_highest() returned the correct value");
     ut_validate_int(*max, 99);
@@ -57,7 +57,7 @@ main(int argc, char **argv)
     ut_testing("pqueue_pull_lowest() == 0");
     int *min = NULL;
     uint64_t minprio;
-    pqueue_pull_lowest(pq, (void **)&min, NULL, &minprio);
+    pqueue_pull_lowest(pq, (void **)&min, &minprio);
     ut_validate_int(minprio, 0);
 
     ut_testing("pqueue_pull_lowest() returned the correct value");
@@ -72,13 +72,13 @@ main(int argc, char **argv)
     for (i = 0; i < 3; i++) {
         int *v = malloc(sizeof(int));
         *v = 100 + i + 1;
-        pqueue_insert(pq, *v, (void *)v, sizeof(int));
+        pqueue_insert(pq, *v, (void *)v);
     }
 
     ut_validate_int(pqueue_count(pq), 100);
 
     ut_testing("pqueue_pull_lowest() == 2");
-    pqueue_pull_lowest(pq, (void **)&min, NULL, &minprio);
+    pqueue_pull_lowest(pq, (void **)&min, &minprio);
     ut_validate_int(*min, 2);
     free(min);
 

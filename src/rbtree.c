@@ -22,7 +22,6 @@ typedef struct __rbt_node_s {
     void *key;
     size_t klen;
     void *value;
-    size_t vlen;
     struct __rbt_node_s *left; 
     struct __rbt_node_s *right; 
     struct __rbt_node_s *parent;
@@ -85,15 +84,15 @@ _rbt_walk_internal(rbt_t *rbt, rbt_node_t *node, int sorted, rbt_walk_callback c
         rc += rrc;
     }
 
-    cbrc = cb(rbt, node->key, node->klen, node->value, node->vlen, priv);
+    cbrc = cb(rbt, node->key, node->klen, node->value, priv);
     switch(cbrc) {
         case -2:
-            rbt_remove(rbt, node->key, node->klen, NULL, NULL);
+            rbt_remove(rbt, node->key, node->klen, NULL);
             return 0;
         case -1:
             {
                 if (node->left && node->right) {
-                    rbt_remove(rbt, node->key, node->klen, NULL, NULL);
+                    rbt_remove(rbt, node->key, node->klen, NULL);
                     return _rbt_walk_internal(rbt, node, sorted, cb, priv);
                 } else if (node->left || node->right) {
                     return _rbt_walk_internal(rbt, node->left ? node->left : node->right, sorted, cb, priv);
@@ -293,7 +292,7 @@ rbt_rotate_left(rbt_t *rbt, rbt_node_t *node)
 }
 
 int
-rbt_add(rbt_t *rbt, void *k, size_t klen, void *v, size_t vlen)
+rbt_add(rbt_t *rbt, void *k, size_t klen, void *v)
 {
     int rc = 0;
     rbt_node_t *node = calloc(1, sizeof(rbt_node_t));
@@ -301,7 +300,6 @@ rbt_add(rbt_t *rbt, void *k, size_t klen, void *v, size_t vlen)
     memcpy(node->key, k, klen);
     node->klen = klen;
     node->value = v;
-    node->vlen = vlen;
     if (!rbt->root) {
         PAINT_BLACK(node);
         rbt->root = node;
@@ -336,7 +334,7 @@ rbt_add(rbt_t *rbt, void *k, size_t klen, void *v, size_t vlen)
                 PAINT_BLACK(uncle);
                 if (grandparent) {
                     PAINT_RED(grandparent);
-                    rbt_add(rbt, grandparent->key, grandparent->klen, grandparent->value, grandparent->vlen);
+                    rbt_add(rbt, grandparent->key, grandparent->klen, grandparent->value);
                 }
             } else if (grandparent) {
                 // case 4
@@ -387,14 +385,13 @@ _rbt_find_internal(rbt_t *rbt, rbt_node_t *node, void *key, size_t klen)
 }
 
 int
-rbt_find(rbt_t *rbt, void *k, size_t klen, void **v, size_t *vlen)
+rbt_find(rbt_t *rbt, void *k, size_t klen, void **v)
 {
     rbt_node_t *node = _rbt_find_internal(rbt, rbt->root, k, klen);
     if (!node)
         return -1;
 
     *v = node->value;
-    *vlen = node->vlen;
     return 0;
 }
 
@@ -514,7 +511,7 @@ rbt_paint_onremove(rbt_t *rbt, rbt_node_t *node)
 }
 
 int
-rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v, size_t *vlen)
+rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v)
 {
     rbt_node_t *node = _rbt_find_internal(rbt, rbt->root, k, klen);
     if (!node)
@@ -535,9 +532,7 @@ rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v, size_t *vlen)
             node->key = realloc(node->key, n->klen);
             memcpy(node->key, n->key, n->klen);
             void *prev_value = node->value;
-            size_t prev_vlen = node->vlen;
             node->value = n->value;
-            node->vlen = n->vlen;
             if (isprev) {
                 if (n == node->left) {
                     node->left = n->left;
@@ -563,8 +558,6 @@ rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v, size_t *vlen)
             else if (rbt->free_value_cb)
                 rbt->free_value_cb(prev_value);
 
-            if (vlen)
-                *vlen = prev_vlen;
             free(n);
             return 0;
         } else {
@@ -590,9 +583,6 @@ rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v, size_t *vlen)
             else if (rbt->free_value_cb)
                 rbt->free_value_cb(node->value);
 
-            if (vlen)
-                *vlen = node->vlen;
-
             free(node->key);
             free(node);
             return 0;
@@ -610,9 +600,6 @@ rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v, size_t *vlen)
         *v = node->value;
     else if (rbt->free_value_cb && node->value)
         rbt->free_value_cb(node->value);
-
-    if (vlen)
-        *vlen = node->vlen;
 
     free(node->key);
     free(node);

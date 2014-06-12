@@ -52,12 +52,11 @@ void rbt_destroy(rbt_t *rbt);
  * @param key   The key of the node where to store the new value
  * @param klen  The size of the key
  * @param value The new value to store
- * @param vsize The size of the value
  * @return 0 if a new node has been created successfully;
  *         1 if an existing node has been found and the value has been updated;
  *         -1 otherwise
  */
-int rbt_add(rbt_t *rbt, void *key, size_t klen, void *value, size_t vsize);
+int rbt_add(rbt_t *rbt, void *key, size_t klen, void *value);
 
 
 /**
@@ -69,11 +68,9 @@ int rbt_add(rbt_t *rbt, void *key, size_t klen, void *value, size_t vsize);
  *              will be stored at the memory pointed by the 'value' argument.
  *              If NULL and a free_value_callback is set, the value hold by
  *              the removed node will be released using the free_value_callback
- * @param vlen  If not NULL the size of the value hold by the removed node
- *              will be stored at the memory pointed by the 'vlen' argument
  * @return 0 on success; -1 otherwise
  */
-int rbt_remove(rbt_t *rbt, void *key, size_t klen, void **value, size_t *vlen);
+int rbt_remove(rbt_t *rbt, void *key, size_t klen, void **value);
 
 /**
  * @brief Find the value stored in the node node matching a specific key
@@ -83,11 +80,10 @@ int rbt_remove(rbt_t *rbt, void *key, size_t klen, void **value, size_t *vlen);
  * @param klen The size of the key
  * @param value A reference to the pointer which will set to point to the
  *              actual value if found
- * @param vsize A pointer to the memory where to store the size of the value
- * @return 0 on success and both *value and *vsize are set to point to the stored
+ * @return 0 on success and *value is set to point to the stored
  *         value and its size;\n-1 if not found
  */
-int rbt_find(rbt_t *rbt, void *key, size_t klen, void **value, size_t *vsize);
+int rbt_find(rbt_t *rbt, void *key, size_t klen, void **value);
 
 /**
  * @brief Callback called for each node when walking the tree
@@ -95,7 +91,6 @@ int rbt_find(rbt_t *rbt, void *key, size_t klen, void **value, size_t *vsize);
  * @param key  The key of the node where to store the new value
  * @param klen The size of the key
  * @param value The new value to store
- * @param vsize The size of the value
  * @param priv  The private pointer passed to either rbt_walk() or rbt_walk_sorted()
  * @return 1 If the walker can go ahead visiting the next node,
  *         0 if the walker should stop and return
@@ -106,7 +101,6 @@ typedef int (*rbt_walk_callback)(rbt_t *rbt,
                                     void *key,
                                     size_t klen,
                                     void *value,
-                                    size_t vsize,
                                     void *priv);
 
 /**

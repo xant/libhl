@@ -102,11 +102,10 @@ void binheap_destroy(binheap_t *bh);
  * @param key  The key of the node where to store the new value
  * @param klen The size of the key
  * @param value The new value to store
- * @param vlen  The size of the value
  * @return 0 if a new node has been inserted successfully;
  *         -1 otherwise
  */
-int binheap_insert(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen);
+int binheap_insert(binheap_t *bh, void *key, size_t klen, void *value);
 
 /**
  * @brief Retrieve the minimum item in the heap
@@ -114,11 +113,10 @@ int binheap_insert(binheap_t *bh, void *key, size_t klen, void *value, size_t vl
  * @param key   If not null will be set to point to the minimum key in the heap
  * @param klen  If not null will be set to point to the size of the key
  * @param value If not null will be set to point to the value for the minimum item
- * @param vlen  If not null will be set to point to the size of the value
  * @return 0 if the minimum item has been successfully found,\n
  *         -1 in case of errors
  */
-int binheap_minimum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *vlen);
+int binheap_minimum(binheap_t *bh, void **key, size_t *klen, void **value);
 
 /**
  * @brief Retrieve the maximum item in the heap
@@ -126,33 +124,30 @@ int binheap_minimum(binheap_t *bh, void **key, size_t *klen, void **value, size_
  * @param key   If not null will be set to point to the maximum key in the heap
  * @param klen  If not null will be set to point to the size of the key
  * @param value If not null will be set to point to the value for the maximum item
- * @param vlen  If not null will be set to point to the size of the value
  * @return 0 if the maximum item has been successfully found,\n
  *         -1 in case of errors
  */
-int binheap_maximum(binheap_t *bh, void **key, size_t *klen, void **value, size_t *vlen);
+int binheap_maximum(binheap_t *bh, void **key, size_t *klen, void **value);
 
 /**
  * @brief Delete the minimum item in the heap (and eventually retrieve its value) 
  * @param bh A valid pointer to an initialized binheap_t structure
  * @param value If not null will be set to point to the value for the minimum item
  *              being removed
- * @param vlen  If not null will be set to point to the size of the value
  * @return 0 if the  minimum item has been found and removed successfully,\n
  *         -1 in case of errors
  */
-int binheap_delete_minimum(binheap_t *bh, void **value, size_t *vlen);
+int binheap_delete_minimum(binheap_t *bh, void **value);
 
 /**
  * @brief Delete the maximum item in the heap (and eventually retrieve its value) 
  * @param bh A valid pointer to an initialized binheap_t structure
  * @param value If not null will be set to point to the value for the maximum item
  *              being removed
- * @param vlen  If not null will be set to point to the size of the value
  * @return 0 if the  minimum item has been found and removed successfully,\n
  *         -1 in case of errors
  */
-int binheap_delete_maximum(binheap_t *bh, void **value, size_t *vlen);
+int binheap_delete_maximum(binheap_t *bh, void **value);
 
 
 /**
@@ -162,11 +157,10 @@ int binheap_delete_maximum(binheap_t *bh, void **value, size_t *vlen);
  * @param klen The size of the key
  * @param value If not null will be set to point to the value for the maximum item
  *              being removed
- * @param vlen  If not null will be set to point to the size of the value
  * @return 0 if least one item has been found matching the given key
  *         and it has been removed successfully,\n -1 in case of errors
  */
-int binheap_delete(binheap_t *bh, void *key, size_t klen, void **value, size_t *vlen);
+int binheap_delete(binheap_t *bh, void *key, size_t klen, void **value);
 
 /**
  * @brief Increase the minimum key by an arbitrary amount
@@ -237,14 +231,13 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2);
  * @param key  The key of the current node
  * @param klen The size of the key
  * @param value The value of the current node
- * @param vlen  The size of the value
  * @param priv The private pointer passed to binheap_walk()
  * @return 1 If the walker can go ahead visiting the next node,
  *         0 if the walker should stop and return
  *        -1 if the current node should be removed and the walker can go ahead
  *        -2 if the current node should be removed and the walker should stop
  */
-typedef int (*binheap_walk_callback_t)(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen, void *priv);
+typedef int (*binheap_walk_callback_t)(binheap_t *bh, void *key, size_t klen, void *value, void *priv);
 
 /**
  * @brief Walk the entire priority queue and call the provided

@@ -11,7 +11,7 @@
 
 /*
 static int
-print_value(rbtree_t *rbt, void *key, size_t ksize, void *value, size_t vsize, void *priv)
+print_value(rbtree_t *rbt, void *key, size_t ksize, void *value, void *priv)
 {
     printf("%d\n", *((int *)value));
     return 0;

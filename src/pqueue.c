@@ -7,7 +7,6 @@
 
 typedef struct {
     void *value;
-    size_t len;
     uint64_t prio;
 } pqueue_item_t;
 
@@ -39,9 +38,9 @@ pqueue_drop_items(pqueue_t *pq, uint32_t num_items)
     while(binheap_count(pq->heap) && deleted < num_items) {
         void *deleted_item = NULL;
         if (pq->mode == PQUEUE_MODE_HIGHEST)
-            binheap_delete_minimum(pq->heap, &deleted_item, NULL);
+            binheap_delete_minimum(pq->heap, &deleted_item);
         else
-            binheap_delete_maximum(pq->heap, &deleted_item, NULL);
+            binheap_delete_maximum(pq->heap, &deleted_item);
         if (deleted_item) {
             if (pq->free_value_cb)
                 pq->free_value_cb(((pqueue_item_t *)deleted_item)->value);
@@ -61,16 +60,15 @@ pqueue_destroy(pqueue_t *pq)
 }
 
 int
-pqueue_insert(pqueue_t *pq, uint64_t prio, void *value, size_t len)
+pqueue_insert(pqueue_t *pq, uint64_t prio, void *value)
 {
     pqueue_item_t *item = malloc(sizeof(pqueue_item_t));
     item->value = value;
-    item->len = len;
     item->prio = prio;
 
     pthread_mutex_lock(&pq->lock);
 
-    int rc = binheap_insert(pq->heap, (void *)&item->prio, sizeof(item->prio), item, sizeof(pqueue_item_t));
+    int rc = binheap_insert(pq->heap, (void *)&item->prio, sizeof(item->prio), item);
 
     if (binheap_count(pq->heap) > pq->max_size)
         pqueue_drop_items(pq, binheap_count(pq->heap) - pq->max_size);
@@ -81,15 +79,15 @@ pqueue_insert(pqueue_t *pq, uint64_t prio, void *value, size_t len)
 }
 
 int
-pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
+pqueue_pull_highest(pqueue_t *pq, void **value, uint64_t *prio)
 {
     void *item = NULL;
 
     pthread_mutex_lock(&pq->lock);
 
     int rc = (pq->mode == PQUEUE_MODE_HIGHEST)
-           ? binheap_delete_maximum(pq->heap, &item, NULL)
-           : binheap_delete_minimum(pq->heap, &item, NULL);
+           ? binheap_delete_maximum(pq->heap, &item)
+           : binheap_delete_minimum(pq->heap, &item);
 
     pthread_mutex_unlock(&pq->lock);
 
@@ -100,9 +98,6 @@ pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
         } else if (pq->free_value_cb) {
             pq->free_value_cb(((pqueue_item_t *)item)->value);
         }
-
-        if (len)
-            *len = ((pqueue_item_t *)item)->len;
 
         if (prio)
             *prio = ((pqueue_item_t *)item)->prio;
@@ -113,15 +108,15 @@ pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
 }
 
 int
-pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
+pqueue_pull_lowest(pqueue_t *pq, void **value, uint64_t *prio)
 {
     void *item = NULL;
 
     pthread_mutex_lock(&pq->lock);
 
     int rc = (pq->mode == PQUEUE_MODE_HIGHEST)
-           ? binheap_delete_minimum(pq->heap, &item, NULL)
-           : binheap_delete_maximum(pq->heap, &item, NULL);
+           ? binheap_delete_minimum(pq->heap, &item)
+           : binheap_delete_maximum(pq->heap, &item);
 
     pthread_mutex_unlock(&pq->lock);
 
@@ -132,9 +127,6 @@ pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
         } else if (pq->free_value_cb) {
             pq->free_value_cb(((pqueue_item_t *)item)->value);
         }
-
-        if (len)
-            *len = ((pqueue_item_t *)item)->len;
 
         if (prio)
             *prio = ((pqueue_item_t *)item)->prio;
@@ -151,11 +143,11 @@ typedef struct {
 } pqueue_walk_helper_arg_t;
 
 static int 
-pqueue_walk_helper(binheap_t *bh, void *key, size_t klen, void *value, size_t vlen, void *priv)
+pqueue_walk_helper(binheap_t *bh, void *key, size_t klen, void *value, void *priv)
 {
     pqueue_walk_helper_arg_t *arg = (pqueue_walk_helper_arg_t *)priv;
     uint64_t *prio = (uint64_t *)key;
-    return arg->cb(arg->pq, *prio, value, vlen, arg->priv);
+    return arg->cb(arg->pq, *prio, value, arg->priv);
 }
 
 int
@@ -172,16 +164,14 @@ pqueue_walk(pqueue_t *pq, pqueue_walk_callback_t cb, void *priv)
 
 typedef struct {
     void *value;
-    size_t len;
     int found;
 } pqueue_remove_helper_arg_t;
 
 static int
-pqueue_remove_helper(pqueue_t *pq, uint64_t prio, void *value, size_t len, void *priv)
+pqueue_remove_helper(pqueue_t *pq, uint64_t prio, void *value, void *priv)
 {
     pqueue_remove_helper_arg_t *arg = (pqueue_remove_helper_arg_t *)priv;
-    if (len == arg->len && *((char *)value) == *((char *)arg->value) &&
-        memcmp(value, arg->value, len) == 0)
+    if (value == arg->value)
     {
         return -2;
     }
@@ -189,11 +179,10 @@ pqueue_remove_helper(pqueue_t *pq, uint64_t prio, void *value, size_t len, void 
 }
 
 int
-pqueue_remove(pqueue_t *pq, void *value, size_t len)
+pqueue_remove(pqueue_t *pq, void *value)
 {
     pqueue_remove_helper_arg_t arg = {
         .value = value,
-        .len = len,
         .found = 0
     };
     pqueue_walk(pq, pqueue_remove_helper, &arg);

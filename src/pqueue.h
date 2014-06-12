@@ -47,7 +47,6 @@ pqueue_t *pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_cal
  * @param pq A valid pointer to an initialized pqueue_t structure
  * @param prio The priority to assign to the new value
  * @param value The new value to add to the queue
- * @param len The size of the value
  * @return 0 if the value has been successfully added to the queue;\n
  *         -1 in case of errors
  * @note If the number of items after the insertion will be bigger than the
@@ -55,7 +54,7 @@ pqueue_t *pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_cal
  *       will be dropped until the size is again less or equal to the
  *       configured maximum size
  */
-int pqueue_insert(pqueue_t *pq, uint64_t prio, void *value, size_t len);
+int pqueue_insert(pqueue_t *pq, uint64_t prio, void *value);
 
 /**
  * @brief Pull the the highest priority value out of the queue
@@ -63,14 +62,12 @@ int pqueue_insert(pqueue_t *pq, uint64_t prio, void *value, size_t len);
  * @param value If not NULL it will be set to point to the value
  *              with the highest priority just pulled out of the
  *              queue
- * @param len  If not NULL the size of the pulled-out value will be
- *             stored at the memory pointed by it
  * @param prio If not NULL the priority of the pulled item will
  *             be stored in the memory pointed by prio
  * @return 0 if a value has been found and successfully pulled out
  *         of the queue;\n-1 in case of errors
  */
-int pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio);
+int pqueue_pull_highest(pqueue_t *pq, void **value, uint64_t *prio);
 
 /**
  * @brief Pull the the lowest priority value out of the queue
@@ -78,28 +75,25 @@ int pqueue_pull_highest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio)
  * @param value If not NULL it will be set to point to the value
  *              with the lowest priority just pulled out of the
  *              queue
- * @param len  If not NULL the size of the pulled-out value will be
- *             stored at the memory pointed by it
  * @param prio If not NULL the priority of the pulled item will
  *             be stored in the memory pointed by prio
  * @return 0 if a value has been found and successfully pulled out
  *         of the queue;\n-1 in case of errors
  */
-int pqueue_pull_lowest(pqueue_t *pq, void **value, size_t *len, uint64_t *prio);
+int pqueue_pull_lowest(pqueue_t *pq, void **value, uint64_t *prio);
 
 /**
  * @brief Callback called for each node when walking the priority queue
  * @param pq A valid pointer to an initialized pqueue_t structure
  * @param prio The priority of the current node
  * @param value The value stored in the current node
- * @param len The size of the value
  * @param priv The private pointer passed to pqueue_walk()
  * @return 1 If the walker can go ahead visiting the next node,
  *         0 if the walker should stop and return
  *        -1 if the current node should be removed and the walker can go ahead
  *        -2 if the current node should be removed and the walker should stop
  */
-typedef int (*pqueue_walk_callback_t)(pqueue_t *pq, uint64_t prio, void *value, size_t len, void *priv);
+typedef int (*pqueue_walk_callback_t)(pqueue_t *pq, uint64_t prio, void *value, void *priv);
 
 /**
  * @brief Walk the entire priority queue and call the provided
@@ -121,11 +115,10 @@ int pqueue_walk(pqueue_t *pq, pqueue_walk_callback_t cb, void *priv);
  *       removed from the priority queue
  * @param pq A valid pointer to an initialized pqueue_t structure
  * @param value The value to mach
- * @param len The size of the value
  * @return 0 if a matching node has been found and successfully removed;\n
  *        -1 If no matching node was found or an error occurred
  */
-int pqueue_remove(pqueue_t *pq, void *value, size_t len);
+int pqueue_remove(pqueue_t *pq, void *value);
 
 /**
  * @brief Return the number of values stored in the priority queue

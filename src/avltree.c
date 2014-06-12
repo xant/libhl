@@ -14,7 +14,6 @@ typedef struct __avlt_node_s {
     void *key;
     size_t klen;
     void *value;
-    size_t vlen;
     struct __avlt_node_s *left;
     struct __avlt_node_s *right;
     struct __avlt_node_s *parent;
@@ -127,14 +126,13 @@ avlt_node_destroy(avlt_node_t *node, avlt_free_value_callback_t free_value_cb)
 }
 
 avlt_node_t *
-avlt_node_create(void *key, size_t klen, void *value, size_t vlen)
+avlt_node_create(void *key, size_t klen, void *value)
 {
     avlt_node_t *node = calloc(1, sizeof(avlt_node_t));
     node->key = malloc(klen);
     memcpy(node->key, key, klen);
     node->klen = klen;
     node->value = value;
-    node->vlen = vlen;
     return node;
 }
 
@@ -173,7 +171,7 @@ avlt_balance(avlt_t *tree, avlt_node_t *node)
 }
 
 int
-avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen)
+avlt_add(avlt_t *tree, void *key, size_t klen, void *value)
 {
     if (!tree->root) {
         tree->root = calloc(1, sizeof(avlt_node_t));
@@ -181,7 +179,6 @@ avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen)
         memcpy(tree->root->key, key, klen);
         tree->root->klen = klen;
         tree->root->value = value;
-        tree->root->vlen = vlen;
         return 0;
     }
     avlt_node_t *cur = tree->root; 
@@ -197,7 +194,7 @@ avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen)
                           (!cur->left->right || cmp(cur->left->right->key, cur->left->right->klen, key, klen) != 0))
                 {
                     // swap
-                    avlt_node_t *new = avlt_node_create(key, klen, value, vlen);
+                    avlt_node_t *new = avlt_node_create(key, klen, value);
                     avlt_node_t *left = cur->left;
                     cur->left = new;
                     new->parent = left->parent;
@@ -223,7 +220,7 @@ avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen)
                 }
             } else {
                 // leaf
-                cur->left = avlt_node_create(key, klen, value, vlen);
+                cur->left = avlt_node_create(key, klen, value);
                 cur->left->parent = cur;
                 cur->hl++;
             }
@@ -237,7 +234,7 @@ avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen)
                           (!cur->right->left || cmp(cur->right->left->key, cur->right->left->klen, key, klen) != 0))
                 {
                     // swap
-                    avlt_node_t *new = avlt_node_create(key, klen, value, vlen);
+                    avlt_node_t *new = avlt_node_create(key, klen, value);
                     avlt_node_t *right = cur->right;
                     cur->right = new;
                     new->parent = right->parent;
@@ -263,7 +260,7 @@ avlt_add(avlt_t *tree, void *key, size_t klen, void *value, size_t vlen)
                 }
             } else {
                 // leaf
-                cur->right = avlt_node_create(key, klen, value, vlen);
+                cur->right = avlt_node_create(key, klen, value);
                 cur->right->parent = cur;
                 cur->hr++;
             }
@@ -306,7 +303,7 @@ avlt_find_prev(avlt_t *tree, avlt_node_t *node)
 }
 
 int
-avlt_remove(avlt_t *tree, void *key, size_t klen, void **value, size_t *vlen)
+avlt_remove(avlt_t *tree, void *key, size_t klen, void **value)
 {
     avlt_node_t *cur = tree->root;
     while(cur) {
@@ -333,18 +330,15 @@ avlt_remove(avlt_t *tree, void *key, size_t klen, void **value, size_t *vlen)
                 void *ktmp = cur->key;
                 size_t kltmp = cur->klen;
                 void *vtmp = cur->value;
-                size_t vltmp = cur->vlen;
 
                 cur->key = p->key;
                 cur->klen = p->klen;
                 cur->value = p->value;
-                cur->vlen = p->vlen;
                 cur = p;
 
                 p->key = ktmp;
                 p->klen = kltmp;
                 p->value = vtmp;
-                p->vlen = vltmp;
             } else {
                 // TODO - Error messages
                 return -1;
@@ -387,9 +381,6 @@ avlt_remove(avlt_t *tree, void *key, size_t klen, void **value, size_t *vlen)
         else if (to_free->value)
             cb = tree->free_value_cb;
 
-        if (vlen)
-            *vlen = to_free->vlen;
-
         avlt_node_destroy(to_free, cb);
         break;
     }
@@ -413,16 +404,16 @@ avlt_walk(avlt_t *tree, avlt_walk_callback_t cb, void *priv)
 
     while ((cur = TAILQ_FIRST(&head))) {
         TAILQ_REMOVE(&head, cur, list);
-        int ret = cb(tree, cur->key, cur->klen, cur->value, cur->vlen, priv);
+        int ret = cb(tree, cur->key, cur->klen, cur->value, priv);
         void *v = NULL;
         switch(ret) {
             case 0:
                 return cnt;
             case -1:
-                avlt_remove(tree, cur->key, cur->klen, &v, NULL);
+                avlt_remove(tree, cur->key, cur->klen, &v);
                 break;
             case -2:
-                avlt_remove(tree, cur->key, cur->klen, &v, NULL);
+                avlt_remove(tree, cur->key, cur->klen, &v);
                 return cnt;
             case 1:
             default:
@@ -454,16 +445,16 @@ avt_walk_sorted_internal(avlt_t *tree,
             cnt += ret;
     }
 
-    ret = cb(tree, node->key, node->klen, node->value, node->vlen, priv);
+    ret = cb(tree, node->key, node->klen, node->value, priv);
     void *v = NULL;
     switch(ret) {
         case 0:
             return -1;
         case -1:
-            avlt_remove(tree, node->key, node->klen, &v, NULL);
+            avlt_remove(tree, node->key, node->klen, &v);
             break;
         case -2:
-            avlt_remove(tree, node->key, node->klen, &v, NULL);
+            avlt_remove(tree, node->key, node->klen, &v);
             return -1;
         case 1:
         default:
@@ -495,7 +486,7 @@ void
 avlt_destroy(avlt_t *tree)
 {
     while (tree->root) {
-        avlt_remove(tree, tree->root->key, tree->root->klen, NULL, NULL);
+        avlt_remove(tree, tree->root->key, tree->root->klen, NULL);
     }
     free(tree);
 }
