@@ -112,10 +112,7 @@ skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
 
     new_item->layer_check[0] = 1;
 
-    int i;
-    for (i = 0; i < skl->num_layers; i++)
-
-    i = 0;
+    int i = 0;
     int coin = -1;
     while (++i < skl->num_layers) {
         new_item->wrappers[i].data = new_item;
