@@ -16,9 +16,9 @@
 
 #include <stdint.h>
 
-#define REFCNT_ATOMIC_INCREMENT(__i, __cnt) __sync_add_and_fetch(&__i, __cnt);
-#define REFCNT_ATOMIC_DECREMENT(__i, __cnt) __sync_sub_and_fetch(&__i, __cnt);
-#define REFCNT_ATOMIC_READ(__p) __sync_or_and_fetch(&__p, 0)
+#define REFCNT_ATOMIC_INCREMENT(__i, __cnt) __sync_fetch_and_add(&__i, __cnt);
+#define REFCNT_ATOMIC_DECREMENT(__i, __cnt) __sync_fetch_and_sub(&__i, __cnt);
+#define REFCNT_ATOMIC_READ(__p) __sync_fetch_and_add(&__p, 0)
 #define REFCNT_ATOMIC_CMPXCHG(__p, __v1, __v2) __sync_bool_compare_and_swap(&__p, __v1, __v2)
 #define REFCNT_ATOMIC_CMPXCHG_RETURN(__p, __v1, __v2) __sync_val_compare_and_swap(&__p, __v1, __v2)
 
