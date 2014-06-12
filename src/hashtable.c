@@ -11,6 +11,7 @@
 #endif
 
 #include "bsd_queue.h"
+#include "atomic_defs.h"
 
 #ifdef THREAD_SAFE
 #define MUTEX_INIT(__mutex) pthread_mutex_init(&(__mutex), 0)
@@ -38,17 +39,6 @@
 #define SPIN_LOCK(__mutex)
 #define SPIN_UNLOCK(__mutex)
 #endif
-
-#define ATOMIC_READ(__v) __sync_fetch_and_add(&(__v), 0)
-#define ATOMIC_INCREMENT(__v) (void)__sync_add_and_fetch(&(__v), 1)
-#define ATOMIC_DECREMENT(__v) (void)__sync_sub_and_fetch(&(__v), 1)
-
-#define ATOMIC_SET(__v, __n) {\
-    int __b = 0;\
-    do {\
-        __b = __sync_bool_compare_and_swap(&(__v), ATOMIC_READ(__v), __n);\
-    } while (!__b);\
-}
 
 #define HT_SIZE_MIN 128
 
