@@ -72,4 +72,12 @@ void *skiplist_search(skiplist_t *skl, void *key, size_t klen);
  */
 void skiplist_destroy(skiplist_t *skl);
 
+/**
+ * @brief Return the number of elements in the skip list
+ * @param skl  A valid pointer to an initialized skiplist_t structure
+ * @return The number of elements in the skip list
+ */
+uint32_t skiplist_count(skiplist_t *skl);
+
+
 #endif

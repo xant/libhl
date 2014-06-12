@@ -3,7 +3,6 @@
 #include "skiplist.h"
 #include "bsd_queue.h"
 
-
 typedef struct __skl_item_wrapper_s skl_item_wrapper_t;
 
 typedef struct {
@@ -25,6 +24,7 @@ struct __skiplist_s {
     libhl_cmp_callback_t cmp_keys_cb;
     skiplist_free_value_callback_t free_value_cb;
     TAILQ_HEAD(layer_list, __skl_item_wrapper_s) *layers;
+    uint32_t count;
 };
 
 
@@ -68,7 +68,7 @@ skiplist_search_internal(skiplist_t *skl, void *key, size_t klen, skl_item_wrapp
             path[i] = prev_item;
         i--;
     }
-    return prev_item->data;
+    return prev_item ? prev_item->data : NULL;
 }
 
 void *
@@ -98,6 +98,7 @@ skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
     skl_item_t *new_item = calloc(1, sizeof(skl_item_t));
     new_item->key = calloc(1, klen);
     memcpy(new_item->key, key, klen);
+    new_item->klen = klen;
     new_item->value = value;
     new_item->layer_check = calloc(skl->num_layers, sizeof(char));
     new_item->wrappers = calloc(skl->num_layers, sizeof(skl_item_wrapper_t));
@@ -113,6 +114,8 @@ skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
     else
         TAILQ_INSERT_TAIL(&skl->layers[i], &new_item->wrappers[i], next);
 
+    new_item->layer_check[i] = 1;
+
     while (++i < skl->num_layers) {
         if (random()%100 > skl->probability)
             break;
@@ -126,6 +129,7 @@ skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
         new_item->layer_check[i] = 1;
     }
     free(path);
+    skl->count++;
     return 0;
 }
 
@@ -154,6 +158,7 @@ skiplist_remove(skiplist_t *skl, void *key, size_t klen, void **value)
     skl_item_t *prev_item = skiplist_search_internal(skl, key, klen, NULL);
     if (prev_item && skl->cmp_keys_cb(prev_item->key, prev_item->klen, key, klen) == 0) {
         skiplist_remove_internal(skl, prev_item, value);
+        skl->count--;
         return 0;
     }
     return -1;
@@ -172,3 +177,8 @@ skiplist_destroy(skiplist_t *skl)
     free(skl);
 }
 
+uint32_t
+skiplist_count(skiplist_t *skl)
+{
+    return skl->count;
+}

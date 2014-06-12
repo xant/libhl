@@ -43,7 +43,8 @@ TEST_EXEC_ORDER = fbuf_test \
 		  rbtree_test \
 		  avltree_test \
 		  binheap_test \
-		  pqueue_test
+		  pqueue_test \
+		  skiplist_test
 
 all: objects static shared
 
