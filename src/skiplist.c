@@ -9,7 +9,7 @@ typedef struct {
     void *key;
     size_t klen;
     void *value;
-    int *layer_check;
+    char *layer_check;
     skl_item_wrapper_t *wrappers;
 } skl_item_t;
 
@@ -103,30 +103,35 @@ skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
     new_item->layer_check = calloc(skl->num_layers, sizeof(char));
     new_item->wrappers = calloc(skl->num_layers, sizeof(skl_item_wrapper_t));
     // initialize the list wrappers
+    new_item->wrappers[0].data = new_item;
+    // always insert the new item to the tail list
+    if (prev_item)
+        TAILQ_INSERT_AFTER(&skl->layers[0], &prev_item->wrappers[0], &new_item->wrappers[0], next);
+    else
+        TAILQ_INSERT_TAIL(&skl->layers[0], &new_item->wrappers[0], next);
+
+    new_item->layer_check[0] = 1;
+
     int i;
     for (i = 0; i < skl->num_layers; i++)
+
+    i = 0;
+    int coin = -1;
+    while (++i < skl->num_layers) {
         new_item->wrappers[i].data = new_item;
 
-    // always insert the new item to the tail list
-    i = 0;
-    if (prev_item)
-        TAILQ_INSERT_AFTER(&skl->layers[i], &prev_item->wrappers[i], &new_item->wrappers[i], next);
-    else
-        TAILQ_INSERT_TAIL(&skl->layers[i], &new_item->wrappers[i], next);
+        if (coin != 0)
+            coin = (random()%100 > skl->probability);
 
-    new_item->layer_check[i] = 1;
+        if (coin) {
+            // then insert it to the upper layers as well if we got the chance
+            if (path[i])
+                TAILQ_INSERT_AFTER(&skl->layers[i], path[i], &new_item->wrappers[i], next);
+            else
+                TAILQ_INSERT_TAIL(&skl->layers[i], &new_item->wrappers[i], next);
 
-    while (++i < skl->num_layers) {
-        if (random()%100 > skl->probability)
-            break;
-
-        // then insert it to the upper layers as well if we got the chance
-        if (path[i])
-            TAILQ_INSERT_AFTER(&skl->layers[i], path[i], &new_item->wrappers[i], next);
-        else
-            TAILQ_INSERT_TAIL(&skl->layers[i], &new_item->wrappers[i], next);
-
-        new_item->layer_check[i] = 1;
+            new_item->layer_check[i] = 1;
+        }
     }
     free(path);
     skl->count++;
