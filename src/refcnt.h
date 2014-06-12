@@ -15,7 +15,6 @@
 #define __REFCNT_H__
 
 #include <stdint.h>
-#include "atomic_defs.h"
 
 #define REFCNT_MARK_ON(__addr) (refcnt_node_t *)((intptr_t)ATOMIC_READ(__addr) | 1)
 #define REFCNT_MARK_OFF(__addr) (refcnt_node_t *)((intptr_t)ATOMIC_READ(__addr) & -2)

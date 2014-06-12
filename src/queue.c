@@ -7,6 +7,7 @@
 #include <sched.h>
 #include "queue.h"
 #include "refcnt.h"
+#include "atomic_defs.h"
 
 typedef struct __queue_entry {
     refcnt_t *refcnt;

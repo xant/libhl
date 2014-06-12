@@ -1,4 +1,6 @@
 #include "refcnt.h"
+#include "atomic_defs.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <rqueue.h>
