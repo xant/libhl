@@ -20,6 +20,7 @@ struct __refcnt {
     refcnt_terminate_node_callback_t terminate_node_cb;
     refcnt_free_node_ptr_callback_t free_node_ptr_cb;
     rqueue_t *free_list;
+    rqueue_t *node_pool;
     uint32_t gc_threshold;
 };
 #pragma pack(pop)
@@ -41,6 +42,9 @@ refcnt_create(uint32_t gc_threshold,
     if (rqueue_size < RQUEUE_MIN_SIZE)
         rqueue_size = RQUEUE_MIN_SIZE;
     refcnt->free_list = rqueue_create(rqueue_size, RQUEUE_MODE_BLOCKING);
+    refcnt->node_pool = rqueue_create(1<<16, RQUEUE_MODE_BLOCKING);
+    rqueue_set_free_value_callback(refcnt->node_pool, free);
+
     return refcnt;
 }
 
@@ -59,7 +63,8 @@ gc(refcnt_t *refcnt, int force)
         if (refcnt->free_node_ptr_cb) {
             refcnt->free_node_ptr_cb(ATOMIC_READ(ref->ptr));
         }
-        free(ref);
+        if (rqueue_write(refcnt->node_pool, ref) != 0)
+            free(ref);
     }
 }
 
@@ -68,6 +73,7 @@ refcnt_destroy(refcnt_t *refcnt)
 {
     gc(refcnt, 1);
     rqueue_destroy(refcnt->free_list);
+    rqueue_destroy(refcnt->node_pool);
     free(refcnt);
 }
 
@@ -172,13 +178,17 @@ retain_ref(refcnt_t *refcnt, refcnt_node_t *ref)
     return ref;
 }
 
+
 refcnt_node_t *
 new_node(refcnt_t *refcnt, void *ptr, void *priv)
 {
-    refcnt_node_t *node = calloc(1, sizeof(refcnt_node_t));
+    refcnt_node_t *node = rqueue_read(refcnt->node_pool);
+    if (!node)
+        node = calloc(1, sizeof(refcnt_node_t));
+
     node->ptr = ptr;
     node->priv = priv;
-    ATOMIC_INCREMENT(node->count);
+    node->count = 1;
     return node;
 }
 

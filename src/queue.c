@@ -7,6 +7,7 @@
 #include <sched.h>
 #include "queue.h"
 #include "refcnt.h"
+#include "rqueue.h"
 #include "atomic_defs.h"
 
 typedef struct __queue_entry {
@@ -23,6 +24,7 @@ struct __queue {
     uint32_t length;
     int free;
     queue_free_value_callback_t free_value_cb;
+    rqueue_t *entry_pool;
 };
 
 /*
@@ -39,6 +41,8 @@ queue_create()
     } else {
         return NULL;
     }
+    q->entry_pool = rqueue_create(1<<16, RQUEUE_MODE_BLOCKING);
+    rqueue_set_free_value_callback(q->entry_pool, free);
     return q;
 }
 
@@ -52,11 +56,29 @@ terminate_node_callback(refcnt_node_t *node, void *priv)
  * a pointer to the just created queue_entry_t opaque structure
  */
 static inline queue_entry_t *
-create_entry(refcnt_t *refcnt)
+create_entry(queue_t *q)
 {
     queue_entry_t *new_entry = (queue_entry_t *)calloc(1, sizeof(queue_entry_t));
-    new_entry->node = new_node(refcnt, new_entry, NULL);
+    new_entry->node = new_node(q->refcnt, new_entry, NULL);
     return new_entry;
+}
+
+queue_entry_t *dequeue_reusable_entry(queue_t *q)
+{
+    queue_entry_t *entry = rqueue_read(q->entry_pool);
+    if (entry)
+        entry->node = new_node(q->refcnt, entry);
+    else
+        entry = create_entry(q);
+
+    return entry;
+}
+
+void queue_reusable_entry(queue_t *q, queue_entry_t *entry)
+{
+    entry->node = NULL;
+    if (rqueue_write(q->entry_pool, entry) != 0)
+        free(entry);
 }
 
 
@@ -69,12 +91,9 @@ queue_init(queue_t *q)
 {
     memset(q,  0, sizeof(queue_t));
     if (!q->refcnt)
-        q->refcnt = refcnt_create(1<<10, terminate_node_callback, free);
+        q->refcnt = refcnt_create(1<<10, terminate_node_callback, (refcnt_free_node_ptr_callback_t)queue_reusable_entry);
     if (!q->head) {
-        q->head = create_entry(q->refcnt);
-    }
-    if (!q->tail) {
-        q->tail = create_entry(q->refcnt);
+        q->head = create_entry(q);
     }
 
     store_ref(q->refcnt, &q->head->next, q->tail->node);
@@ -107,6 +126,7 @@ queue_destroy(queue_t *q)
         store_ref(q->refcnt, &q->tail->prev, NULL);
         destroy_entry(q->refcnt, q->tail);
         refcnt_destroy(q->refcnt);
+        rqueue_destroy(q->entry_pool);
         if(q->free)
             free(q);
     }
@@ -163,7 +183,7 @@ static inline void mark_prev(queue_entry_t *entry) {
 int
 queue_push_left(queue_t *q, void *value)
 {
-    queue_entry_t *entry = create_entry(q->refcnt);
+    queue_entry_t *entry = create_entry(q);
 
     entry->value = value;
 
@@ -211,7 +231,7 @@ queue_push_left(queue_t *q, void *value)
 int
 queue_push_right(queue_t *q, void *value)
 {
-    queue_entry_t *entry = create_entry(q->refcnt);
+    queue_entry_t *entry = create_entry(q);
 
     entry->value = value;
 
