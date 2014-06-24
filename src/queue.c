@@ -43,7 +43,7 @@ queue_create()
 }
 
 static void
-terminate_node_callback(refcnt_node_t *node)
+terminate_node_callback(refcnt_node_t *node, void *priv)
 {
 }
 
@@ -55,7 +55,7 @@ static inline queue_entry_t *
 create_entry(refcnt_t *refcnt)
 {
     queue_entry_t *new_entry = (queue_entry_t *)calloc(1, sizeof(queue_entry_t));
-    new_entry->node = new_node(refcnt, new_entry);
+    new_entry->node = new_node(refcnt, new_entry, NULL);
     return new_entry;
 }
 

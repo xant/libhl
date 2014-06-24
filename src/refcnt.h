@@ -35,7 +35,7 @@ typedef struct __refcnt_node refcnt_node_t;
  *         The callback is called on a deleted node when there are no claims
  *         from any other node or thread to the node.
 */
-typedef void (*refcnt_terminate_node_callback_t)(refcnt_node_t *node);
+typedef void (*refcnt_terminate_node_callback_t)(refcnt_node_t *node, void *priv);
 
 /**
  * @brief Callback called when a node is going to be released and the
@@ -108,9 +108,11 @@ int compare_and_swap_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *
  * @brief Create a new refcounted node which encapsulates a given pointer
  * @param refcnt : A pointer to a valid refcounted context
  * @param ptr    : The pointer to encapsulate in the refcounted object
+ * @param priv   : An optional pointer to some private data which will be passed
+ *                 as argument to both the terminate_node callback
  * @return       : An initialized refcounted object holding the given 'ptr'
  */
-refcnt_node_t *new_node(refcnt_t *refcnt, void *ptr);
+refcnt_node_t *new_node(refcnt_t *refcnt, void *ptr, void *priv);
 
 /**
  * @brief Retrieve the pointer stored in the refcounted object

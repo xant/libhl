@@ -11,6 +11,7 @@
 #pragma pack(push, 4)
 struct __refcnt_node {
     void *ptr;
+    void *priv;
     uint32_t count;
     int delete;
 };
@@ -121,7 +122,7 @@ release_ref(refcnt_t *refcnt, refcnt_node_t *ref)
     if (ATOMIC_CAS(ref->delete, 0, 1)) {
         if (ATOMIC_READ(ref->count) == 0) {
             if (refcnt->terminate_node_cb)
-                refcnt->terminate_node_cb(ref);
+                refcnt->terminate_node_cb(ref, ref->priv);
             rqueue_write(refcnt->free_list, ref);
             terminated = 1;
         } else {
@@ -172,10 +173,11 @@ retain_ref(refcnt_t *refcnt, refcnt_node_t *ref)
 }
 
 refcnt_node_t *
-new_node(refcnt_t *refcnt, void *ptr)
+new_node(refcnt_t *refcnt, void *ptr, void *priv)
 {
     refcnt_node_t *node = calloc(1, sizeof(refcnt_node_t));
     node->ptr = ptr;
+    node->priv = priv;
     ATOMIC_INCREMENT(node->count);
     return node;
 }
