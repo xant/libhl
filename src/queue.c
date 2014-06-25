@@ -32,7 +32,7 @@ struct __queue {
  * a queue_t opaque structure for later use
  */
 queue_t *
-queue_create()
+queue_create(uint32_t expected_size)
 {
     queue_t *q = (queue_t *)malloc(sizeof(queue_t));
     if(q) {
@@ -41,15 +41,19 @@ queue_create()
     } else {
         return NULL;
     }
-    q->entry_pool = rqueue_create(1<<16, RQUEUE_MODE_BLOCKING);
-    rqueue_set_free_value_callback(q->entry_pool, free);
+    if (expected_size) {
+        q->entry_pool = rqueue_create(expected_size, RQUEUE_MODE_BLOCKING);
+        rqueue_set_free_value_callback(q->entry_pool, free);
+    }
     return q;
 }
 
+/*
 static void
 terminate_node_callback(refcnt_node_t *node, void *priv)
 {
 }
+*/
 
 /*
  * Create a new queue_entry_t structure. Allocates resources and returns
@@ -65,7 +69,7 @@ create_entry(queue_t *q)
 
 queue_entry_t *dequeue_reusable_entry(queue_t *q)
 {
-    queue_entry_t *entry = rqueue_read(q->entry_pool);
+    queue_entry_t *entry = q->entry_pool ? rqueue_read(q->entry_pool) : NULL;
     if (entry)
         entry->node = new_node(q->refcnt, entry);
     else
@@ -77,7 +81,7 @@ queue_entry_t *dequeue_reusable_entry(queue_t *q)
 void queue_reusable_entry(queue_t *q, queue_entry_t *entry)
 {
     entry->node = NULL;
-    if (rqueue_write(q->entry_pool, entry) != 0)
+    if (!q->entry_pool || rqueue_write(q->entry_pool, entry) != 0)
         free(entry);
 }
 
@@ -91,10 +95,12 @@ queue_init(queue_t *q)
 {
     memset(q,  0, sizeof(queue_t));
     if (!q->refcnt)
-        q->refcnt = refcnt_create(1<<10, terminate_node_callback, (refcnt_free_node_ptr_callback_t)queue_reusable_entry);
-    if (!q->head) {
+        q->refcnt = refcnt_create(1<<10, NULL, (refcnt_free_node_ptr_callback_t)queue_reusable_entry);
+    if (q->head)
         q->head = create_entry(q);
-    }
+
+    if (q->head)
+        q->tail = create_entry(q);
 
     store_ref(q->refcnt, &q->head->next, q->tail->node);
     store_ref(q->refcnt, &q->tail->prev, q->head->node);
@@ -126,7 +132,8 @@ queue_destroy(queue_t *q)
         store_ref(q->refcnt, &q->tail->prev, NULL);
         destroy_entry(q->refcnt, q->tail);
         refcnt_destroy(q->refcnt);
-        rqueue_destroy(q->entry_pool);
+        if (q->entry_pool)
+            rqueue_destroy(q->entry_pool);
         if(q->free)
             free(q);
     }

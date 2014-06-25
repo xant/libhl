@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     ut_init(basename(argv[0]));
 
     ut_testing("Create queue");
-    queue_t *q = queue_create();
+    queue_t *q = queue_create(0);
     ut_result(q != NULL, "Can't create a new queue");
 
     ut_testing("queue_push_right() return value on success");
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     ut_result(free_count == num_parallel_items, "Free count is not %d after destroy_list() (%d)", num_parallel_items, free_count);
 
     queue_worker_arg arg = {
-        .queue = queue_create(),
+        .queue = queue_create(0),
         .count = 0,
         .leave = 0,
         .direction = 0
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
     queue_destroy(arg.queue);
 
     // now try the same but pushing to the left and pulling from the right
-    arg.queue = queue_create();
+    arg.queue = queue_create(0);
     arg.count = 0;
     arg.leave = 0;
     arg.direction = 1;
