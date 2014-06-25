@@ -42,6 +42,7 @@ refcnt_create(uint32_t gc_threshold,
     if (rqueue_size < RQUEUE_MIN_SIZE)
         rqueue_size = RQUEUE_MIN_SIZE;
     refcnt->free_list = rqueue_create(rqueue_size, RQUEUE_MODE_BLOCKING);
+    // XXX - make the pool size configurable
     refcnt->node_pool = rqueue_create(1<<16, RQUEUE_MODE_BLOCKING);
     rqueue_set_free_value_callback(refcnt->node_pool, free);
 
