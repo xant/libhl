@@ -195,7 +195,7 @@ ht_destroy(hashtable_t *table)
     free(table);
 }
 
-void
+static inline void
 ht_grow_table(hashtable_t *table)
 {
     // if we need to extend the table, better locking it globally
@@ -582,14 +582,14 @@ ht_exists(hashtable_t *table, void *key, size_t klen)
     return 0;
 }
 
-void
-*ht_get_internal(hashtable_t *table,
-                  void *key,
-                  size_t klen,
-                  size_t *dlen,
-                  int copy,
-                  ht_deep_copy_callback_t copy_cb,
-                  void *user)
+static inline void *
+ht_get_internal(hashtable_t *table,
+                void *key,
+                size_t klen,
+                size_t *dlen,
+                int copy,
+                ht_deep_copy_callback_t copy_cb,
+                void *user)
 {
     uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
 
@@ -628,20 +628,20 @@ void
     return data;
 }
 
-void
-*ht_get(hashtable_t *table, void *key, size_t klen, size_t *dlen)
+void *
+ht_get(hashtable_t *table, void *key, size_t klen, size_t *dlen)
 {
     return ht_get_internal(table, key, klen, dlen, 0, NULL, NULL);
 }
 
-void
-*ht_get_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen)
+void *
+ht_get_copy(hashtable_t *table, void *key, size_t klen, size_t *dlen)
 {
     return ht_get_internal(table, key, klen, dlen, 1, NULL, NULL);
 }
 
-void
-*ht_get_deep_copy(hashtable_t *table, void *key, size_t klen,
+void *
+ht_get_deep_copy(hashtable_t *table, void *key, size_t klen,
         size_t *dlen, ht_deep_copy_callback_t copy_cb, void *user)
 {
     return ht_get_internal(table, key, klen, dlen, 1, copy_cb, user);

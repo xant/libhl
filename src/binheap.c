@@ -118,7 +118,7 @@ static binheap_callbacks_t __keys_callbacks_default = {
     .decr = __decr_key_default
 };
 
-static int
+static inline int
 binomial_tree_node_add(binomial_tree_node_t *node,
                        binomial_tree_node_t *child)
 {
@@ -132,7 +132,7 @@ binomial_tree_node_add(binomial_tree_node_t *node,
     return 0;
 }
 
-static int
+static inline int
 binomial_tree_node_find_min_child(binomial_tree_node_t *node)
 {
     if (!node->num_children)
@@ -149,7 +149,7 @@ binomial_tree_node_find_min_child(binomial_tree_node_t *node)
     return min_child_index;
 }
 
-static int
+static inline int
 binomial_tree_node_find_max_child(binomial_tree_node_t *node)
 {
     if (!node->num_children)
@@ -166,7 +166,7 @@ binomial_tree_node_find_max_child(binomial_tree_node_t *node)
     return max_child_index;
 }
 
-static void
+static inline void
 binomial_tree_node_increase_key(binomial_tree_node_t *node, int incr)
 {
     void *okey = node->key;
@@ -213,7 +213,7 @@ binomial_tree_node_increase_key(binomial_tree_node_t *node, int incr)
     free(okey);
 }
 
-static int
+static inline int
 binheap_remove_root_node(void *item, uint32_t idx, void *user)
 {
     if (item == user)
@@ -221,8 +221,8 @@ binheap_remove_root_node(void *item, uint32_t idx, void *user)
     return 1;
 }
 
-static binomial_tree_node_t *
-__binheap_maxmin(binheap_t *bh, uint32_t *index, int maxmin)
+static inline binomial_tree_node_t *
+binheap_maxmin(binheap_t *bh, uint32_t *index, int maxmin)
 {
     int i;
     binomial_tree_node_t *node = NULL;
@@ -246,13 +246,13 @@ __binheap_maxmin(binheap_t *bh, uint32_t *index, int maxmin)
     return node;
 }
 
-static binomial_tree_node_t *
+static inline binomial_tree_node_t *
 binheap_get_minimum(binheap_t *bh, uint32_t *minidx)
 {
     if (bh->mode == BINHEAP_MODE_MIN && bh->head)
         return bh->head;
 
-    binomial_tree_node_t *minroot = __binheap_maxmin(bh, minidx, 1);
+    binomial_tree_node_t *minroot = binheap_maxmin(bh, minidx, 1);
 
     if (!minroot)
         return NULL;
@@ -266,13 +266,13 @@ binheap_get_minimum(binheap_t *bh, uint32_t *minidx)
     return minroot;
 }
 
-static binomial_tree_node_t *
+static inline binomial_tree_node_t *
 binheap_get_maximum(binheap_t *bh, uint32_t *maxidx)
 {
     if (bh->mode == BINHEAP_MODE_MAX && bh->head)
         return bh->head;
 
-    binomial_tree_node_t *maxroot = __binheap_maxmin(bh, maxidx, 0);
+    binomial_tree_node_t *maxroot = binheap_maxmin(bh, maxidx, 0);
 
     if (!maxroot)
         return NULL;
@@ -285,7 +285,8 @@ binheap_get_maximum(binheap_t *bh, uint32_t *maxidx)
     }
     return maxroot; 
 }
-static void
+
+static inline void
 binomial_tree_node_destroy(binomial_tree_node_t *node, int rindex)
 {
     int i;
@@ -383,7 +384,8 @@ binheap_destroy(binheap_t *bh)
     free(bh);
 }
 
-int binomial_tree_merge(binomial_tree_node_t *node1, binomial_tree_node_t *node2)
+static inline int
+binomial_tree_merge(binomial_tree_node_t *node1, binomial_tree_node_t *node2)
 {
     node1->children = realloc(node1->children, sizeof(binomial_tree_node_t *) * (node1->num_children + 1));
     node1->children[node1->num_children++] = node2;

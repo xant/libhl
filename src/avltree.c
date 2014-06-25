@@ -29,7 +29,7 @@ struct __avlt_s {
     avlt_free_value_callback_t free_value_cb;
 };
 
-int
+static int
 cmp_keys_default_cb(void *k1, size_t k1l, void *k2, size_t k2l)
 {
     if (k1l != k2l) {
@@ -53,7 +53,7 @@ avlt_create(libhl_cmp_callback_t cmp_keys_cb,
     return tree;
 }
 
-static void
+static inline void
 avlt_rotate_left(avlt_node_t *node)
 {
     avlt_node_t *right = node->right;
@@ -84,7 +84,7 @@ avlt_rotate_left(avlt_node_t *node)
     }
 }
 
-static void
+static inline void
 avlt_rotate_right(avlt_node_t *node)
 {
     avlt_node_t *left = node->left;
@@ -116,7 +116,7 @@ avlt_rotate_right(avlt_node_t *node)
 
 }
 
-void
+static inline void
 avlt_node_destroy(avlt_node_t *node, avlt_free_value_callback_t free_value_cb)
 {
     free(node->key);
@@ -125,7 +125,7 @@ avlt_node_destroy(avlt_node_t *node, avlt_free_value_callback_t free_value_cb)
     free(node);
 }
 
-avlt_node_t *
+static inline avlt_node_t *
 avlt_node_create(void *key, size_t klen, void *value)
 {
     avlt_node_t *node = calloc(1, sizeof(avlt_node_t));
@@ -495,7 +495,8 @@ avlt_destroy(avlt_t *tree)
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
-int _avltree_print_internal(avlt_node_t *node, int is_left, int offset, int depth, char s[20][255])
+static int
+avltree_print_internal(avlt_node_t *node, int is_left, int offset, int depth, char s[20][255])
 {
     char b[20];
     memset(b, 0, sizeof(b));
@@ -505,8 +506,8 @@ int _avltree_print_internal(avlt_node_t *node, int is_left, int offset, int dept
     sprintf(b, "(%d [%d])", *((int *)node->value), node->hl - node->hr);
     int width = strlen(b);
 
-    int left  = _avltree_print_internal(node->left,  1, offset,                depth + 1, s);
-    int right = _avltree_print_internal(node->right, 0, offset + left + width, depth + 1, s);
+    int left  = avltree_print_internal(node->left,  1, offset,                depth + 1, s);
+    int right = avltree_print_internal(node->right, 0, offset + left + width, depth + 1, s);
 
     int i;
 
@@ -567,7 +568,7 @@ void avlt_print(avlt_t *avlt)
     for (i = 0; i < 20; i++)
         sprintf(s[i], format, " ");
 
-    _avltree_print_internal(avlt->root, 0, 0, 0, s);
+    avltree_print_internal(avlt->root, 0, 0, 0, s);
 
     for (i = 0; i < 20; i++)
         printf("%s\n", s[i]);

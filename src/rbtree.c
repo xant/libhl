@@ -43,15 +43,15 @@ rbt_create(libhl_cmp_callback_t cmp_keys_cb,
     return rbt;
 }
 
-void
-_rbt_destroy_internal(rbt_node_t *node, rbt_free_value_callback_t free_value_cb)
+static inline void
+rbt_destroy_internal(rbt_node_t *node, rbt_free_value_callback_t free_value_cb)
 {
     if (!node)
         return;
 
 
-    _rbt_destroy_internal(node->left, free_value_cb);
-    _rbt_destroy_internal(node->right, free_value_cb);
+    rbt_destroy_internal(node->left, free_value_cb);
+    rbt_destroy_internal(node->right, free_value_cb);
 
     free(node->key);
     if (free_value_cb)
@@ -64,12 +64,12 @@ _rbt_destroy_internal(rbt_node_t *node, rbt_free_value_callback_t free_value_cb)
 void
 rbt_destroy(rbt_t *rbt)
 {
-    _rbt_destroy_internal(rbt->root, rbt->free_value_cb);
+    rbt_destroy_internal(rbt->root, rbt->free_value_cb);
     free(rbt);
 }
 
-int
-_rbt_walk_internal(rbt_t *rbt, rbt_node_t *node, int sorted, rbt_walk_callback cb, void *priv)
+static int
+rbt_walk_internal(rbt_t *rbt, rbt_node_t *node, int sorted, rbt_walk_callback cb, void *priv)
 {
     if (!node)
         return 0;
@@ -78,7 +78,7 @@ _rbt_walk_internal(rbt_t *rbt, rbt_node_t *node, int sorted, rbt_walk_callback c
     int cbrc = 0;
 
     if (sorted && node->left) {
-        int rrc = _rbt_walk_internal(rbt, node->left, sorted, cb, priv);
+        int rrc = rbt_walk_internal(rbt, node->left, sorted, cb, priv);
         if (rrc == 0)
             return rc + 1;
         rc += rrc;
@@ -93,9 +93,9 @@ _rbt_walk_internal(rbt_t *rbt, rbt_node_t *node, int sorted, rbt_walk_callback c
             {
                 if (node->left && node->right) {
                     rbt_remove(rbt, node->key, node->klen, NULL);
-                    return _rbt_walk_internal(rbt, node, sorted, cb, priv);
+                    return rbt_walk_internal(rbt, node, sorted, cb, priv);
                 } else if (node->left || node->right) {
-                    return _rbt_walk_internal(rbt, node->left ? node->left : node->right, sorted, cb, priv);
+                    return rbt_walk_internal(rbt, node->left ? node->left : node->right, sorted, cb, priv);
                 }
                 // this node was a leaf
                 return 1;
@@ -110,14 +110,14 @@ _rbt_walk_internal(rbt_t *rbt, rbt_node_t *node, int sorted, rbt_walk_callback c
     }
 
     if (!sorted && node->left) {
-        int rrc = _rbt_walk_internal(rbt, node->left, sorted, cb, priv);
+        int rrc = rbt_walk_internal(rbt, node->left, sorted, cb, priv);
         if (rrc == 0)
             return rc + 1;
         rc += rrc;
     }
 
     if (node->right) {
-        int rrc = _rbt_walk_internal(rbt, node->right, sorted, cb, priv);
+        int rrc = rbt_walk_internal(rbt, node->right, sorted, cb, priv);
         if (rrc == 0)
             return rc + 1;
         rc += rrc;
@@ -130,7 +130,7 @@ int
 rbt_walk(rbt_t *rbt, rbt_walk_callback cb, void *priv)
 {
     if (rbt->root)
-        return _rbt_walk_internal(rbt, rbt->root, 0, cb, priv);
+        return rbt_walk_internal(rbt, rbt->root, 0, cb, priv);
 
     return 0;
 }
@@ -139,13 +139,13 @@ int
 rbt_walk_sorted(rbt_t *rbt, rbt_walk_callback cb, void *priv)
 {
     if (rbt->root)
-        return _rbt_walk_internal(rbt, rbt->root, 1, cb, priv);
+        return rbt_walk_internal(rbt, rbt->root, 1, cb, priv);
 
     return 0;
 }
 
 
-static rbt_node_t *
+static inline rbt_node_t *
 rbt_grandparent(rbt_node_t *node)
 {
     if (node && node->parent)
@@ -153,7 +153,7 @@ rbt_grandparent(rbt_node_t *node)
     return NULL;
 }
 
-static rbt_node_t *
+static inline rbt_node_t *
 rbt_uncle(rbt_node_t *node)
 {
     rbt_node_t *gp = rbt_grandparent(node);
@@ -166,7 +166,7 @@ rbt_uncle(rbt_node_t *node)
 }
 
 
-static int
+static inline int
 rbt_compare_keys(rbt_t *rbt, void *k1, size_t k1size, void *k2, size_t k2size)
 {
     int rc;
@@ -187,7 +187,7 @@ rbt_compare_keys(rbt_t *rbt, void *k1, size_t k1size, void *k2, size_t k2size)
 }
 
 static int
-_rbt_add_internal(rbt_t *rbt, rbt_node_t *cur_node, rbt_node_t *new_node)
+rbt_add_internal(rbt_t *rbt, rbt_node_t *cur_node, rbt_node_t *new_node)
 {
     int rc = rbt_compare_keys(rbt, cur_node->key, cur_node->klen, new_node->key, new_node->klen);
 
@@ -218,14 +218,14 @@ _rbt_add_internal(rbt_t *rbt, rbt_node_t *cur_node, rbt_node_t *new_node)
         return 1;
     } else if (rc > 0) {
         if (cur_node->left) {
-            return _rbt_add_internal(rbt, cur_node->left, new_node);
+            return rbt_add_internal(rbt, cur_node->left, new_node);
         } else {
             cur_node->left = new_node;
             new_node->parent = cur_node;
         }
     } else {
         if (cur_node->right) {
-            return _rbt_add_internal(rbt, cur_node->right, new_node);
+            return rbt_add_internal(rbt, cur_node->right, new_node);
         } else {
             cur_node->right = new_node;
             new_node->parent = cur_node;
@@ -234,7 +234,7 @@ _rbt_add_internal(rbt_t *rbt, rbt_node_t *cur_node, rbt_node_t *new_node)
     return 0;
 }
 
-static void 
+static inline void 
 rbt_rotate_right(rbt_t *rbt, rbt_node_t *node)
 {
     rbt_node_t *p = node->left;
@@ -263,7 +263,7 @@ rbt_rotate_right(rbt_t *rbt, rbt_node_t *node)
     }
 }
 
-static void
+static inline void
 rbt_rotate_left(rbt_t *rbt, rbt_node_t *node)
 {
     rbt_node_t *p = node->right;
@@ -304,7 +304,7 @@ rbt_add(rbt_t *rbt, void *k, size_t klen, void *v)
         PAINT_BLACK(node);
         rbt->root = node;
     } else {
-        rc = _rbt_add_internal(rbt, rbt->root, node);
+        rc = rbt_add_internal(rbt, rbt->root, node);
 
         if (IS_BLACK(node)) {
             // if the node just added is now black it means
@@ -365,7 +365,7 @@ rbt_add(rbt_t *rbt, void *k, size_t klen, void *v)
 }
 
 static rbt_node_t *
-_rbt_find_internal(rbt_t *rbt, rbt_node_t *node, void *key, size_t klen)
+rbt_find_internal(rbt_t *rbt, rbt_node_t *node, void *key, size_t klen)
 {
     if (!node)
         return NULL;
@@ -376,9 +376,9 @@ _rbt_find_internal(rbt_t *rbt, rbt_node_t *node, void *key, size_t klen)
         return node;
     }
     else if (rc > 0) {
-        return _rbt_find_internal(rbt, node->left, key, klen);
+        return rbt_find_internal(rbt, node->left, key, klen);
     } else {
-        return _rbt_find_internal(rbt, node->right, key, klen);
+        return rbt_find_internal(rbt, node->right, key, klen);
     }
 
     return NULL;
@@ -387,7 +387,7 @@ _rbt_find_internal(rbt_t *rbt, rbt_node_t *node, void *key, size_t klen)
 int
 rbt_find(rbt_t *rbt, void *k, size_t klen, void **v)
 {
-    rbt_node_t *node = _rbt_find_internal(rbt, rbt->root, k, klen);
+    rbt_node_t *node = rbt_find_internal(rbt, rbt->root, k, klen);
     if (!node)
         return -1;
 
@@ -395,7 +395,7 @@ rbt_find(rbt_t *rbt, void *k, size_t klen, void **v)
     return 0;
 }
 
-static rbt_node_t *
+static inline rbt_node_t *
 rbt_sibling(rbt_node_t *node)
 {
     return (node == node->parent->left)
@@ -403,7 +403,7 @@ rbt_sibling(rbt_node_t *node)
            : node->parent->left;
 }
 
-static rbt_node_t *
+static inline rbt_node_t *
 rbt_find_next(rbt_t *rbt, rbt_node_t *node)
 {
     if (!node->right)
@@ -417,7 +417,7 @@ rbt_find_next(rbt_t *rbt, rbt_node_t *node)
     return next;
 }
 
-static rbt_node_t *
+static inline rbt_node_t *
 rbt_find_prev(rbt_t *rbt, rbt_node_t *node)
 {
     if (!node->left)
@@ -431,7 +431,7 @@ rbt_find_prev(rbt_t *rbt, rbt_node_t *node)
     return prev;
 }
 
-void
+static void
 rbt_paint_onremove(rbt_t *rbt, rbt_node_t *node)
 {
     if (!node)
@@ -513,7 +513,7 @@ rbt_paint_onremove(rbt_t *rbt, rbt_node_t *node)
 int
 rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v)
 {
-    rbt_node_t *node = _rbt_find_internal(rbt, rbt->root, k, klen);
+    rbt_node_t *node = rbt_find_internal(rbt, rbt->root, k, klen);
     if (!node)
         return -1;
 
@@ -607,7 +607,8 @@ rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v)
 }
 
 #ifdef DEBUG_RBTREE
-int _rbt_print_internal(rbt_node_t *node, int is_left, int offset, int depth, char s[20][255])
+static int
+rbt_print_internal(rbt_node_t *node, int is_left, int offset, int depth, char s[20][255])
 {
     char b[20];
     memset(b, 0, sizeof(b));
@@ -617,8 +618,8 @@ int _rbt_print_internal(rbt_node_t *node, int is_left, int offset, int depth, ch
     sprintf(b, "(%d %C)", *((int *)node->value), node->color ? 'B' : 'R');
     int width = strlen(b);
 
-    int left  = _rbt_print_internal(node->left,  1, offset,                depth + 1, s);
-    int right = _rbt_print_internal(node->right, 0, offset + left + width, depth + 1, s);
+    int left  = rbt_print_internal(node->left,  1, offset,                depth + 1, s);
+    int right = rbt_print_internal(node->right, 0, offset + left + width, depth + 1, s);
 
     int i;
 
@@ -679,7 +680,7 @@ void rbt_print(rbt_t *rbt)
     for (i = 0; i < 20; i++)
         sprintf(s[i], format, " ");
 
-    _rbt_print_internal(rbt->root, 0, 0, 0, s);
+    rbt_print_internal(rbt->root, 0, 0, 0, s);
 
     for (i = 0; i < 20; i++)
         printf("%s\n", s[i]);

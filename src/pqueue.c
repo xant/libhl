@@ -31,7 +31,7 @@ pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_callback free
     return pq;
 }
 
-static void
+static inline void
 pqueue_drop_items(pqueue_t *pq, uint32_t num_items)
 {
     uint32_t deleted = 0;
@@ -167,7 +167,7 @@ typedef struct {
     int found;
 } pqueue_remove_helper_arg_t;
 
-static int
+static inline int
 pqueue_remove_helper(pqueue_t *pq, uint64_t prio, void *value, void *priv)
 {
     pqueue_remove_helper_arg_t *arg = (pqueue_remove_helper_arg_t *)priv;
