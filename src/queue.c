@@ -71,7 +71,7 @@ queue_entry_t *dequeue_reusable_entry(queue_t *q)
 {
     queue_entry_t *entry = q->entry_pool ? rqueue_read(q->entry_pool) : NULL;
     if (entry)
-        entry->node = new_node(q->refcnt, entry);
+        entry->node = new_node(q->refcnt, entry, NULL);
     else
         entry = create_entry(q);
 
