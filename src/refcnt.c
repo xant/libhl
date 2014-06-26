@@ -190,6 +190,7 @@ new_node(refcnt_t *refcnt, void *ptr, void *priv)
     node->ptr = ptr;
     node->priv = priv;
     node->count = 1;
+    node->delete = 0;
     return node;
 }
 
