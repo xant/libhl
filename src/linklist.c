@@ -114,7 +114,6 @@ void list_destroy(linked_list_t *list)
 
 /*
  * Clear a linked_list_t. Removes all entries in list
- * Dangerous if used with value-based api ... 
  * if values are associated to entries, resources for those will not be freed.
  * list_clear() can be used safely with entry-based and tagged-based api,
  * otherwise you must really know what you are doing
