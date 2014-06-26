@@ -299,3 +299,8 @@ int rqueue_isempty(rqueue_t *rb)
     rqueue_page_t *tail = ATOMIC_READ(rb->tail);
     return ((rb->reader == commit || (head == tail && commit != tail) || ATOMIC_READ(rb->writes) == 0));
 }
+
+uint32_t rqueue_size(rqueue_t *rb)
+{
+    return rb->size;
+}
