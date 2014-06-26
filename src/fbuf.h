@@ -125,9 +125,22 @@ void fbuf_clear(fbuf_t *fbuf);
  * @brief Detach the underlying buffer and reset the fbuf
  * @param fbuf fbuf
  * @param buf A reference to the pointer where to store the addres of the actual buffer
+ * @param len If not NULL, the real size of the buffer be stored at the pointed address
  * @returns The size of the detached buffer (now stored in *buf)
  */
-unsigned int fbuf_detach(fbuf_t *fbuf, char **buf);
+unsigned int fbuf_detach(fbuf_t *fbuf, char **buf, int *used);
+
+/**
+ * @brief Attach a pre-existing buffer to an fbuf
+ * @param fbuf The fbuf where to attach the pre-existing buffer
+ * @param buf The existing buffer to attach
+ * @param len The size of the buffer
+ * @param used The amount of bytes used in the buffer
+ * @return The amount of bytes eventually dropped from the current
+ *         internal buffer (because swapping it with the newly 
+ *         provided pre-existing buffer)
+ */
+unsigned int fbuf_attach(fbuf_t *fbuf, char *buf, int len, int used);
 
 /**
  * @brief Destroys all information in the fbuf.

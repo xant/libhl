@@ -293,7 +293,20 @@ fbuf_clear(fbuf_t *fbuf)
         fbuf->data[0] = '\0';
 }
 
-unsigned int fbuf_detach(fbuf_t *fbuf, char **buf)
+unsigned int fbuf_attach(fbuf_t *fbuf, char *buf, int len, int used)
+{
+    int previously_used = fbuf->used;
+    if (fbuf->data)
+        free(fbuf->data);
+    fbuf->skip = 0;
+    fbuf->data = buf;
+    fbuf->len = len;
+    fbuf->used = used;
+    fbuf->data[used] = '\0';
+    return previously_used;
+}
+
+unsigned int fbuf_detach(fbuf_t *fbuf, char **buf, int *len)
 {
     if (!fbuf->used)
         return 0;
@@ -301,7 +314,9 @@ unsigned int fbuf_detach(fbuf_t *fbuf, char **buf)
     if (fbuf->skip)
         fbuf_shrink(fbuf);
 
-    unsigned int len = fbuf->used;
+    unsigned int used = fbuf->used;
+    if (len)
+        *len = fbuf->len;
 
     *buf = fbuf->data;
 
@@ -310,7 +325,7 @@ unsigned int fbuf_detach(fbuf_t *fbuf, char **buf)
     fbuf->len = 0;
     fbuf->data = NULL;
 
-    return len;
+    return used;
 }
 
 void
