@@ -15,6 +15,7 @@ typedef struct __queue_entry {
     refcnt_node_t *prev;
     refcnt_node_t *next;
     void *value;
+    queue_t *queue;
 } queue_entry_t;
 
 struct __queue {
@@ -24,7 +25,8 @@ struct __queue {
     uint32_t length;
     int free;
     queue_free_value_callback_t free_value_cb;
-    rqueue_t *entry_pool;
+    rqueue_t *bpool;
+    uint32_t bpool_size;
 };
 
 /*
@@ -32,7 +34,7 @@ struct __queue {
  * a queue_t opaque structure for later use
  */
 queue_t *
-queue_create(uint32_t expected_size)
+queue_create()
 {
     queue_t *q = (queue_t *)malloc(sizeof(queue_t));
     if(q) {
@@ -41,11 +43,30 @@ queue_create(uint32_t expected_size)
     } else {
         return NULL;
     }
-    if (expected_size) {
-        q->entry_pool = rqueue_create(expected_size, RQUEUE_MODE_BLOCKING);
-        rqueue_set_free_value_callback(q->entry_pool, free);
-    }
     return q;
+}
+
+void
+queue_set_bpool_size(queue_t *q, uint32_t size)
+{
+    rqueue_t *new_queue = rqueue_create(size, RQUEUE_MODE_BLOCKING);
+    rqueue_set_free_value_callback(new_queue, free);
+
+    uint32_t old_size = ATOMIC_READ(q->bpool_size);
+
+    if (old_size == size) {
+        rqueue_destroy(new_queue);
+        return;
+    }
+
+    rqueue_t *old_queue = ATOMIC_READ(q->bpool);
+    if (ATOMIC_CAS(q->bpool, old_queue, new_queue)) {
+        ATOMIC_CAS(q->bpool_size, old_size, size);
+        if (old_queue)
+            rqueue_destroy(old_queue);
+    } else {
+        rqueue_destroy(new_queue);
+    }
 }
 
 /*
@@ -64,12 +85,14 @@ create_entry(queue_t *q)
 {
     queue_entry_t *new_entry = (queue_entry_t *)calloc(1, sizeof(queue_entry_t));
     new_entry->node = new_node(q->refcnt, new_entry, NULL);
+    new_entry->queue = q;
     return new_entry;
 }
 
 queue_entry_t *dequeue_reusable_entry(queue_t *q)
 {
-    queue_entry_t *entry = q->entry_pool ? rqueue_read(q->entry_pool) : NULL;
+    rqueue_t *pool = ATOMIC_READ(q->bpool);
+    queue_entry_t *entry = pool ? rqueue_read(pool) : NULL;
     if (entry)
         entry->node = new_node(q->refcnt, entry, NULL);
     else
@@ -78,10 +101,11 @@ queue_entry_t *dequeue_reusable_entry(queue_t *q)
     return entry;
 }
 
-void queue_reusable_entry(queue_t *q, queue_entry_t *entry)
+void queue_reusable_entry(queue_entry_t *entry)
 {
     entry->node = NULL;
-    if (!q->entry_pool || rqueue_write(q->entry_pool, entry) != 0)
+    rqueue_t *pool = ATOMIC_READ(entry->queue->bpool);
+    if (!pool || rqueue_write(pool, entry) != 0)
         free(entry);
 }
 
@@ -96,10 +120,11 @@ queue_init(queue_t *q)
     memset(q,  0, sizeof(queue_t));
     if (!q->refcnt)
         q->refcnt = refcnt_create(1<<10, NULL, (refcnt_free_node_ptr_callback_t)queue_reusable_entry);
-    if (q->head)
+
+    if (!q->head)
         q->head = create_entry(q);
 
-    if (q->head)
+    if (!q->tail)
         q->tail = create_entry(q);
 
     store_ref(q->refcnt, &q->head->next, q->tail->node);
@@ -131,9 +156,9 @@ queue_destroy(queue_t *q)
         destroy_entry(q->refcnt, q->head);
         store_ref(q->refcnt, &q->tail->prev, NULL);
         destroy_entry(q->refcnt, q->tail);
+        if (q->bpool)
+            rqueue_destroy(q->bpool);
         refcnt_destroy(q->refcnt);
-        if (q->entry_pool)
-            rqueue_destroy(q->entry_pool);
         if(q->free)
             free(q);
     }

@@ -45,7 +45,9 @@ typedef struct __queue queue_t;
  * @note  If expected size is 0 no spare items will be kept for reuse
  * @return a newly allocated and initialized queue
  */
-queue_t *queue_create(uint32_t expected_size);
+queue_t *queue_create();
+
+void queue_set_bpool_size(queue_t *q, uint32_t size);
 
 /**
  * @brief Initialize a pre-allocated queue
