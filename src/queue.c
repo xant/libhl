@@ -152,6 +152,10 @@ queue_destroy(queue_t *q)
 {
     if(q)
     {
+        if (q->bpool) {
+            rqueue_destroy(q->bpool);
+            q->bpool = NULL;
+        }
         queue_clear(q);
         store_ref(q->refcnt, &q->head->next, NULL);
         destroy_entry(q->refcnt, q->head);
