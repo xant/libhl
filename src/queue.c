@@ -374,6 +374,7 @@ queue_pop_left(queue_t *q)
         ATOMIC_DECREMENT(q->length);
         store_ref(q->refcnt, &entry->next, NULL);
         store_ref(q->refcnt, &entry->prev, NULL);
+        sched_yield();
         destroy_entry(q->refcnt, entry);
     }
     return v;
@@ -448,6 +449,7 @@ queue_pop_right(queue_t *q)
         ATOMIC_DECREMENT(q->length);
         store_ref(q->refcnt, &entry->next, NULL);
         store_ref(q->refcnt, &entry->prev, NULL);
+        sched_yield();
         destroy_entry(q->refcnt, entry);
     }
     return v;
