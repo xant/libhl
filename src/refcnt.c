@@ -13,7 +13,7 @@ struct __refcnt_node {
     void *ptr;
     void *priv;
     uint32_t count;
-    int delete;
+    uint8_t delete;
 };
 
 struct __refcnt {
