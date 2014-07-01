@@ -37,7 +37,7 @@ typedef struct __queue queue_t;
 
 /**
  * @brief Create a new queue
- * @param expected_size If non zero specifies how big the queue is expected to
+ * @param expected_size : If non zero specifies how big the queue is expected to
  *        grow. While this doesn't impose any limit, this size hints the queue
  *        on how many spare wrapper structures to keep ready for use, with the
  *        intent of mitigate frequent allocs/frees when the queue is being used
@@ -47,7 +47,17 @@ typedef struct __queue queue_t;
  */
 queue_t *queue_create();
 
-void queue_set_bpool_size(queue_t *q, uint32_t size);
+/**
+ * @brief Set the size of the internal buffer pool
+ * @param q : A valid pointer to a queue_t structure
+ * @param size : The size of the buffer pool
+ * @return The old size of the buffer pool (if any, 0 otherwise)
+ * @note If a buffer pool is used (size > 0) queue_entry_t structures,
+ * used internally by the queue implementation to encapsulate the
+ * actual values, will be reused when possible by maintaining an internal
+ * pool of at most 'size' spare entries
+ */
+uint32_t queue_set_bpool_size(queue_t *q, uint32_t size);
 
 /**
  * @brief Initialize a pre-allocated queue

@@ -46,7 +46,7 @@ queue_create()
     return q;
 }
 
-void
+uint32_t
 queue_set_bpool_size(queue_t *q, uint32_t size)
 {
     rqueue_t *new_queue = rqueue_create(size, RQUEUE_MODE_BLOCKING);
@@ -56,7 +56,7 @@ queue_set_bpool_size(queue_t *q, uint32_t size)
 
     if (old_size == size) {
         rqueue_destroy(new_queue);
-        return;
+        return old_size;
     }
 
     rqueue_t *old_queue = ATOMIC_READ(q->bpool);
@@ -67,6 +67,7 @@ queue_set_bpool_size(queue_t *q, uint32_t size)
     } else {
         rqueue_destroy(new_queue);
     }
+    return old_size;
 }
 
 /*
