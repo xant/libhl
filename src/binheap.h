@@ -263,34 +263,34 @@ uint32_t binheap_count(binheap_t *bh);
 /**
  * @brief Default callbacks to handle 16bit signed integer keys
  */
-extern inline const binheap_callbacks_t *binheap_keys_callbacks_int16_t();
+extern const binheap_callbacks_t *binheap_keys_callbacks_int16_t();
 /**
  * @brief Default callbacks to handle 32bit signed integer keys
  */
-extern inline const binheap_callbacks_t *binheap_keys_callbacks_int32_t();
+extern const binheap_callbacks_t *binheap_keys_callbacks_int32_t();
 /**
  * @brief Default callbacks to handle 64bit signed integer keys
  */
-extern inline const binheap_callbacks_t *binheap_keys_callbacks_int64_t();
+extern const binheap_callbacks_t *binheap_keys_callbacks_int64_t();
 /**
  * @brief Default callbacks to handle 16bit unsigned integer keys
  */
-extern inline const binheap_callbacks_t *binheap_keys_callbacks_uint16_t();
+extern const binheap_callbacks_t *binheap_keys_callbacks_uint16_t();
 /**
  * @brief Default callbacks to handle 32bit unsigned integer keys
  */
-extern inline const binheap_callbacks_t *binheap_keys_callbacks_uint32_t();
+extern const binheap_callbacks_t *binheap_keys_callbacks_uint32_t();
 /**
  * @brief Default callbacks to handle 64bit unsigned integer keys
  */
-extern inline const binheap_callbacks_t *binheap_keys_callbacks_uint64_t();
+extern const binheap_callbacks_t *binheap_keys_callbacks_uint64_t();
 /**
  * @brief Default callbacks to handle float keys
  */
-extern inline const binheap_callbacks_t *binheap_keys_callbacks_float();
+extern const binheap_callbacks_t *binheap_keys_callbacks_float();
 /**
  * @brief Default callbacks to handle double keys
  */
-extern inline const binheap_callbacks_t *binheap_keys_callbacks_double();
+extern const binheap_callbacks_t *binheap_keys_callbacks_double();
 
 #endif

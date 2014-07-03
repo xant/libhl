@@ -1,5 +1,6 @@
 #include "binheap.h"
 #include "linklist.h"
+#include <stdio.h>
 
 typedef struct __binomial_tree_node_s {
     void *key;
@@ -810,14 +811,14 @@ binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv)
 
 #define BINHEAP_INCR_KEY_TYPE(__type, __k, __ks, __nk, __nks, __incr) \
 { \
-    __type __ki = *((__type *)__k); \
+    __type __ki = *((__type *)(__k)); \
     __ki += __incr; \
     if (__nks) \
         *(__nks) = __ks; \
     if (__nk) { \
-        *__nk = malloc(__ks); \
-        __type *__nkp = *__nk; \
-        *__nkp = __ki; \
+        *(__nk) = malloc((__ks)); \
+        __type *__nkp = *(__nk); \
+        *(__nkp) = __ki; \
     } \
 }
 
@@ -845,13 +846,13 @@ binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv)
 static inline void \
 binheap_incr_key_##__type(void *k, size_t ksize, void **nk, size_t *nksize, int incr) \
 { \
-    BINHEAP_INCR_KEY_TYPE(int16_t, k, ksize, nk, nksize, incr); \
+    BINHEAP_INCR_KEY_TYPE(__type, k, ksize, nk, nksize, incr); \
 } \
 \
 static inline void \
 binheap_decr_key_##__type(void *k, size_t ksize, void **nk, size_t *nksize, int decr) \
 { \
-    BINHEAP_DECR_KEY_TYPE(int16_t, k, ksize, nk, nksize, decr); \
+    BINHEAP_DECR_KEY_TYPE(__type, k, ksize, nk, nksize, decr); \
 } \
 \
 inline const binheap_callbacks_t * \
