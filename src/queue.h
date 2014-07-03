@@ -124,15 +124,6 @@ int queue_push_left(queue_t *q, void *val);
  */
 void *queue_pop_left(queue_t *q);
 
-/**
- * @brief Push a new value at a specific position
- * @param q : A valid pointer to a queue_t structure
- * @param pos : The position where to insert the new item
- * @param value : The value to store in the tail of the queue
- * @return : 0 if success, -1 otherwise
- */
-int queue_push_position(queue_t *q, uint32_t pos, void *value);
-
 #ifdef __cplusplus
 }
 #endif
