@@ -43,6 +43,7 @@
 #define HT_SIZE_MIN 128
 
 #pragma pack(push, 1)
+// size is 32 bytes on 32bit systems and 64 bytes on 64bit ones
 typedef struct __ht_item {
     uint32_t hash;
     void    *key;
@@ -56,7 +57,6 @@ typedef struct __ht_item {
     char padding[4];
 #endif
 } ht_item_t;
-#pragma pack(pop)
 
 typedef struct {
     TAILQ_HEAD(, __ht_item) head;
@@ -81,6 +81,7 @@ struct __hashtable {
 #endif
     ht_free_item_callback_t free_item_cb;
 };
+#pragma pack(pop)
 
 typedef struct __ht_iterator_callback {
     int (*cb)();

@@ -11,6 +11,7 @@
 #include "atomic_defs.h"
 
 #pragma pack(push, 1)
+// size is 32 bytes on 32bit systems and 64 bytes on 64bit ones
 typedef struct __queue_entry {
     refcnt_node_t *node;
     refcnt_node_t *prev;
@@ -23,8 +24,8 @@ typedef struct __queue_entry {
     char padding[12];
 #endif
 } queue_entry_t;
-#pragma pack(pop)
 
+// size is 32 bytes on 32bit systems and 64 bytes on 64bit ones
 struct __queue {
     refcnt_t *refcnt;
     queue_entry_t *head;
@@ -34,7 +35,11 @@ struct __queue {
     queue_free_value_callback_t free_value_cb;
     rqueue_t *bpool;
     uint32_t bpool_size;
+#if UINTPTR_MAX == 0xffffffffffffffff
+    char padding[12];
+#endif
 };
+#pragma pack(pop)
 
 /*
  * Create a new queue_t. Allocates resources and returns
