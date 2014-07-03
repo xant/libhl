@@ -18,11 +18,6 @@ typedef struct __queue_entry {
     refcnt_node_t *next;
     void *value;
     queue_t *queue;
-#if UINTPTR_MAX == 0xffffffffffffffff
-    char padding[24];
-#else
-    char padding[12];
-#endif
 } queue_entry_t;
 
 // size is 32 bytes on 32bit systems and 64 bytes on 64bit ones
@@ -35,9 +30,6 @@ struct __queue {
     queue_free_value_callback_t free_value_cb;
     rqueue_t *bpool;
     uint32_t bpool_size;
-#if UINTPTR_MAX == 0xffffffffffffffff
-    char padding[12];
-#endif
 };
 #pragma pack(pop)
 

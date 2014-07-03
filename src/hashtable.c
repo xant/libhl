@@ -51,11 +51,6 @@ typedef struct __ht_item {
     void    *data;
     size_t   dlen;
     TAILQ_ENTRY(__ht_item) next;
-#if UINTPTR_MAX == 0xffffffffffffffff
-    char padding[12];
-#else
-    char padding[4];
-#endif
 } ht_item_t;
 
 typedef struct {

@@ -14,11 +14,6 @@ struct __refcnt_node {
     void *priv;
     uint32_t count;
     uint8_t delete;
-#if UINTPTR_MAX == 0xffffffffffffffff
-    char padding[11];
-#else
-    char padding[3];
-#endif
 };
 #pragma pack(pop)
 
