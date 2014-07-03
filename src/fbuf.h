@@ -125,10 +125,10 @@ void fbuf_clear(fbuf_t *fbuf);
  * @brief Detach the underlying buffer and reset the fbuf
  * @param fbuf fbuf
  * @param buf A reference to the pointer where to store the addres of the actual buffer
- * @param used If not NULL, the amount of bytes actually used in the buffer is stored at the pointed address
- * @returns The size of the detached buffer (now stored in *buf)
+ * @param len If not NULL, the size of the detached buffer is stored at the pointed address
+ * @returns The amount of bytes actually used in the buffer is stored at the pointed address
  */
-unsigned int fbuf_detach(fbuf_t *fbuf, char **buf, int *used);
+unsigned int fbuf_detach(fbuf_t *fbuf, char **buf, int *len);
 
 /**
  * @brief Attach a pre-existing buffer to an fbuf
