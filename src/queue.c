@@ -10,13 +10,20 @@
 #include "rqueue.h"
 #include "atomic_defs.h"
 
+#pragma pack(push, 1)
 typedef struct __queue_entry {
     refcnt_node_t *node;
     refcnt_node_t *prev;
     refcnt_node_t *next;
     void *value;
     queue_t *queue;
+#if UINTPTR_MAX == 0xffffffffffffffff
+    char padding[24];
+#else
+    char padding[12];
+#endif
 } queue_entry_t;
+#pragma pack(pop)
 
 struct __queue {
     refcnt_t *refcnt;

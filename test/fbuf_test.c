@@ -77,7 +77,7 @@ failure(fbuf_t *fbuf, const char *fmt, ...)
            fbuf->slowgrowsize, fbuf->fastgrowsize);
     printf("  contents: ");
     if (fdata)
-        printf("\"%s\" (%lub)\n", ascii_escape(fdata, strlen(fdata)), strlen(fdata));
+        printf("\"%s\" (%zub)\n", ascii_escape(fdata, strlen(fdata)), strlen(fdata));
     else
         printf("<empty>\n");
 

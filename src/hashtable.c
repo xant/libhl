@@ -42,6 +42,7 @@
 
 #define HT_SIZE_MIN 128
 
+#pragma pack(push, 1)
 typedef struct __ht_item {
     uint32_t hash;
     void    *key;
@@ -49,7 +50,13 @@ typedef struct __ht_item {
     void    *data;
     size_t   dlen;
     TAILQ_ENTRY(__ht_item) next;
+#if UINTPTR_MAX == 0xffffffffffffffff
+    char padding[12];
+#else
+    char padding[4];
+#endif
 } ht_item_t;
+#pragma pack(pop)
 
 typedef struct {
     TAILQ_HEAD(, __ht_item) head;
