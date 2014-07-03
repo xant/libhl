@@ -34,8 +34,8 @@ extern "C" {
 #include <stdlib.h>
 
 #define FBUF_MINLEN       128     //!< Minimum size of buffer
-#define FBUF_FASTGROWSIZE 1<<18   //!< Grow quickly up to 256KB ...
-#define FBUF_SLOWGROWSIZE 1<<16   //!< ... and slowly after that (+64kB)
+#define FBUF_FASTGROWSIZE 1<<16   //!< Grow quickly up to 64KB ...
+#define FBUF_SLOWGROWSIZE 1<<10   //!< ... and slowly after that (1KB)
 #define FBUF_MAXLEN_NONE 0 //!< No preferred maximum length for fbuf.
 #define FBUF_STATIC_INITIALIZER { 0, NULL, 0, FBUF_MAXLEN_NONE, FBUF_MINLEN, \
                                   FBUF_FASTGROWSIZE, FBUF_SLOWGROWSIZE, 0, 0 }
