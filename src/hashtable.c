@@ -43,9 +43,9 @@
 #define HT_SIZE_MIN 128
 
 #pragma pack(push, 1)
-// size is 32 bytes on 32bit systems and 64 bytes on 64bit ones
 typedef struct __ht_item {
     uint32_t hash;
+    char     kbuf[32];
     void    *key;
     size_t   klen;
     void    *data;
@@ -177,7 +177,8 @@ ht_clear(hashtable_t *table)
             TAILQ_REMOVE(&list->head, item, next);
             if (table->free_item_cb)
                 table->free_item_cb(item->data);
-            free(item->key);
+            if (item->key != item->kbuf)
+                free(item->key);
             free(item);
             ATOMIC_DECREMENT(table->count);
         }
@@ -346,13 +347,12 @@ ht_set_internal(hashtable_t *table,
         }
         item->hash = hash;
         item->klen = klen;
-        item->key = malloc(klen);
-        if (!item->key) {
-            //fprintf(stderr, "Can't copy key: %s\n", strerror(errno));
-            SPIN_UNLOCK(list->lock);
-            free(item);
-            return -1;
-        }
+
+        if (klen > sizeof(item->kbuf))
+            item->key = malloc(klen);
+        else
+            item->key = item->kbuf;
+
         memcpy(item->key, key, klen);
 
         if (copy) {
@@ -536,7 +536,8 @@ ht_delete(hashtable_t *table,
             prev = item->data;
             plen = item->dlen;
             TAILQ_REMOVE(&list->head, item, next);
-            free(item->key);
+            if (item->key != item->kbuf)
+                free(item->key);
             free(item);
             ATOMIC_DECREMENT(table->count);
             break;
@@ -780,7 +781,8 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
                 TAILQ_REMOVE(&list->head, item, next);
                 if (table->free_item_cb)
                     table->free_item_cb(item->data);
-                free(item->key);
+                if (item->key != item->kbuf)
+                    free(item->key);
                 free(item);
                 ATOMIC_DECREMENT(table->count);
                 if (rc == -2) {
