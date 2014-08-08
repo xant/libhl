@@ -802,3 +802,5 @@ ht_count(hashtable_t *table)
     return ATOMIC_READ(table->count);
 }
 
+/* vim: tabstop=4 shiftwidth=4 expandtab: */
+/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */

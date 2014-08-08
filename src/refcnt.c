@@ -207,3 +207,6 @@ get_node_refcount(refcnt_node_t *node)
 {
     return ATOMIC_READ(node->count);
 }
+
+/* vim: tabstop=4 shiftwidth=4 expandtab: */
+/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */

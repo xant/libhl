@@ -160,3 +160,6 @@ void store_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *ref);
 int get_node_refcount(refcnt_node_t *node);
 
 #endif
+
+/* vim: tabstop=4 shiftwidth=4 expandtab: */
+/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */

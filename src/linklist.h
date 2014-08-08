@@ -377,3 +377,6 @@ uint32_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *v
 #endif
 
 #endif
+
+/* vim: tabstop=4 shiftwidth=4 expandtab: */
+/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */

@@ -686,3 +686,6 @@ void rbt_print(rbt_t *rbt)
         printf("%s\n", s[i]);
 }
 #endif
+
+/* vim: tabstop=4 shiftwidth=4 expandtab: */
+/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
