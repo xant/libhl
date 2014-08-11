@@ -327,5 +327,5 @@ rbuf_copy(rbuf_t *src, rbuf_t *dst, int len)
     return rbuf_copy_internal(src, dst, len, 0);
 }
 
-/* vim: tabstop=4 shiftwidth=4 expandtab: */
+// vim: tabstop=4 shiftwidth=4 expandtab:
 /* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */

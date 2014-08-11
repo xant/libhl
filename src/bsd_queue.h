@@ -560,5 +560,5 @@ void	remque(void *a);
 
 #endif /* !_SYS_QUEUE_H_ */
 
-/* vim: tabstop=4 shiftwidth=4 expandtab: */
+// vim: tabstop=4 shiftwidth=4 expandtab:
 /* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
