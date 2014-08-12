@@ -112,6 +112,24 @@ void list_destroy(linked_list_t *list)
     }
 }
 
+static void list_destroy_tagged_value_internal(tagged_value_t *tval, void (*free_cb)(void *v))
+{
+    if(tval) 
+    {
+        if(tval->tag)
+            free(tval->tag);
+        if(tval->value) {
+            if(tval->type == TV_TYPE_LIST) 
+                list_destroy((linked_list_t *)tval->value);
+            else if (free_cb)
+                free_cb(tval->value);
+            else if (tval->vlen)
+                free(tval->value);
+        }
+        free(tval);
+    }
+}
+
 /*
  * Clear a linked_list_t. Removes all entries in list
  * if values are associated to entries, resources for those will not be freed.
@@ -791,24 +809,6 @@ tagged_value_t *list_create_tagged_sublist(char *tag, linked_list_t *sublist)
     newval->type = TV_TYPE_LIST;
     newval->value = sublist;
     return newval;
-}
-
-static void list_destroy_tagged_value_internal(tagged_value_t *tval, void (*free_cb)(void *v))
-{
-    if(tval) 
-    {
-        if(tval->tag)
-            free(tval->tag);
-        if(tval->value) {
-            if(tval->type == TV_TYPE_LIST) 
-                list_destroy((linked_list_t *)tval->value);
-            else if (free_cb)
-                free_cb(tval->value);
-            else if (tval->vlen)
-                free(tval->value);
-        }
-        free(tval);
-    }
 }
 
 /* Release resources for tagged_value_t pointed by tval */
