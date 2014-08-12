@@ -127,7 +127,7 @@ void list_clear(linked_list_t *list)
         /* if there is a tagged_value_t associated to the entry, 
         * let's free memory also for it */
         if(e->tagged && e->value)
-            list_destroy_tagged_value((tagged_value_t *)e->value);
+            list_destroy_tagged_value_internal((tagged_value_t *)e->value, list->free_value_cb);
         else if (list->free_value_cb)
             list->free_value_cb(e->value);
         
@@ -793,8 +793,7 @@ tagged_value_t *list_create_tagged_sublist(char *tag, linked_list_t *sublist)
     return newval;
 }
 
-/* Release resources for tagged_value_t pointed by tval */
-void list_destroy_tagged_value(tagged_value_t *tval) 
+static void list_destroy_tagged_value_internal(tagged_value_t *tval, void (*free_cb)(void *v))
 {
     if(tval) 
     {
@@ -803,11 +802,19 @@ void list_destroy_tagged_value(tagged_value_t *tval)
         if(tval->value) {
             if(tval->type == TV_TYPE_LIST) 
                 list_destroy((linked_list_t *)tval->value);
+            else if (free_cb)
+                free_cb(tval->value);
             else if (tval->vlen)
                 free(tval->value);
         }
         free(tval);
     }
+}
+
+/* Release resources for tagged_value_t pointed by tval */
+void list_destroy_tagged_value(tagged_value_t *tval) 
+{
+    list_destroy_tagged_value_internal(tval, NULL);
 }
 
 /* Pops a tagged_value_t from the list pointed by list */
