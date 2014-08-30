@@ -536,8 +536,10 @@ ht_delete_internal (hashtable_t *table,
             memcmp(item->key, key, klen) == 0)
         {
 
-            if (match && (match_size != item->dlen || memcmp(match, item->data, match_size) != 0))
+            if (match && (match_size != item->dlen || memcmp(match, item->data, match_size) != 0)) {
+                SPIN_UNLOCK(list->lock);
                 return ret;
+            }
 
             prev = item->data;
             plen = item->dlen;
