@@ -226,6 +226,15 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
  */
 int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size_t *prev_len);
 
+/**
+ * @brief Delete the value stored at a specific key only if it matches a provided buffer
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key : The key to use
+ * @param klen : The length of the key
+ * @param match : A valid pointer to the data we need to match in order to delete the value
+ * @param match_size : The value of the data to match
+ * @return 0 on success, -1 otherwise
+ */
 int ht_delete_if_equals(hashtable_t *table, void *key, size_t klen, void *match, size_t match_size);
 
 /**
