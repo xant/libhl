@@ -42,6 +42,12 @@
 
 #define HT_SIZE_MIN 128
 
+#define HT_KEY_EQUALS(__k1,__kl1, __k2, __kl2) \
+            (((char *)(__k1))[0] == ((char *)(__k2))[0] && \
+            (__kl1) == (__kl2) && \
+            memcmp((__k1), (__k2), (__kl1)) == 0)
+
+
 #pragma pack(push, 1)
 typedef struct __ht_item {
     uint32_t hash;
@@ -328,9 +334,7 @@ ht_set_internal(hashtable_t *table,
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
         if (/*ht_item->hash == arg->item.hash && */
-            ((char *)item->key)[0] == ((char *)key)[0] &&
-            item->klen == klen &&
-            memcmp(item->key, key, klen) == 0)
+            HT_KEY_EQUALS(item->key, item->klen, key, klen))
         {
             prev = item->data;
             plen = item->dlen;
@@ -480,9 +484,7 @@ ht_unset(hashtable_t *table,
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
         if (/*ht_item->hash == arg->item.hash && */
-            ((char *)item->key)[0] == ((char *)key)[0] &&
-            item->klen == klen &&
-            memcmp(item->key, key, klen) == 0)
+            HT_KEY_EQUALS(item->key, item->klen, key, klen))
         {
             prev = item->data;
             plen = item->dlen;
@@ -531,9 +533,7 @@ ht_delete_internal (hashtable_t *table,
     ht_item_t *tmp;
     TAILQ_FOREACH_SAFE(item, &list->head, next, tmp) {
         if (/*ht_item->hash == arg->item.hash && */
-            ((char *)item->key)[0] == ((char *)key)[0] &&
-            item->klen == klen &&
-            memcmp(item->key, key, klen) == 0)
+            HT_KEY_EQUALS(item->key, item->klen, key, klen))
         {
 
             if (match && (match_size != item->dlen || memcmp(match, item->data, match_size) != 0)) {
@@ -597,9 +597,7 @@ ht_exists(hashtable_t *table, void *key, size_t klen)
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
         if (/*ht_item->hash == arg->item.hash && */
-            ((char *)item->key)[0] == ((char *)key)[0] &&
-            item->klen == klen &&
-            memcmp(item->key, key, klen) == 0)
+            HT_KEY_EQUALS(item->key, item->klen, key, klen))
         {
             SPIN_UNLOCK(list->lock);
             return 1;
@@ -630,9 +628,7 @@ ht_get_internal(hashtable_t *table,
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
         if (/*ht_item->hash == arg->item.hash && */
-            ((char *)item->key)[0] == ((char *)key)[0] &&
-            item->klen == klen &&
-            memcmp(item->key, key, klen) == 0)
+            HT_KEY_EQUALS(item->key, item->klen, key, klen))
         {
             if (copy) {
                 if (copy_cb) {
