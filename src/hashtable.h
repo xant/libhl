@@ -226,6 +226,8 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
  */
 int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size_t *prev_len);
 
+int ht_delete_if_equals(hashtable_t *table, void *key, size_t klen, void *match, size_t match_size);
+
 /**
  * @brief Return the count of items actually stored in the table
  * @param table : A valid pointer to an hashtable_t structure

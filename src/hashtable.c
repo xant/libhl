@@ -507,12 +507,14 @@ ht_unset(hashtable_t *table,
     return 0;
 }
 
-int
-ht_delete(hashtable_t *table,
-          void *key,
-          size_t klen,
-          void **prev_data,
-          size_t *prev_len)
+static inline int
+ht_delete_internal (hashtable_t *table,
+                    void *key,
+                    size_t klen,
+                    void **prev_data,
+                    size_t *prev_len,
+                    void *match,
+                    size_t match_size)
 {
     int ret = -1;
 
@@ -533,6 +535,10 @@ ht_delete(hashtable_t *table,
             item->klen == klen &&
             memcmp(item->key, key, klen) == 0)
         {
+
+            if (match && (match_size != item->dlen || memcmp(match, item->data, match_size) != 0))
+                return ret;
+
             prev = item->data;
             plen = item->dlen;
             TAILQ_REMOVE(&list->head, item, next);
@@ -559,6 +565,22 @@ ht_delete(hashtable_t *table,
     }
 
     return ret;
+}
+
+int
+ht_delete (hashtable_t *table,
+           void *key,
+           size_t klen,
+           void **prev_data,
+           size_t *prev_len)
+{
+    return ht_delete_internal(table, key, klen, prev_data, prev_len, NULL, 0);
+}
+
+int
+ht_delete_if_equals(hashtable_t *table, void *key, size_t klen, void *match, size_t match_size)
+{
+    return ht_delete_internal(table, key, klen, NULL, NULL, match, match_size);
 }
 
 int
