@@ -199,6 +199,17 @@ int ht_set_copy(hashtable_t *table, void *key, size_t klen, void *data, size_t d
 int ht_set_if_not_exists(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen);
 
 /**
+ * @brief Set a new value stored at a specific key only if the actual one matches some provided data
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key : The key to use
+ * @param klen : The length of the key
+ * @param match : A valid pointer to the data we need to match in order to delete the value
+ * @param match_size : The value of the data to match
+ * @return 0 on success, -1 otherwise
+ */
+int ht_set_if_equals(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen, void *match, size_t match_size);
+
+/**
  * @brief Unset the value stored at a specific key
  * @param table : A valid pointer to an hashtable_t structure
  * @param key : The key to use
@@ -227,7 +238,7 @@ int ht_unset(hashtable_t *table, void *key, size_t klen, void **prev_data, size_
 int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size_t *prev_len);
 
 /**
- * @brief Delete the value stored at a specific key only if it matches a provided buffer
+ * @brief Delete the value stored at a specific key only if it matches some provided data
  * @param table : A valid pointer to an hashtable_t structure
  * @param key : The key to use
  * @param klen : The length of the key
@@ -236,6 +247,28 @@ int ht_delete(hashtable_t *table, void *key, size_t klen, void **prev_data, size
  * @return 0 on success, -1 otherwise
  */
 int ht_delete_if_equals(hashtable_t *table, void *key, size_t klen, void *match, size_t match_size);
+
+/**
+ * @brief Callback called if an item for a given key is found
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key : The key to use
+ * @param klen : The length of the key
+ * @return 0 on success
+ *         1 on success and the item must be removed from the hashtable
+ *        -1 on error
+ */
+typedef int (*ht_pair_callback_t)(hashtable_t *table, void *key, size_t klen, void **value, size_t *vlen, void *user);
+
+/**
+ * @brief call the provided callback passing the item stored at the specified key (if any)
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key : The key to use
+ * @param klen : The length of the key
+ * @param cb : The callback
+ * @param user : A private pointer which will be passed to the callback when invoked
+ * @note the callback is called while the bucket-level mutex is being retained
+ */
+int ht_call(hashtable_t *table, void *key, size_t klen, ht_pair_callback_t cb, void *user);
 
 /**
  * @brief Return the count of items actually stored in the table
@@ -310,6 +343,12 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
 
 /**
  * @brief Callback for the pair iterator
+ * @param table : A valid pointer to an hashtable_t structure
+ * @param key : The key
+ * @param klen : The length of the key
+ * @param value : The value
+ * @param vlen : The length of the value
+ * @param user : The user pointer passed as argument to the ht_foreach_pair() function
  * @return 1 to go ahead with the iteration,
  *         0 to stop the iteration,
  *        -1 to remove the current item from the table and go ahead with the iteration

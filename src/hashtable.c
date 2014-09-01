@@ -464,6 +464,128 @@ ht_set_copy(hashtable_t *table,
     return ht_set_internal(table, key, klen, data, dlen, prev_data, prev_len, 1, 0);
 }
 
+
+typedef struct {
+    void *data;
+    size_t dlen;
+    void *match;
+    size_t match_size;
+} ht_set_if_equals_helper_arg_t;
+
+static int
+ht_set_if_equals_helper(hashtable_t *table, void *key, size_t klen, void **value, size_t *vlen, void *user)
+{
+    ht_set_if_equals_helper_arg_t *arg = (ht_set_if_equals_helper_arg_t *)user;
+     
+    if (arg->match_size == *vlen && ((char *)*value)[0] == *((char *)arg->match) &&
+        memcmp(*value, arg->match, arg->match_size) == 0)
+    {
+        if (table->free_item_cb)
+            table->free_item_cb(*value);
+        *value = arg->data;
+        *vlen = arg->dlen;
+    }
+    return 0;
+}
+
+int
+ht_set_if_equals(hashtable_t *table,
+                 void *key,
+                 size_t klen,
+                 void *data,
+                 size_t dlen,
+                 void *match,
+                 size_t match_size)
+{
+    if (!match && match_size == 0)
+        return ht_set_if_not_exists(table, key, klen, data, dlen);
+
+    ht_set_if_equals_helper_arg_t arg = {
+        .data = data,
+        .dlen = dlen,
+        .match = match,
+        .match_size = match_size
+    };
+    return ht_call(table, key, klen, ht_set_if_equals_helper, (void *)&arg);
+}
+
+int
+ht_call(hashtable_t *table,
+        void *key,
+        size_t klen,
+        ht_pair_callback_t cb,
+        void *user)
+{
+    int ret = -1;
+
+    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
+
+    ht_items_list_t *list  = ht_get_list(table, hash);
+    if (!list)
+        return ret;
+
+    ht_item_t *item = NULL;
+    ht_item_t *tmp;
+    TAILQ_FOREACH_SAFE(item, &list->head, next, tmp) {
+        if (/*ht_item->hash == arg->item.hash && */
+            HT_KEY_EQUALS(item->key, item->klen, key, klen))
+        {
+            if (cb) {
+                ret = cb(table, key, klen, &item->data, &item->dlen, user);
+                if (ret == 1) {
+                    TAILQ_REMOVE(&list->head, item, next);
+                    if (item->key != item->kbuf)
+                        free(item->key);
+                    free(item);
+                    ATOMIC_DECREMENT(table->count);
+                }
+            } else {
+                ret = 0;
+            }
+            break;
+        }
+    }
+
+    SPIN_UNLOCK(list->lock);
+
+    return ret;
+}
+
+
+typedef struct
+{
+    int  unset;
+    void **prev_data;
+    size_t *prev_len;
+    void *match;
+    size_t match_size;
+} ht_delete_helper_arg_t;
+
+static int
+ht_delete_helper(hashtable_t *table, void *key, size_t klen, void **value, size_t *vlen, void *user)
+{
+    ht_delete_helper_arg_t *arg = (ht_delete_helper_arg_t *)user;
+
+    if (arg->match && (arg->match_size != *vlen || memcmp(arg->match, *value, *vlen) != 0))
+        return -1;
+
+    if (arg->prev_data)
+        *arg->prev_data = *value;
+    else if (table->free_item_cb)
+        table->free_item_cb(*value);
+    
+    if (arg->prev_len)
+        *arg->prev_len = *vlen;
+
+    if (arg->unset) {
+        *vlen = 0;
+        *value = NULL;
+        return 0;
+    }
+
+    return 1; // we want the item to be removed
+}
+
 int
 ht_unset(hashtable_t *table,
          void *key,
@@ -471,42 +593,15 @@ ht_unset(hashtable_t *table,
          void **prev_data,
          size_t *prev_len)
 {
-    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
+    ht_delete_helper_arg_t arg = {
+        .unset = 1,
+        .prev_data = prev_data,
+        .prev_len = prev_len,
+        .match = NULL,
+        .match_size = 0
+    };
 
-
-    ht_items_list_t *list  = ht_get_list(table, hash);
-    if (!list)
-        return -1;
-
-    void *prev = NULL;
-    size_t plen = 0;
-
-    ht_item_t *item = NULL;
-    TAILQ_FOREACH(item, &list->head, next) {
-        if (/*ht_item->hash == arg->item.hash && */
-            HT_KEY_EQUALS(item->key, item->klen, key, klen))
-        {
-            prev = item->data;
-            plen = item->dlen;
-            item->data = NULL;
-            item->dlen = 0;
-            break;
-        }
-    }
-
-    SPIN_UNLOCK(list->lock);
-
-    if (prev) {
-        if (prev_data)
-            *prev_data = prev;
-        else if (table->free_item_cb)
-            table->free_item_cb(prev);
-
-        if (prev_len)
-            *prev_len = plen;
-    }
-
-    return 0;
+    return ht_call(table, key, klen, ht_delete_helper, (void *)&arg);
 }
 
 static inline int
@@ -518,55 +613,16 @@ ht_delete_internal (hashtable_t *table,
                     void *match,
                     size_t match_size)
 {
-    int ret = -1;
 
-    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
+    ht_delete_helper_arg_t arg = {
+        .unset = 0,
+        .prev_data = prev_data,
+        .prev_len = prev_len,
+        .match = match,
+        .match_size = match_size
+    };
 
-    ht_items_list_t *list  = ht_get_list(table, hash);
-    if (!list)
-        return ret;
-
-    void *prev = NULL;
-    size_t plen = 0;
-
-    ht_item_t *item = NULL;
-    ht_item_t *tmp;
-    TAILQ_FOREACH_SAFE(item, &list->head, next, tmp) {
-        if (/*ht_item->hash == arg->item.hash && */
-            HT_KEY_EQUALS(item->key, item->klen, key, klen))
-        {
-
-            if (match && (match_size != item->dlen || memcmp(match, item->data, match_size) != 0)) {
-                SPIN_UNLOCK(list->lock);
-                return ret;
-            }
-
-            prev = item->data;
-            plen = item->dlen;
-            TAILQ_REMOVE(&list->head, item, next);
-            if (item->key != item->kbuf)
-                free(item->key);
-            free(item);
-            ATOMIC_DECREMENT(table->count);
-            break;
-        }
-    }
-
-    SPIN_UNLOCK(list->lock);
-
-    if (prev) {
-        if (prev_data)
-            *prev_data = prev;
-        else if (table->free_item_cb)
-            table->free_item_cb(prev);
-
-        if (prev_len)
-            *prev_len = plen;
-
-        ret = 0;
-    }
-
-    return ret;
+    return ht_call(table, key, klen, ht_delete_helper, (void *)&arg);
 }
 
 int
@@ -588,23 +644,37 @@ ht_delete_if_equals(hashtable_t *table, void *key, size_t klen, void *match, siz
 int
 ht_exists(hashtable_t *table, void *key, size_t klen)
 {
-    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
+    return (ht_call(table, key, klen, NULL, NULL) == 0);
+}
 
-    ht_items_list_t *list  = ht_get_list(table, hash);
-    if (!list)
-        return 0;
+typedef struct {
+    void *data;
+    size_t *dlen;
+    int copy;
+    ht_deep_copy_callback_t copy_cb;
+    void *user;
+} ht_get_helper_arg_t;
 
-    ht_item_t *item = NULL;
-    TAILQ_FOREACH(item, &list->head, next) {
-        if (/*ht_item->hash == arg->item.hash && */
-            HT_KEY_EQUALS(item->key, item->klen, key, klen))
-        {
-            SPIN_UNLOCK(list->lock);
-            return 1;
+static int
+ht_get_helper(hashtable_t *table, void *key, size_t klen, void **value, size_t *vlen, void *user)
+{
+    ht_get_helper_arg_t *arg = (ht_get_helper_arg_t *)user;
+
+    if (arg->copy) {
+        if (arg->copy_cb) {
+            arg->data = arg->copy_cb(*value, *vlen, arg->user);
+        } else {
+            arg->data = malloc(*vlen);
+            memcpy(arg->data, *value, *vlen);
         }
+    } else {
+        arg->data = *value;
     }
 
-    SPIN_UNLOCK(list->lock);
+    if (arg->dlen)
+        *arg->dlen = *vlen;
+
+
     return 0;
 }
 
@@ -617,39 +687,17 @@ ht_get_internal(hashtable_t *table,
                 ht_deep_copy_callback_t copy_cb,
                 void *user)
 {
-    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
+    ht_get_helper_arg_t arg = {
+        .data = NULL,
+        .dlen = dlen,
+        .copy = copy,
+        .copy_cb = copy_cb,
+        .user = user
+    };
 
-    ht_items_list_t *list  = ht_get_list(table, hash);
-    if (!list)
-        return NULL;
+    ht_call(table, key, klen, ht_get_helper, (void *)&arg);
 
-    void *data = NULL;
-
-    ht_item_t *item = NULL;
-    TAILQ_FOREACH(item, &list->head, next) {
-        if (/*ht_item->hash == arg->item.hash && */
-            HT_KEY_EQUALS(item->key, item->klen, key, klen))
-        {
-            if (copy) {
-                if (copy_cb) {
-                    data = copy_cb(item->data, item->dlen, user);
-                } else {
-                    data = malloc(item->dlen);
-                    memcpy(data, item->data, item->dlen);
-                }
-            } else {
-                data = item->data;
-            }
-            if (dlen)
-                *dlen = item->dlen;
-
-            break;
-        }
-    }
-
-    SPIN_UNLOCK(list->lock);
-
-    return data;
+    return arg.data;
 }
 
 void *
