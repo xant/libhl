@@ -538,6 +538,7 @@ ht_call(hashtable_t *table,
                         free(item->key);
                     free(item);
                     ATOMIC_DECREMENT(table->count);
+                    ret = 0;
                 }
             } else {
                 ret = 0;
