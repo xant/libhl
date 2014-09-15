@@ -464,6 +464,58 @@ ht_set_copy(hashtable_t *table,
     return ht_set_internal(table, key, klen, data, dlen, prev_data, prev_len, 1, 0);
 }
 
+static inline int
+ht_call_internal(hashtable_t *table,
+        void *key,
+        size_t klen,
+        ht_pair_callback_t cb,
+        void *user)
+{
+    int ret = -1;
+
+    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
+
+    ht_items_list_t *list  = ht_get_list(table, hash);
+    if (!list)
+        return ret;
+
+    ht_item_t *item = NULL;
+    ht_item_t *tmp;
+    TAILQ_FOREACH_SAFE(item, &list->head, next, tmp) {
+        if (/*ht_item->hash == arg->item.hash && */
+            HT_KEY_EQUALS(item->key, item->klen, key, klen))
+        {
+            if (cb) {
+                ret = cb(table, key, klen, &item->data, &item->dlen, user);
+                if (ret == 1) {
+                    TAILQ_REMOVE(&list->head, item, next);
+                    if (item->key != item->kbuf)
+                        free(item->key);
+                    free(item);
+                    ATOMIC_DECREMENT(table->count);
+                    ret = 0;
+                }
+            } else {
+                ret = 0;
+            }
+            break;
+        }
+    }
+
+    SPIN_UNLOCK(list->lock);
+
+    return ret;
+}
+
+int
+ht_call(hashtable_t *table,
+        void *key,
+        size_t klen,
+        ht_pair_callback_t cb,
+        void *user)
+{
+    return ht_call_internal(table, key, klen, cb, user);
+}
 
 typedef struct {
     void *data;
@@ -506,50 +558,7 @@ ht_set_if_equals(hashtable_t *table,
         .match = match,
         .match_size = match_size
     };
-    return ht_call(table, key, klen, ht_set_if_equals_helper, (void *)&arg);
-}
-
-int
-ht_call(hashtable_t *table,
-        void *key,
-        size_t klen,
-        ht_pair_callback_t cb,
-        void *user)
-{
-    int ret = -1;
-
-    uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
-
-    ht_items_list_t *list  = ht_get_list(table, hash);
-    if (!list)
-        return ret;
-
-    ht_item_t *item = NULL;
-    ht_item_t *tmp;
-    TAILQ_FOREACH_SAFE(item, &list->head, next, tmp) {
-        if (/*ht_item->hash == arg->item.hash && */
-            HT_KEY_EQUALS(item->key, item->klen, key, klen))
-        {
-            if (cb) {
-                ret = cb(table, key, klen, &item->data, &item->dlen, user);
-                if (ret == 1) {
-                    TAILQ_REMOVE(&list->head, item, next);
-                    if (item->key != item->kbuf)
-                        free(item->key);
-                    free(item);
-                    ATOMIC_DECREMENT(table->count);
-                    ret = 0;
-                }
-            } else {
-                ret = 0;
-            }
-            break;
-        }
-    }
-
-    SPIN_UNLOCK(list->lock);
-
-    return ret;
+    return ht_call_internal(table, key, klen, ht_set_if_equals_helper, (void *)&arg);
 }
 
 
@@ -602,7 +611,7 @@ ht_unset(hashtable_t *table,
         .match_size = 0
     };
 
-    return ht_call(table, key, klen, ht_delete_helper, (void *)&arg);
+    return ht_call_internal(table, key, klen, ht_delete_helper, (void *)&arg);
 }
 
 static inline int
@@ -623,7 +632,7 @@ ht_delete_internal (hashtable_t *table,
         .match_size = match_size
     };
 
-    return ht_call(table, key, klen, ht_delete_helper, (void *)&arg);
+    return ht_call_internal(table, key, klen, ht_delete_helper, (void *)&arg);
 }
 
 int
@@ -645,7 +654,7 @@ ht_delete_if_equals(hashtable_t *table, void *key, size_t klen, void *match, siz
 int
 ht_exists(hashtable_t *table, void *key, size_t klen)
 {
-    return (ht_call(table, key, klen, NULL, NULL) == 0);
+    return (ht_call_internal(table, key, klen, NULL, NULL) == 0);
 }
 
 typedef struct {
@@ -696,7 +705,7 @@ ht_get_internal(hashtable_t *table,
         .user = user
     };
 
-    ht_call(table, key, klen, ht_get_helper, (void *)&arg);
+    ht_call_internal(table, key, klen, ht_get_helper, (void *)&arg);
 
     return arg.data;
 }
