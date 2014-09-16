@@ -39,7 +39,7 @@ extern "C" {
 #define FBUF_MAXLEN_NONE 0 //!< No preferred maximum length for fbuf.
 #define FBUF_STATIC_INITIALIZER { 0, NULL, 0, FBUF_MAXLEN_NONE, FBUF_MINLEN, \
                                   FBUF_FASTGROWSIZE, FBUF_SLOWGROWSIZE, 0, 0 }
-#define FBUF_STATIC_INITIALIZER_PARAMS(__maxlen, __minlen, __fastrgrow, __slowgrow) \
+#define FBUF_STATIC_INITIALIZER_PARAMS(__maxlen, __minlen, __fastgrow, __slowgrow) \
     { 0, NULL, 0, (__maxlen), (__minlen), (__fastgrow), (__slowgrow), 0, 0 }
 
 typedef struct __fbuf {
