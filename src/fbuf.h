@@ -42,6 +42,18 @@ extern "C" {
 #define FBUF_STATIC_INITIALIZER_PARAMS(__maxlen, __minlen, __fastgrow, __slowgrow) \
     { 0, NULL, 0, (__maxlen), (__minlen), (__fastgrow), (__slowgrow), 0, 0 }
 
+#define FBUF_STATIC_INITIALIZER_POINTER(__fbuf, __maxlen, __minlen, __fastgrow, __slowgrow) \
+    { \
+        (__fbuf)->id = 0; \
+        (__fbuf)->data = NULL; \
+        (__fbuf)->maxlen = (__maxlen); \
+        (__fbuf)->minlen = (__minlen); \
+        (__fbuf)->fastgrowsize = (__fastgrow); \
+        (__fbuf)->slowgrowsize = (__slowgrow); \
+        (__fbuf)->used = 0; \
+        (__fbuf)->skip = 0; \
+    }
+
 typedef struct __fbuf {
     unsigned int id;           //!< unique ID for the buffer for reference
     char *data;                //!< buffer. the caller should never access it directly but use 
