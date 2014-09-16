@@ -39,6 +39,8 @@ extern "C" {
 #define FBUF_MAXLEN_NONE 0 //!< No preferred maximum length for fbuf.
 #define FBUF_STATIC_INITIALIZER { 0, NULL, 0, FBUF_MAXLEN_NONE, FBUF_MINLEN, \
                                   FBUF_FASTGROWSIZE, FBUF_SLOWGROWSIZE, 0, 0 }
+#define FBUF_STATIC_INITIALIZER_PARAMS(__maxlen, __minlen, __fastrgrow, __slowgrow) \
+    { 0, NULL, 0, (__maxlen), (__minlen), (__fastgrow), (__slowgrow), 0, 0 }
 
 typedef struct __fbuf {
     unsigned int id;           //!< unique ID for the buffer for reference
@@ -46,7 +48,7 @@ typedef struct __fbuf {
                                //   the fbuf_data() function instead. If accessed directly,
                                //   the 'skip' member needs to be taken into account
     unsigned int len;          //!< allocated length of buffer
-    unsigned int prefmaxlen;   //!< preferred maximum allocated length of buffer
+    unsigned int maxlen;       //!< preferred maximum allocated length of buffer
     unsigned int minlen;       //!< the minimum allocated length of the buffer
     unsigned int fastgrowsize; //!< the size to quickly grow up to if writing more than misize bytes
     unsigned int slowgrowsize;
@@ -339,26 +341,13 @@ unsigned int fbuf_len(fbuf_t *fbuf);
 /**
  * @brief Set the prefmaxlen value on the fbuf.
  * @param fbuf fbuf
- * @param prefmaxlen new value for prefmaxlen. If UINT_MAX is passed no new
+ * @param maxlen new value for maxlen. If is passed no new
  *             value will be set but the current value will be still returned.
- * @returns Previous value for prefmaxlen.
- * @note if the buffer is already bigger than the newly configured prefmaxlen
+ * @returns Previous value for maxlen.
+ * @note if the buffer is already bigger than the newly configured maxlen
  *       it will be truncated to to fit the actual prefmaxlen value
  */
-unsigned int fbuf_prefmaxlen(fbuf_t *fbuf, unsigned int prefmaxlen);
-
-/**
- * @brief Set a hard limit on the size of all buffers and return the
- *        previously configured value.
- * @param maxlen hard limit on the size of a buffer. If UINT_MAX is passed no new
- *               value will be set but the current value will be still returned.
- *               0 means no limit.
- * @return Return the previous hard limit on the size of all buffers.
- *
- * @note If this limits is reached for a buffer an error will returned by any
- *       write/extend operation on the buffer
- */
-unsigned int fbuf_maxlen(unsigned int maxlen);
+unsigned int fbuf_maxlen(fbuf_t *fbuf, unsigned int maxlen);
 
 unsigned int fbuf_minlen(fbuf_t *fbuf, unsigned int minlen);
 

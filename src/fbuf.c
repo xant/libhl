@@ -28,9 +28,9 @@
     do { \
         __thread static int _debug = 0; \
         if (++_debug == 1) { \
-            DBG("%s: %d: %s, len = %d, prefmaxlen = %u, minlen = %u, " \
+            DBG("%s: %d: %s, len = %d, maxlen = %u, minlen = %u, " \
                 "slowgrowsize = %u, fastgrowsize = %u, used = %d\n", \
-                __FUNCTION__, fbuf->id, msg, fbuf->len, fbuf->prefmaxlen, \
+                __FUNCTION__, fbuf->id, msg, fbuf->len, fbuf->maxlen, \
                 fbuf->minlen, fbuf->slowgrowsize, fbuf->fastgrowsize, fbuf->used); \
             DBG("%s: %s\n", \
                    __FUNCTION__, hex_escape(fbuf->data, fbuf->used)); \
@@ -46,17 +46,16 @@
 #define FBUF_WRITE_EST    10240   //!< default value for fbuf_write()
 
 static int fbuf_count = 0;
-static unsigned int global_max_len = 0; //!< hard limit for size of all buffers
 
 fbuf_t *
-fbuf_create(unsigned int prefmaxlen)
+fbuf_create(unsigned int maxlen)
 {
     fbuf_t *fbuf = (fbuf_t *)calloc(1, sizeof(fbuf_t));
 
     if (fbuf) {
         DEBUG_FBUF_INFO(fbuf, "creating");
         fbuf->id = __sync_fetch_and_add(&fbuf_count, 1);
-        fbuf->prefmaxlen = prefmaxlen;
+        fbuf->maxlen = maxlen;
         fbuf->fastgrowsize = FBUF_FASTGROWSIZE;
         fbuf->slowgrowsize = FBUF_SLOWGROWSIZE;
         fbuf->minlen = FBUF_MINLEN;
@@ -84,18 +83,18 @@ fbuf_slowgrowsize(fbuf_t *fbuf, unsigned int size)
 }
 
 unsigned int
-fbuf_prefmaxlen(fbuf_t *fbuf, unsigned int len)
+fbuf_maxlen(fbuf_t *fbuf, unsigned int len)
 {
-    unsigned int old = fbuf->prefmaxlen;
+    unsigned int old = fbuf->maxlen;
     if (len < UINT_MAX)
-        fbuf->prefmaxlen = len;
-    if (fbuf->len > fbuf->prefmaxlen) {
+        fbuf->maxlen = len;
+    if (fbuf->len > fbuf->maxlen) {
         fbuf_shrink(fbuf);
-        fbuf->len = fbuf->prefmaxlen + 1;
+        fbuf->len = fbuf->maxlen + 1;
         fbuf->data = realloc(fbuf->data, fbuf->len);
-        if (fbuf->used >= fbuf->prefmaxlen)
-            fbuf->used = fbuf->prefmaxlen;
-        fbuf->data[fbuf->prefmaxlen] = 0;
+        if (fbuf->used >= fbuf->maxlen)
+            fbuf->used = fbuf->maxlen;
+        fbuf->data[fbuf->maxlen] = 0;
     }
     return old;
 }
@@ -143,7 +142,7 @@ fbuf_swap(fbuf_t *fbuf1, fbuf_t *fbuf2)
 fbuf_t *
 fbuf_duplicate(fbuf_t *fbufsrc)
 {
-    fbuf_t *fbufdst = fbuf_create(fbufsrc->prefmaxlen);
+    fbuf_t *fbufdst = fbuf_create(fbufsrc->maxlen);
     if (!fbufdst)
         return NULL;
 
@@ -178,13 +177,7 @@ fbuf_extend(fbuf_t *fbuf, unsigned int newlen)
         return fbuf->len;
     }
 
-    // We may only extend the buffer the current length of the buffer is less
-    // then both prefmaxlen (if this soft limit is set) and global_max_len
-    // (hard limit on fbuf buffer lengths)
-    unsigned int max_len = __sync_fetch_and_add(&global_max_len, 0);
-    if ((fbuf->prefmaxlen != FBUF_MAXLEN_NONE && newlen > fbuf->prefmaxlen + 1) ||
-       (max_len && newlen > max_len + 1))
-    {
+    if (fbuf->maxlen != FBUF_MAXLEN_NONE && newlen > fbuf->maxlen + 1) {
         errno = ENOMEM;
         return 0;
     }
@@ -205,12 +198,8 @@ fbuf_extend(fbuf_t *fbuf, unsigned int newlen)
             fbuf->len += slowgrowsize;
     }
 
-    if ((max_len && fbuf->len > max_len + 1) ||
-        (fbuf->prefmaxlen && fbuf->len > fbuf->prefmaxlen))
-    {
-        fbuf->len = MIN(max_len ? max_len : UINT_MAX,
-                        fbuf->prefmaxlen ? fbuf->prefmaxlen : UINT_MAX) + 1;
-    }
+    if (fbuf->maxlen && fbuf->len > fbuf->maxlen)
+        fbuf->len = fbuf->maxlen + 1;
 
     if (fbuf->len == 0)
         return 0;
@@ -702,20 +691,6 @@ unsigned int
 fbuf_len(fbuf_t *fbuf)
 {
     return fbuf->len;
-}
-
-unsigned int
-fbuf_maxlen(unsigned int maxlen)
-{
-    int old_max_len;
-    if (maxlen < UINT_MAX) {
-        do {
-            old_max_len = __sync_fetch_and_add(&global_max_len, 0);
-        } while (!__sync_bool_compare_and_swap(&global_max_len, old_max_len, maxlen));
-    } else {
-        old_max_len = __sync_fetch_and_add(&global_max_len, 0);
-    }
-    return old_max_len;
 }
 
 // vim: tabstop=4 shiftwidth=4 expandtab:

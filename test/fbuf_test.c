@@ -71,9 +71,9 @@ failure(fbuf_t *fbuf, const char *fmt, ...)
     va_start(args, fmt);
     ut_vfailure(fmt, args);
     const char *fdata = fbuf_data(fbuf);
-    printf("  fbuf: data = %p, len = %u, prefmaxlen = %u, used = %u, "
+    printf("  fbuf: data = %p, len = %u, maxlen = %u, used = %u, "
            " minlen = %u, slowgrowsize = %u, fastgrowsize = %u \n",
-           fdata, fbuf->len, fbuf->prefmaxlen, fbuf->used, fbuf->minlen,
+           fdata, fbuf->len, fbuf->maxlen, fbuf->used, fbuf->minlen,
            fbuf->slowgrowsize, fbuf->fastgrowsize);
     printf("  contents: ");
     if (fdata)
@@ -96,7 +96,7 @@ fileopcheck(const char *filename, int n)
 }
 
 static int
-validate(fbuf_t *fbuf, const char *data, int prefmaxlen, int flags)
+validate(fbuf_t *fbuf, const char *data, int maxlen, int flags)
 {
     // Flag bits
 #   define NO_FLAGS                        0x00
@@ -199,9 +199,9 @@ main(int argc, char **argv)
     validate(fb2, "", FBUFMAXLEN, NO_FLAGS);
 
     fbuf_minlen(fb1, 16);
-    ut_testing("fbuf_add(fb1, \"<8>\") (honour prefmaxlen)");
-    // prefmaxlen is 10, buflen is FBUF_MINLEN (16), and 11 bytes are used, so
-    // adding 8 bytes exceeds the current buffer length and exceeds prefmaxlen,
+    ut_testing("fbuf_add(fb1, \"<8>\") (honour maxlen)");
+    // maxlen is 10, buflen is FBUF_MINLEN (16), and 11 bytes are used, so
+    // adding 8 bytes exceeds the current buffer length and exceeds maxlen,
     // so the buffer cannot be extended.
     fbuf_add(fb1, "12345678");
     validate(fb1, "Hello world", FBUFMAXLEN, NO_FLAGS);
@@ -218,8 +218,8 @@ main(int argc, char **argv)
     else
         ut_success();
 
-    // fbuf2 now has the prefmaxlen from fb1 , we need to reset it
-    fbuf_prefmaxlen(fb2, 0);
+    // fbuf2 now has the maxlen from fb1 , we need to reset it
+    fbuf_maxlen(fb2, 0);
 
     ut_testing("fbuf_printf(fb2, \"%%s\", \"hello\")");
     fbuf_printf(fb2, "%s", "hello");
@@ -332,29 +332,21 @@ main(int argc, char **argv)
         if (fbuf_printf(fb2, "%d", i) == -1)
             break;
     if (i < 10000) 
-        ut_failure("fbuf_printf() failed: prefmaxlen = %d", fbuf_prefmaxlen(fb2, UINT_MAX));
+        ut_failure("fbuf_printf() failed: maxlen = %d", fbuf_maxlen(fb2, UINT_MAX));
     else if (fb2->used != 38890)
         ut_failure("length %d, should be 38890 ('%s')", fb2->used, fbuf_data(fb2));
     else
         ut_success();
 
-    ut_testing("fbuf_extend() after fbuf_prefmaxlen(fb2, 10)");
-    fbuf_prefmaxlen(fb2, 10);
+    ut_testing("fbuf_extend() after fbuf_maxlen(fb2, 10)");
+    fbuf_maxlen(fb2, 10);
     n = fbuf_extend(fb2, fbuf_len(fb2)+1);
     if (n != 0)
         ut_failure("fbuf_extend() returned %d instead of 0", n);
     else
         ut_success();
 
-    fbuf_prefmaxlen(fb2, 1000000);
-    fbuf_maxlen(10000);
-    ut_testing("fbuf_extend() after fbuf_maxlen(10000)");
-    n = fbuf_extend(fb2, 10001);
-    if (n != 0)
-        ut_failure("fbuf_extend() returned %d instead of 0", n);
-    else
-        ut_success();
-
+    fbuf_maxlen(fb2, 1000000);
     ut_testing("fbuf_shrink(fb2)");
     u = fbuf_len(fb2);
     fbuf_set(fb2, "Hello world!");
@@ -371,20 +363,20 @@ main(int argc, char **argv)
     else
         ut_failure("buffer still %d bytes", u);
 
-    ut_testing("fbuf_add(fb2, \"LMOPQRSTVWXYZ\") after fbuf_prefmaxlen(fb2, 5)");
+    ut_testing("fbuf_add(fb2, \"LMOPQRSTVWXYZ\") after fbuf_maxlen(fb2, 5)");
     fbuf_set(fb2, "ABCDEFGHIJK");
     fbuf_shrink(fb2);
-    fbuf_prefmaxlen(fb2, 5);
+    fbuf_maxlen(fb2, 5);
     n = fbuf_add(fb2, "LMOPQRSTVWXYZ");
     if (n != -1)
         ut_failure("added while it should not have");
     else
         validate(fb2, "ABCDE", FBUFMAXLEN, NO_FLAGS);
     
-    ut_testing("fbuf_printf(fb2, \"%%d%%s\", 1, \"LMOPQRSTVWXYZ\") after fbuf_prefmaxlen(fb2, 5)");
+    ut_testing("fbuf_printf(fb2, \"%%d%%s\", 1, \"LMOPQRSTVWXYZ\") after fbuf_maxlen(fb2, 5)");
     fbuf_set(fb2, "ABCDE");
     fbuf_shrink(fb2);
-    fbuf_prefmaxlen(fb2, 5);
+    fbuf_maxlen(fb2, 5);
     n = fbuf_printf(fb2, "%d%s", 1, "KLMOPQRSTVWXYZ");
     if (n != -1)
         ut_failure("added while it should not have");
