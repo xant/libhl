@@ -346,7 +346,7 @@ void ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *use
  *         HT_ITERATOR_REMOVE to remove the current item from the table and go ahead with the iteration
  *         HT_ITERATOR_REMOVE_AND_STOP to remove the current item from the table and stop the iteration
  */
-typedef int (*ht_value_iterator_callback_t)(hashtable_t *table, void *value, size_t vlen, void *user);
+typedef ht_iterator_status_t (*ht_value_iterator_callback_t)(hashtable_t *table, void *value, size_t vlen, void *user);
 
 /**
  * @brief Value iterator
@@ -369,7 +369,7 @@ void ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void 
  *         HT_ITERATOR_REMOVE to remove the current item from the table and go ahead with the iteration
  *         HT_ITERATOR_REMOVE_AND_STOP to remove the current item from the table and stop the iteration
  */
-typedef int (*ht_pair_iterator_callback_t)(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user);
+typedef ht_iterator_status_t (*ht_pair_iterator_callback_t)(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user);
 
 /**
  * @brief Pair iterator
