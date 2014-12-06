@@ -59,7 +59,7 @@ typedef struct __ht_item {
     TAILQ_ENTRY(__ht_item) next;
 } ht_item_t;
 
-typedef struct {
+typedef struct __ht_item_list {
     TAILQ_HEAD(, __ht_item) head;
 #ifdef THREAD_SAFE
 #ifdef __MACH__
@@ -68,7 +68,13 @@ typedef struct {
     pthread_spinlock_t lock;
 #endif
 #endif
+    uint32_t index;
+    TAILQ_ENTRY(__ht_item_list) iterator_next;
 } ht_items_list_t;
+
+typedef struct {
+    TAILQ_HEAD(, __ht_item_list) head;
+} ht_iterator_list_t;
 
 struct __hashtable {
     uint32_t size;
@@ -81,6 +87,8 @@ struct __hashtable {
     pthread_mutex_t lock;
 #endif
     ht_free_item_callback_t free_item_cb;
+    ht_iterator_list_t *iterator_list;
+    pthread_mutex_t iterator_lock;
 };
 #pragma pack(pop)
 
@@ -142,6 +150,9 @@ ht_init(hashtable_t *table,
 #else
     table->seed = random()%UINT32_MAX;
 #endif
+    table->iterator_list = calloc(1, sizeof(ht_iterator_list_t));
+    TAILQ_INIT(&table->iterator_list->head);
+    MUTEX_INIT(table->iterator_lock);
 }
 
 void
@@ -167,17 +178,14 @@ ht_get_list_at_index(hashtable_t *table, uint32_t index)
 void
 ht_clear(hashtable_t *table)
 {
-    uint32_t i;
     MUTEX_LOCK(table->lock);
-    for (i = 0; i < table->size; i++)
-    {
+    MUTEX_LOCK(table->iterator_lock);
+    ht_items_list_t *tmplist, *list = NULL;
+    TAILQ_FOREACH_SAFE(list, &table->iterator_list->head, iterator_next, tmplist) {
+        SPIN_LOCK(list->lock);
+
         ht_item_t *item = NULL;
         ht_item_t *tmp;
-
-        ht_items_list_t *list = ht_get_list_at_index(table, i);
-
-        if (!list)
-            continue;
 
         TAILQ_FOREACH_SAFE(item, &list->head, next, tmp) {
             TAILQ_REMOVE(&list->head, item, next);
@@ -189,10 +197,13 @@ ht_clear(hashtable_t *table)
             ATOMIC_DECREMENT(table->count);
         }
 
-        ATOMIC_SET(table->items[i], NULL);
+        ATOMIC_SET(table->items[list->index], NULL);
+        TAILQ_REMOVE(&table->iterator_list->head, list, iterator_next);
+        SPIN_UNLOCK(list->lock);
         SPIN_DESTROY(list->lock);
         free(list);
     }
+    MUTEX_UNLOCK(table->iterator_lock);
     MUTEX_UNLOCK(table->lock);
 }
 
@@ -202,6 +213,8 @@ ht_destroy(hashtable_t *table)
     ht_clear(table);
     free(table->items);
     MUTEX_DESTROY(table->lock);
+    MUTEX_DESTROY(table->iterator_lock);
+    free(table->iterator_list);
     free(table);
 }
 
@@ -217,7 +230,9 @@ ht_grow_table(hashtable_t *table)
         return;
     }
 
-    uint32_t i;
+    ht_iterator_list_t *new_iterator_list = calloc(1, sizeof(ht_iterator_list_t));
+    TAILQ_INIT(&new_iterator_list->head);
+
     uint32_t new_size = ATOMIC_READ(table->size) << 1;
 
     if (table->max_size && new_size > table->max_size)
@@ -231,33 +246,43 @@ ht_grow_table(hashtable_t *table)
 
     ht_item_t *item = NULL;
 
-    for (i = 0; i < ATOMIC_READ(table->size); i++) {
-        ATOMIC_INCREMENT(table->growing);
-
-        ht_items_list_t *list = NULL;
-        do {
-            list = ATOMIC_READ(table->items[i]);
-        } while (!__sync_bool_compare_and_swap(&table->items[i], list, NULL));
-
-        if (!list)
-            continue;
-
+    MUTEX_LOCK(table->iterator_lock);
+    ht_items_list_t *tmp, *list = NULL;
+    TAILQ_FOREACH_SAFE(list, &table->iterator_list->head, iterator_next, tmp) {
+        // NOTE : list->index is safe to access outside of the lock
+        ATOMIC_SET(table->growing, list->index);
+        ATOMIC_SET(table->items[list->index], NULL);
+        // now readers can't access this list anymore
         SPIN_LOCK(list->lock);
+        
+        // move all the items from the old list to the new one
         while((item = TAILQ_FIRST(&list->head))) {
-            TAILQ_REMOVE(&list->head, item, next);
             ht_items_list_t *new_list = items_list[item->hash%new_size];
             if (!new_list) {
                 new_list = malloc(sizeof(ht_items_list_t));
                 TAILQ_INIT(&new_list->head);
                 SPIN_INIT(new_list->lock);
-                items_list[item->hash%new_size] = new_list;
+                uint32_t index = item->hash%new_size;
+                items_list[index] = new_list;
+                new_list->index = index;
+                TAILQ_INSERT_TAIL(&new_iterator_list->head, new_list, iterator_next);
             }
+            TAILQ_REMOVE(&list->head, item, next);
             TAILQ_INSERT_TAIL(&new_list->head, item, next);
+
         }
+
+        // we can now unregister the list from the iterator and release it
         SPIN_UNLOCK(list->lock);
+        TAILQ_REMOVE(&table->iterator_list->head, list, iterator_next);
         SPIN_DESTROY(list->lock);
         free(list);
     }
+
+    // swap the iterator list
+    free(table->iterator_list);
+    table->iterator_list = new_iterator_list;
+    MUTEX_UNLOCK(table->iterator_lock);
 
     ht_items_list_t **old_items = ATOMIC_READ(table->items);
     ATOMIC_SET(table->items, items_list);
@@ -268,6 +293,7 @@ ht_grow_table(hashtable_t *table)
     ATOMIC_SET(table->growing, 0);
 
     MUTEX_UNLOCK(table->lock);
+
     //fprintf(stderr, "Done growing table\n");
 }
 
@@ -286,13 +312,15 @@ static inline ht_items_list_t *
 ht_set_list(hashtable_t *table, uint32_t hash)
 { 
     ht_items_list_t *list = malloc(sizeof(ht_items_list_t));
+    ht_items_list_t *created = list;
     SPIN_INIT(list->lock);
     TAILQ_INIT(&list->head);
     SPIN_LOCK(list->lock);
     MUTEX_LOCK(table->lock);
-    while (!__sync_bool_compare_and_swap(&table->items[hash%ATOMIC_READ(table->size)], NULL, list))
+    uint32_t index = hash%ATOMIC_READ(table->size);
+    while (!__sync_bool_compare_and_swap(&table->items[index], NULL, list))
     {
-        ht_items_list_t *other = ATOMIC_READ(table->items[hash%ATOMIC_READ(table->size)]);
+        ht_items_list_t *other = ATOMIC_READ(table->items[index]);
         if (other) {
             SPIN_LOCK(other->lock);
             SPIN_UNLOCK(list->lock);
@@ -301,6 +329,12 @@ ht_set_list(hashtable_t *table, uint32_t hash)
             list = other;
             break;
         }
+    }
+    if (list == created) {
+        list->index = index;
+        MUTEX_LOCK(table->iterator_lock);
+        TAILQ_INSERT_TAIL(&table->iterator_list->head, list, iterator_next);
+        MUTEX_UNLOCK(table->iterator_lock);
     }
     MUTEX_UNLOCK(table->lock);
     return list;
@@ -739,18 +773,12 @@ free_key(hashtable_key_t *key)
 linked_list_t *
 ht_get_all_keys(hashtable_t *table)
 {
-    uint32_t i;
-
     linked_list_t *output = list_create();
     list_set_free_value_callback(output, (free_value_callback_t)free_key);
 
-    for (i = 0; i < ATOMIC_READ(table->size); i++) {
-        ht_items_list_t *list = ht_get_list_at_index(table, i);
-
-        if (!list) {
-            continue;
-        }
-
+    MUTEX_LOCK(table->iterator_lock);
+    ht_items_list_t *list = NULL;
+    TAILQ_FOREACH(list, &table->iterator_list->head, iterator_next) {
         SPIN_LOCK(list->lock);
 
         ht_item_t *item = NULL;
@@ -765,23 +793,18 @@ ht_get_all_keys(hashtable_t *table)
 
         SPIN_UNLOCK(list->lock);
     }
+    MUTEX_UNLOCK(table->iterator_lock);
     return output;
 }
 
 linked_list_t *
 ht_get_all_values(hashtable_t *table)
 {
-    uint32_t i;
-
     linked_list_t *output = list_create();
 
-    for (i = 0; i < ATOMIC_READ(table->size); i++) {
-        ht_items_list_t *list = ht_get_list_at_index(table, i);
-
-        if (!list) {
-            continue;
-        }
-
+    MUTEX_LOCK(table->iterator_lock);
+    ht_items_list_t *list = NULL;
+    TAILQ_FOREACH(list, &table->iterator_list->head, iterator_next) {
         SPIN_LOCK(list->lock);
 
         ht_item_t *item = NULL;
@@ -794,6 +817,7 @@ ht_get_all_values(hashtable_t *table)
 
         SPIN_UNLOCK(list->lock);
     }
+    MUTEX_UNLOCK(table->iterator_lock);
     return output;
 }
 
@@ -833,19 +857,15 @@ ht_foreach_value(hashtable_t *table, ht_value_iterator_callback_t cb, void *user
 void
 ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
 {
-    uint32_t i;
-    uint32_t count = 0;
     int rc = 0;
 
-    for (i = 0; i < ATOMIC_READ(table->size) && count < ATOMIC_READ(table->count); i++)
-    {
-        ht_items_list_t *list  = ht_get_list(table, i);
-        if (!list)
-            continue;
 
+    MUTEX_LOCK(table->iterator_lock);
+    ht_items_list_t *list = NULL;
+    TAILQ_FOREACH(list, &table->iterator_list->head, iterator_next) {
+        SPIN_LOCK(list->lock);
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
-            count++;
             rc = cb(table, item->key, item->klen, item->data, item->dlen, user);
             if (rc <= 0)
                 break;
@@ -862,16 +882,15 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
                 if (item->key != item->kbuf)
                     free(item->key);
                 free(item);
-                ATOMIC_DECREMENT(table->count);
                 if (rc == -2) {
                     SPIN_UNLOCK(list->lock);
                     break;
                 }
-                count--;
             }
         }
         SPIN_UNLOCK(list->lock);
     }
+    MUTEX_UNLOCK(table->iterator_lock);
 }
 
 uint32_t
