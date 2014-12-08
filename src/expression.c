@@ -632,7 +632,7 @@ expression_operand_t
         newoperand->callback.cb = cb;
         newoperand->callback.user = user;
         if (label)
-            snprintf(newoperand->callback.label, sizeof(newoperand->callback), "%s", label);
+            snprintf(newoperand->callback.label, sizeof(newoperand->callback.label), "%s", label);
     }
     return newoperand;
 }
