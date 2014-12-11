@@ -220,9 +220,6 @@ ht_grow_table(hashtable_t *table)
     if (table->max_size && new_size > table->max_size)
         new_size = table->max_size;
 
-    //fprintf(stderr, "Growing table from %u to %u\n",
-    //        __sync_fetch_and_add(&table->size, 0), new_size);
-
     ht_items_list_t **items_list = 
         (ht_items_list_t **)calloc(new_size, sizeof(ht_items_list_t *));
 
@@ -282,16 +279,16 @@ ht_grow_table(hashtable_t *table)
 static inline ht_items_list_t *
 ht_get_list_internal(hashtable_t *table, uint32_t hash)
 {
-    uint32_t growing = ATOMIC_CAS_RETURN(table->growing, 0, 1);
+    uint32_t growing = ATOMIC_CAS_RETURN(table->growing, 0, UINT32_MAX);
     uint32_t index = hash%ATOMIC_READ(table->size);
 
-    while (growing && growing < index) {
+    while (growing && growing != UINT32_MAX && growing < index) {
         sched_yield();
-        growing = ATOMIC_CAS_RETURN(table->growing, 0, 1);
+        growing = ATOMIC_CAS_RETURN(table->growing, 0, UINT32_MAX);
     }
 
     if (!growing)
-        ATOMIC_CAS(table->growing, 1, 0);
+        ATOMIC_CAS(table->growing, UINT32_MAX, 0);
 
     return ATOMIC_READ(table->items[index]);
 }
@@ -317,7 +314,7 @@ ht_set_list_internal(hashtable_t *table, ht_items_list_t *list, uint32_t hash)
 
     index = hash%ATOMIC_READ(table->size);
     list->index = index;
-    done = __sync_bool_compare_and_swap(&table->items[index], NULL, list);
+    done = ATOMIC_CAS(table->items[index], NULL, list);
 
     ATOMIC_CAS(table->growing, 1, 0);
 
