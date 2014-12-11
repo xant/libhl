@@ -83,12 +83,11 @@ struct __hashtable {
     uint32_t growing;
     uint32_t seed;
     ht_items_list_t **items;
-#ifdef THREAD_SAFE
-    pthread_mutex_t lock;
-#endif
     ht_free_item_callback_t free_item_cb;
     ht_iterator_list_t *iterator_list;
+#ifdef THREAD_SAFE
     pthread_mutex_t iterator_lock;
+#endif
 };
 #pragma pack(pop)
 
@@ -141,9 +140,6 @@ ht_init(hashtable_t *table,
     table->max_size = max_size;
     table->items = (ht_items_list_t **)calloc(table->size, sizeof(ht_items_list_t *));
 
-    if (table->items)
-        MUTEX_INIT(table->lock);
-
     ht_set_free_item_callback(table, cb);
 #ifdef BSD
     table->seed = arc4random()%UINT32_MAX;
@@ -161,24 +157,12 @@ ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
     ATOMIC_SET(table->free_item_cb, cb);
 }
 
-static inline ht_items_list_t *
-ht_get_list_at_index(hashtable_t *table, uint32_t index)
-{
-    ht_items_list_t *list = NULL;
-    if (ATOMIC_READ(table->growing)) {
-        MUTEX_LOCK(table->lock);
-        list = ATOMIC_READ(table->items[index]);
-        MUTEX_UNLOCK(table->lock);
-    } else {
-        list = ATOMIC_READ(table->items[index]);
-    }
-    return list;
-}
-
 void
 ht_clear(hashtable_t *table)
 {
-    MUTEX_LOCK(table->lock);
+    while(!ATOMIC_CAS(table->growing, 0, 1))
+        sched_yield();
+
     MUTEX_LOCK(table->iterator_lock);
     ht_items_list_t *tmplist, *list = NULL;
     TAILQ_FOREACH_SAFE(list, &table->iterator_list->head, iterator_next, tmplist) {
@@ -204,7 +188,8 @@ ht_clear(hashtable_t *table)
         free(list);
     }
     MUTEX_UNLOCK(table->iterator_lock);
-    MUTEX_UNLOCK(table->lock);
+
+    ATOMIC_CAS(table->growing, 1, 0);
 }
 
 void
@@ -212,7 +197,6 @@ ht_destroy(hashtable_t *table)
 {
     ht_clear(table);
     free(table->items);
-    MUTEX_DESTROY(table->lock);
     MUTEX_DESTROY(table->iterator_lock);
     free(table->iterator_list);
     free(table);
@@ -223,10 +207,8 @@ ht_grow_table(hashtable_t *table)
 {
     // if we need to extend the table, better locking it globally
     // preventing any operation on the actual one
-    MUTEX_LOCK(table->lock);
-
     if (table->max_size && ATOMIC_READ(table->size) >= table->max_size) {
-        MUTEX_UNLOCK(table->lock);
+        ATOMIC_SET(table->growing, 0);
         return;
     }
 
@@ -247,11 +229,17 @@ ht_grow_table(hashtable_t *table)
     ht_item_t *item = NULL;
 
     MUTEX_LOCK(table->iterator_lock);
+
+    ht_items_list_t **old_items = ATOMIC_READ(table->items);
+    ATOMIC_SET(table->items, items_list);
+    ATOMIC_SET(table->size, new_size);
+
     ht_items_list_t *tmp, *list = NULL;
     TAILQ_FOREACH_SAFE(list, &table->iterator_list->head, iterator_next, tmp) {
         // NOTE : list->index is safe to access outside of the lock
-        ATOMIC_SET(table->growing, list->index);
-        ATOMIC_SET(table->items[list->index], NULL);
+        if (list->index > 1)
+            ATOMIC_SET(table->growing, list->index);
+        ATOMIC_SET(old_items[list->index], NULL);
         // now readers can't access this list anymore
         SPIN_LOCK(list->lock);
         
@@ -284,59 +272,77 @@ ht_grow_table(hashtable_t *table)
     table->iterator_list = new_iterator_list;
     MUTEX_UNLOCK(table->iterator_lock);
 
-    ht_items_list_t **old_items = ATOMIC_READ(table->items);
-    ATOMIC_SET(table->items, items_list);
     free(old_items);
 
-    ATOMIC_SET(table->size, new_size);
-
     ATOMIC_SET(table->growing, 0);
-
-    MUTEX_UNLOCK(table->lock);
 
     //fprintf(stderr, "Done growing table\n");
 }
 
 static inline ht_items_list_t *
+ht_get_list_internal(hashtable_t *table, uint32_t hash)
+{
+    uint32_t growing = ATOMIC_CAS_RETURN(table->growing, 0, 1);
+    uint32_t index = hash%ATOMIC_READ(table->size);
+
+    while (growing && growing < index) {
+        sched_yield();
+        growing = ATOMIC_CAS_RETURN(table->growing, 0, 1);
+    }
+
+    if (!growing)
+        ATOMIC_CAS(table->growing, 1, 0);
+
+    return ATOMIC_READ(table->items[index]);
+}
+
+static inline ht_items_list_t *
 ht_get_list(hashtable_t *table, uint32_t hash)
 {
-    uint32_t idx = hash%ATOMIC_READ(table->size);
-    ht_items_list_t *list = ht_get_list_at_index(table, idx);
+    ht_items_list_t *list = ht_get_list_internal(table, hash);
     if (list)
         SPIN_LOCK(list->lock);
     return list;
 }
 
+static inline int
+ht_set_list_internal(hashtable_t *table, ht_items_list_t *list, uint32_t hash)
+{
+    int done = 0;
+    uint32_t index = hash%ATOMIC_READ(table->size);
+    list->index = index;
+
+    while (!ATOMIC_CAS(table->growing, 0, 1))
+        sched_yield();
+
+    index = hash%ATOMIC_READ(table->size);
+    list->index = index;
+    done = __sync_bool_compare_and_swap(&table->items[index], NULL, list);
+
+    ATOMIC_CAS(table->growing, 1, 0);
+
+    return done;
+}
 
 static inline ht_items_list_t *
 ht_set_list(hashtable_t *table, uint32_t hash)
 { 
     ht_items_list_t *list = malloc(sizeof(ht_items_list_t));
-    ht_items_list_t *created = list;
     SPIN_INIT(list->lock);
     TAILQ_INIT(&list->head);
     SPIN_LOCK(list->lock);
-    MUTEX_LOCK(table->lock);
-    uint32_t index = hash%ATOMIC_READ(table->size);
-    while (!__sync_bool_compare_and_swap(&table->items[index], NULL, list))
-    {
-        ht_items_list_t *other = ATOMIC_READ(table->items[index]);
-        if (other) {
-            SPIN_LOCK(other->lock);
-            SPIN_UNLOCK(list->lock);
-            SPIN_DESTROY(list->lock);
-            free(list);
-            list = other;
-            break;
-        }
+
+    if (!ht_set_list_internal(table, list, hash)) {
+        SPIN_UNLOCK(list->lock);
+        SPIN_DESTROY(list->lock);
+        free(list);
+        return ht_get_list(table, hash);
     }
-    if (list == created) {
-        list->index = index;
-        MUTEX_LOCK(table->iterator_lock);
-        TAILQ_INSERT_TAIL(&table->iterator_list->head, list, iterator_next);
-        MUTEX_UNLOCK(table->iterator_lock);
-    }
-    MUTEX_UNLOCK(table->lock);
+
+    MUTEX_LOCK(table->iterator_lock);
+    TAILQ_INSERT_TAIL(&table->iterator_list->head, list, iterator_next);
+    MUTEX_UNLOCK(table->iterator_lock);
+
     return list;
 }
 
