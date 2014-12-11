@@ -368,6 +368,9 @@ ht_set_internal(hashtable_t *table,
     if (!list)
         list = ht_set_list(table, hash);
 
+    if (!list)
+        return -1;
+
     ht_item_t *item = NULL;
     TAILQ_FOREACH(item, &list->head, next) {
         if (/*ht_item->hash == arg->item.hash && */
