@@ -76,11 +76,19 @@ typedef struct {
     TAILQ_HEAD(, __ht_item_list) head;
 } ht_iterator_list_t;
 
+typedef enum {
+    HT_STATUS_IDLE,
+    HT_STATUS_READ,
+    HT_STATUS_WRITE,
+    HT_STATUS_GROW,
+    HT_STATUS_CLEAR
+} ht_status_t;
+
 struct __hashtable {
     uint32_t size;
     uint32_t max_size;
     uint32_t count;
-    uint32_t growing;
+    ht_status_t status;
     uint32_t seed;
     ht_items_list_t **items;
     ht_free_item_callback_t free_item_cb;
@@ -160,7 +168,7 @@ ht_set_free_item_callback(hashtable_t *table, ht_free_item_callback_t cb)
 void
 ht_clear(hashtable_t *table)
 {
-    while(!ATOMIC_CAS(table->growing, 0, 1))
+    while(!ATOMIC_CAS(table->status, HT_STATUS_IDLE, HT_STATUS_CLEAR))
         sched_yield();
 
     MUTEX_LOCK(table->iterator_lock);
@@ -189,7 +197,7 @@ ht_clear(hashtable_t *table)
     }
     MUTEX_UNLOCK(table->iterator_lock);
 
-    ATOMIC_CAS(table->growing, 1, 0);
+    ATOMIC_CAS(table->status, HT_STATUS_CLEAR, HT_STATUS_IDLE);
 }
 
 void
@@ -208,7 +216,7 @@ ht_grow_table(hashtable_t *table)
     // if we need to extend the table, better locking it globally
     // preventing any operation on the actual one
     if (table->max_size && ATOMIC_READ(table->size) >= table->max_size) {
-        ATOMIC_SET(table->growing, 0);
+        ATOMIC_SET(table->status, HT_STATUS_IDLE);
         return;
     }
 
@@ -234,8 +242,6 @@ ht_grow_table(hashtable_t *table)
     ht_items_list_t *tmp, *list = NULL;
     TAILQ_FOREACH_SAFE(list, &table->iterator_list->head, iterator_next, tmp) {
         // NOTE : list->index is safe to access outside of the lock
-        if (list->index > 1)
-            ATOMIC_SET(table->growing, list->index);
         ATOMIC_SET(old_items[list->index], NULL);
         // now readers can't access this list anymore
         SPIN_LOCK(list->lock);
@@ -271,7 +277,7 @@ ht_grow_table(hashtable_t *table)
 
     free(old_items);
 
-    ATOMIC_SET(table->growing, 0);
+    ATOMIC_SET(table->status, HT_STATUS_IDLE);
 
     //fprintf(stderr, "Done growing table\n");
 }
@@ -279,16 +285,16 @@ ht_grow_table(hashtable_t *table)
 static inline ht_items_list_t *
 ht_get_list_internal(hashtable_t *table, uint32_t hash)
 {
-    uint32_t growing = ATOMIC_CAS_RETURN(table->growing, 0, UINT32_MAX);
+    uint32_t status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
     uint32_t index = hash%ATOMIC_READ(table->size);
 
-    while (growing && growing != UINT32_MAX && growing < index) {
+    while (status != HT_STATUS_IDLE && status != HT_STATUS_READ) {
         sched_yield();
-        growing = ATOMIC_CAS_RETURN(table->growing, 0, UINT32_MAX);
+        status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
     }
 
-    if (!growing)
-        ATOMIC_CAS(table->growing, UINT32_MAX, 0);
+    if (status == HT_STATUS_IDLE)
+        ATOMIC_CAS(table->status, HT_STATUS_READ, HT_STATUS_IDLE);
 
     return ATOMIC_READ(table->items[index]);
 }
@@ -309,14 +315,18 @@ ht_set_list_internal(hashtable_t *table, ht_items_list_t *list, uint32_t hash)
     uint32_t index = hash%ATOMIC_READ(table->size);
     list->index = index;
 
-    while (!ATOMIC_CAS(table->growing, 0, 1))
+    ht_status_t status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE);
+    while (status != HT_STATUS_IDLE && status == HT_STATUS_READ) {
+        status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE);
         sched_yield();
+    }
 
     index = hash%ATOMIC_READ(table->size);
     list->index = index;
     done = ATOMIC_CAS(table->items[index], NULL, list);
 
-    ATOMIC_CAS(table->growing, 1, 0);
+    if (status == HT_STATUS_IDLE)
+        ATOMIC_CAS(table->status, HT_STATUS_WRITE, HT_STATUS_IDLE);
 
     return done;
 }
@@ -436,7 +446,7 @@ ht_set_internal(hashtable_t *table,
     uint32_t current_size = ATOMIC_READ(table->size);
     if (ht_count(table) > (current_size + (current_size/3)) && 
         (!table->max_size || current_size < table->max_size) &&
-        ATOMIC_CAS(table->growing, 0, 1))
+        ATOMIC_CAS(table->status, HT_STATUS_IDLE, HT_STATUS_GROW))
     {
         ht_grow_table(table);
     }
