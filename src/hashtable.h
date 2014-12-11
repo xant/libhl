@@ -203,6 +203,8 @@ int ht_set_if_not_exists(hashtable_t *table, void *key, size_t klen, void *data,
  * @param table : A valid pointer to an hashtable_t structure
  * @param key : The key to use
  * @param klen : The length of the key
+ * @param data  : A pointer to the data to store
+ * @param dlen  : The size of the data
  * @param match : A valid pointer to the data we need to match in order to delete the value
  * @param match_size : The value of the data to match
  * @return 0 on success, -1 otherwise

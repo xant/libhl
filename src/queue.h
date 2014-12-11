@@ -37,12 +37,6 @@ typedef struct __queue queue_t;
 
 /**
  * @brief Create a new queue
- * @param expected_size : If non zero specifies how big the queue is expected to
- *        grow. While this doesn't impose any limit, this size hints the queue
- *        on how many spare wrapper structures to keep ready for use, with the
- *        intent of mitigate frequent allocs/frees when the queue is being used
- *        at an high rate
- * @note  If expected size is 0 no spare items will be kept for reuse
  * @return a newly allocated and initialized queue
  */
 queue_t *queue_create();
