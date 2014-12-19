@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['allow_5fmultiple_5froot_5fnodes',['allow_multiple_root_nodes',['../structtxml__t.html#a9ef4d63a22b4373630353cef0133975f',1,'txml_t']]],
   ['atomic_5fcas',['ATOMIC_CAS',['../atomic__defs_8h.html#a35b49898d6833bbcca2934f5b83f31e0',1,'atomic_defs.h']]],
   ['atomic_5fcas_5freturn',['ATOMIC_CAS_RETURN',['../atomic__defs_8h.html#a8fca9b66d13c55f494400ae506ef5637',1,'atomic_defs.h']]],
   ['atomic_5fdecrease',['ATOMIC_DECREASE',['../atomic__defs_8h.html#ad279e459a03d83355517854d8dceee8a',1,'atomic_defs.h']]],

@@ -1,5 +1,8 @@
 var searchData=
 [
+  ['sc_5fblocksize',['SC_BLOCKSIZE',['../spooky-c_8h.html#a2ba9173c519a11c94dd8841cf893e9d6',1,'spooky-c.h']]],
+  ['sc_5fbufsize',['SC_BUFSIZE',['../spooky-c_8h.html#ae9bbdc8ebf697e2b7591faa7c3eaf90d',1,'spooky-c.h']]],
+  ['sc_5fnumvars',['SC_NUMVARS',['../spooky-c_8h.html#ac98f0695ff7b36934f859830cce94488',1,'spooky-c.h']]],
   ['skip',['skip',['../fbuf_8h.html#ae41d562eccfdcf02e91bc8b0a5f9eaea',1,'fbuf_t']]],
   ['skiplist_2eh',['skiplist.h',['../skiplist_8h.html',1,'']]],
   ['skiplist_5fcount',['skiplist_count',['../skiplist_8h.html#a036231a925c0399230ce91c0e9ac6e49',1,'skiplist.h']]],
@@ -11,5 +14,14 @@ var searchData=
   ['skiplist_5fsearch',['skiplist_search',['../skiplist_8h.html#af2733deb004051b331df8d47c6d9020f',1,'skiplist.h']]],
   ['skiplist_5ft',['skiplist_t',['../skiplist_8h.html#ae6a5ade36d3d25a419c0993622432712',1,'skiplist.h']]],
   ['slowgrowsize',['slowgrowsize',['../fbuf_8h.html#a6917ec4cd8cb81987b12c24878e6ee90',1,'fbuf_t']]],
+  ['spooky_2dc_2eh',['spooky-c.h',['../spooky-c_8h.html',1,'']]],
+  ['spooky_5ffinal',['spooky_final',['../spooky-c_8h.html#af874da3f5317f352df1588ecf4cad2a1',1,'spooky-c.h']]],
+  ['spooky_5fhash128',['spooky_hash128',['../spooky-c_8h.html#ad0b01b5103558a2019dd27775728034e',1,'spooky-c.h']]],
+  ['spooky_5fhash32',['spooky_hash32',['../spooky-c_8h.html#a00bc230863798078b720c306a6a1a169',1,'spooky-c.h']]],
+  ['spooky_5fhash64',['spooky_hash64',['../spooky-c_8h.html#added16e7799524f72f1719e6632d908f',1,'spooky-c.h']]],
+  ['spooky_5finit',['spooky_init',['../spooky-c_8h.html#adcd1f9807b707dda15bca5631eb7b994',1,'spooky-c.h']]],
+  ['spooky_5fshorthash',['spooky_shorthash',['../spooky-c_8h.html#ab1c7c99441f602d6c4abd363d7a85de3',1,'spooky-c.h']]],
+  ['spooky_5fstate',['spooky_state',['../spooky-c_8h.html#structspooky__state',1,'']]],
+  ['spooky_5fupdate',['spooky_update',['../spooky-c_8h.html#a8775e953dc08980a830e0cc25679da02',1,'spooky-c.h']]],
   ['store_5fref',['store_ref',['../refcnt_8h.html#af9124ddd2848c9c2da1ae0c4b72f36c2',1,'refcnt.h']]]
 ];

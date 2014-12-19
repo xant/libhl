@@ -34,6 +34,7 @@ var searchData=
   ['rqueue_5fread_5fcount',['rqueue_read_count',['../rqueue_8h.html#a05b2184be7c1423c568de96478a310b7',1,'rqueue.h']]],
   ['rqueue_5fset_5ffree_5fvalue_5fcallback',['rqueue_set_free_value_callback',['../rqueue_8h.html#ac5ea4c1e95761c3480b21a3e34c01ef9',1,'rqueue.h']]],
   ['rqueue_5fset_5fmode',['rqueue_set_mode',['../rqueue_8h.html#a9d347fcfa969af8bd672c775e88fd7f1',1,'rqueue.h']]],
+  ['rqueue_5fsize',['rqueue_size',['../rqueue_8h.html#aee2528bd0e34ed3a0943c94b4009af82',1,'rqueue.h']]],
   ['rqueue_5fstats',['rqueue_stats',['../rqueue_8h.html#a455f5f762c97cc38fea0aa87383063cb',1,'rqueue.h']]],
   ['rqueue_5fwrite',['rqueue_write',['../rqueue_8h.html#aae336c36bb271a6b7b9f98f7bd84d8c8',1,'rqueue.h']]],
   ['rqueue_5fwrite_5fcount',['rqueue_write_count',['../rqueue_8h.html#a95fbe59fc6fe70e458fc940e532929d7',1,'rqueue.h']]]

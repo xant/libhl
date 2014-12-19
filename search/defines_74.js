@@ -2,5 +2,19 @@ var searchData=
 [
   ['tv_5ftype_5fbinary',['TV_TYPE_BINARY',['../linklist_8h.html#af6761dfe1c80fd67146dd589f152d83c',1,'linklist.h']]],
   ['tv_5ftype_5flist',['TV_TYPE_LIST',['../linklist_8h.html#ae4d45b8aeedfd53b5bbd4ed1ba7c8e82',1,'linklist.h']]],
-  ['tv_5ftype_5fstring',['TV_TYPE_STRING',['../linklist_8h.html#ab3c14a55d9569c7f67f63ecb908d9a43',1,'linklist.h']]]
+  ['tv_5ftype_5fstring',['TV_TYPE_STRING',['../linklist_8h.html#ab3c14a55d9569c7f67f63ecb908d9a43',1,'linklist.h']]],
+  ['txml_5fbad_5fchars',['TXML_BAD_CHARS',['../txml_8h.html#aa554abe811cd83bf0c84d41605b13675',1,'txml.h']]],
+  ['txml_5fbadargs',['TXML_BADARGS',['../txml_8h.html#a32f4a63066d826fbcca059559c7f8fc7',1,'txml.h']]],
+  ['txml_5ferr_5ft',['txml_err_t',['../txml_8h.html#a4b60ab298033ffd117678b224448a136',1,'txml.h']]],
+  ['txml_5fgeneric_5ferr',['TXML_GENERIC_ERR',['../txml_8h.html#a7ee7d6b72ac49e4a19e68e1418d70f77',1,'txml.h']]],
+  ['txml_5flinklist_5ferr',['TXML_LINKLIST_ERR',['../txml_8h.html#a1a7ee7a25cdd89993e94f91d6c6d9b62',1,'txml.h']]],
+  ['txml_5fmemory_5ferr',['TXML_MEMORY_ERR',['../txml_8h.html#a5f06fc9834d39e8c9ce4265e16799d82',1,'txml.h']]],
+  ['txml_5fmroot_5ferr',['TXML_MROOT_ERR',['../txml_8h.html#ac7c08dd931ca0c044b995cd655c631fc',1,'txml.h']]],
+  ['txml_5fnodetype_5fcdata',['TXML_NODETYPE_CDATA',['../txml_8h.html#a4e036565ad11cc7131de0efb155a64fd',1,'txml.h']]],
+  ['txml_5fnodetype_5fcomment',['TXML_NODETYPE_COMMENT',['../txml_8h.html#ad5431d4d89f13ed235128843544cdf40',1,'txml.h']]],
+  ['txml_5fnodetype_5fsimple',['TXML_NODETYPE_SIMPLE',['../txml_8h.html#a5464690add568a5972644886412a282d',1,'txml.h']]],
+  ['txml_5fnoerr',['TXML_NOERR',['../txml_8h.html#a3a34c4739b7f1b91d501f841ef60fe98',1,'txml.h']]],
+  ['txml_5fopen_5ffile_5ferr',['TXML_OPEN_FILE_ERR',['../txml_8h.html#a600290edb47f56bf0a91374c43228edc',1,'txml.h']]],
+  ['txml_5fparser_5fgeneric_5ferr',['TXML_PARSER_GENERIC_ERR',['../txml_8h.html#a07b1e3bf9597b818734d2ff6cc06cfa2',1,'txml.h']]],
+  ['txml_5fupdate_5ferr',['TXML_UPDATE_ERR',['../txml_8h.html#a7a221833e7e2dc6dbb245ccbe5abdc7d',1,'txml.h']]]
 ];

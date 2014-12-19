@@ -655,7 +655,7 @@
     </TokenIdentifier>
     <Path>fbuf_8h.html</Path>
     <Anchor>a739016238d552f18ae1d0918f572ff14</Anchor>
-    <Abstract>Grow quickly up to 256KB ... </Abstract>
+    <Abstract>Grow quickly up to 16KB ... </Abstract>
     <DeclaredIn>fbuf.h</DeclaredIn>
   </Token>
   <Token>
@@ -666,7 +666,7 @@
     </TokenIdentifier>
     <Path>fbuf_8h.html</Path>
     <Anchor>a15d4215444fb2b4fc56fea43fddf8154</Anchor>
-    <Abstract>... and slowly after that (+64kB) </Abstract>
+    <Abstract>... and slowly after that (1KB) </Abstract>
     <DeclaredIn>fbuf.h</DeclaredIn>
   </Token>
   <Token>
@@ -688,6 +688,26 @@
     </TokenIdentifier>
     <Path>fbuf_8h.html</Path>
     <Anchor>ad8593ea2aa21d6224dfbd9e9437c08b5</Anchor>
+    <DeclaredIn>fbuf.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>FBUF_STATIC_INITIALIZER_PARAMS</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>fbuf_8h.html</Path>
+    <Anchor>ab397952fa597af30d516600c679ef8a9</Anchor>
+    <DeclaredIn>fbuf.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>FBUF_STATIC_INITIALIZER_POINTER</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>fbuf_8h.html</Path>
+    <Anchor>aa4681b250510cb4a0640717c0dec988c</Anchor>
     <DeclaredIn>fbuf.h</DeclaredIn>
   </Token>
   <Token>
@@ -774,7 +794,7 @@
       <Type>func</Type>
     </TokenIdentifier>
     <Path>fbuf_8h.html</Path>
-    <Anchor>a88313d139f8a5a197cfac1818a45e8da</Anchor>
+    <Anchor>ae06ff3144fe60d68003ca7b61fd79f22</Anchor>
     <Abstract>Detach the underlying buffer and reset the fbuf. </Abstract>
     <DeclaredIn>fbuf.h</DeclaredIn>
   </Token>
@@ -1051,24 +1071,13 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>fbuf_prefmaxlen</Name>
-      <APILanguage>c</APILanguage>
-      <Type>func</Type>
-    </TokenIdentifier>
-    <Path>fbuf_8h.html</Path>
-    <Anchor>a30b5d95428018ea18843151bd8f8b99b</Anchor>
-    <Abstract>Set the prefmaxlen value on the fbuf. </Abstract>
-    <DeclaredIn>fbuf.h</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>fbuf_maxlen</Name>
       <APILanguage>c</APILanguage>
       <Type>func</Type>
     </TokenIdentifier>
     <Path>fbuf_8h.html</Path>
-    <Anchor>a4ac6250259593da5e020e542e512213f</Anchor>
-    <Abstract>Set a hard limit on the size of all buffers and return the previously configured value. </Abstract>
+    <Anchor>a33b4dc8e9c74665e687af8f2accab11f</Anchor>
+    <Abstract>Set the prefmaxlen value on the fbuf. </Abstract>
     <DeclaredIn>fbuf.h</DeclaredIn>
   </Token>
   <Token>
@@ -1135,12 +1144,23 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>ht_pair_callback_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>tdef</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>a6cd7b951130e9cf290eed49e2c3bdb0c</Anchor>
+    <Abstract>Callback called if an item for a given key is found. </Abstract>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>ht_key_iterator_callback_t</Name>
       <APILanguage>c</APILanguage>
       <Type>tdef</Type>
     </TokenIdentifier>
     <Path>hashtable_8h.html</Path>
-    <Anchor>ac4fd3a3838e3907c932df496adeb6ad9</Anchor>
+    <Anchor>adac4ba30f125665c5e3995f96edff02f</Anchor>
     <Abstract>Callback for the key iterator. </Abstract>
     <DeclaredIn>hashtable.h</DeclaredIn>
   </Token>
@@ -1151,7 +1171,7 @@
       <Type>tdef</Type>
     </TokenIdentifier>
     <Path>hashtable_8h.html</Path>
-    <Anchor>ab2671cf84e40bec9b6043530315e662f</Anchor>
+    <Anchor>aadcc9545387d115c8eaf68c8c965a076</Anchor>
     <Abstract>Callback for the value iterator. </Abstract>
     <DeclaredIn>hashtable.h</DeclaredIn>
   </Token>
@@ -1162,19 +1182,8 @@
       <Type>tdef</Type>
     </TokenIdentifier>
     <Path>hashtable_8h.html</Path>
-    <Anchor>a308e47d54a253e1f4d449c8e080adf1e</Anchor>
+    <Anchor>a311b5d9e529627d90781b98dcce77628</Anchor>
     <Abstract>Callback for the pair iterator. </Abstract>
-    <DeclaredIn>hashtable.h</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>ht_create</Name>
-      <APILanguage>c</APILanguage>
-      <Type>func</Type>
-    </TokenIdentifier>
-    <Path>hashtable_8h.html</Path>
-    <Anchor>a18e6cefb6b549178fe5cf72be36b661b</Anchor>
-    <Abstract>Create a new table descriptor. </Abstract>
     <DeclaredIn>hashtable.h</DeclaredIn>
   </Token>
   <Token>
@@ -1184,7 +1193,7 @@
       <Type>func</Type>
     </TokenIdentifier>
     <Path>hashtable_8h.html</Path>
-    <Anchor>a182a34e175eed9648d954dfd045f7016</Anchor>
+    <Anchor>a0936640646863f42fbf7e3782777e3dc</Anchor>
     <Abstract>Initialize a pre-allocated table descriptor. </Abstract>
     <DeclaredIn>hashtable.h</DeclaredIn>
   </Token>
@@ -1322,6 +1331,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>ht_set_if_equals</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>a04d859bf4b6a985a8a94af2dbb7e6088</Anchor>
+    <Abstract>Set a new value stored at a specific key only if the actual one matches some provided data...</Abstract>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>ht_unset</Name>
       <APILanguage>c</APILanguage>
       <Type>func</Type>
@@ -1344,12 +1364,34 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>ht_delete_if_equals</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>a1d8ddb540af2e44cb96739eb0d7aaccc</Anchor>
+    <Abstract>Delete the value stored at a specific key only if it matches some provided data. </Abstract>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>ht_call</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>a7b5241251809b6faf4d9092d94b39ffc</Anchor>
+    <Abstract>call the provided callback passing the item stored at the specified key (if any) </Abstract>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>ht_count</Name>
       <APILanguage>c</APILanguage>
       <Type>func</Type>
     </TokenIdentifier>
     <Path>hashtable_8h.html</Path>
-    <Anchor>aaac9787728ecc64a959ceefd252432bc</Anchor>
+    <Anchor>a736f5c88541fe04287fb353ba95bdb00</Anchor>
     <Abstract>Return the count of items actually stored in the table. </Abstract>
     <DeclaredIn>hashtable.h</DeclaredIn>
   </Token>
@@ -1406,6 +1448,77 @@
     <Path>hashtable_8h.html</Path>
     <Anchor>ad5ad9c730fe61aa6a95062a5a4d67531</Anchor>
     <Abstract>Pair iterator. </Abstract>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>initial_size</Name>
+      <APILanguage>c</APILanguage>
+      <Type>data</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>a3c9524709d3d95ca1405a700fd2ffcdc</Anchor>
+    <Abstract>Create a new table descriptor. </Abstract>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>max_size</Name>
+      <APILanguage>c</APILanguage>
+      <Type>data</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>a51070b13235acd1b4d70135853a59a8c</Anchor>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>free_item_cb</Name>
+      <APILanguage>c</APILanguage>
+      <Type>data</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>a2b80067ff508df321836616a684f5613</Anchor>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>HT_ITERATOR_STOP</Name>
+      <APILanguage>c</APILanguage>
+      <Type>econst</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>ae98b3bed477b83a8b3184f5fb0d47cd6ae7dac942b888b11efef376e1679d05a6</Anchor>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>HT_ITERATOR_CONTINUE</Name>
+      <APILanguage>c</APILanguage>
+      <Type>econst</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>ae98b3bed477b83a8b3184f5fb0d47cd6a5c7410a0ecf52c12daae60f02839fb1d</Anchor>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>HT_ITERATOR_REMOVE</Name>
+      <APILanguage>c</APILanguage>
+      <Type>econst</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>ae98b3bed477b83a8b3184f5fb0d47cd6a817c539d8ba1cb80882c54f3402ffb29</Anchor>
+    <DeclaredIn>hashtable.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>HT_ITERATOR_REMOVE_AND_STOP</Name>
+      <APILanguage>c</APILanguage>
+      <Type>econst</Type>
+    </TokenIdentifier>
+    <Path>hashtable_8h.html</Path>
+    <Anchor>ae98b3bed477b83a8b3184f5fb0d47cd6a1a0f35cb4c32d50a81bde8d1633fd6ab</Anchor>
     <DeclaredIn>hashtable.h</DeclaredIn>
   </Token>
   <Token>
@@ -2009,6 +2122,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>queue_set_bpool_size</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>queue_8h.html</Path>
+    <Anchor>afde3ebbefe07f14570c4f5a1eeef4d49</Anchor>
+    <Abstract>Set the size of the internal buffer pool. </Abstract>
+    <DeclaredIn>queue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>queue_init</Name>
       <APILanguage>c</APILanguage>
       <Type>func</Type>
@@ -2104,17 +2228,6 @@
     <Path>queue_8h.html</Path>
     <Anchor>ae58b98ea5ba96c884dc78cd84680646b</Anchor>
     <Abstract>Remove the first value from the queue. </Abstract>
-    <DeclaredIn>queue.h</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>queue_push_position</Name>
-      <APILanguage>c</APILanguage>
-      <Type>func</Type>
-    </TokenIdentifier>
-    <Path>queue_8h.html</Path>
-    <Anchor>ae01574d606b1453ffb4defe1f62c6b67</Anchor>
-    <Abstract>Push a new value at a specific position. </Abstract>
     <DeclaredIn>queue.h</DeclaredIn>
   </Token>
   <Token>
@@ -2766,6 +2879,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>rqueue_size</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>rqueue_8h.html</Path>
+    <Anchor>aee2528bd0e34ed3a0943c94b4009af82</Anchor>
+    <DeclaredIn>rqueue.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>rqueue_isempty</Name>
       <APILanguage>c</APILanguage>
       <Type>func</Type>
@@ -2884,9 +3007,1051 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>SC_NUMVARS</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>ac98f0695ff7b36934f859830cce94488</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>SC_BLOCKSIZE</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>a2ba9173c519a11c94dd8841cf893e9d6</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>SC_BUFSIZE</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>ae9bbdc8ebf697e2b7591faa7c3eaf90d</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>spooky_shorthash</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>ab1c7c99441f602d6c4abd363d7a85de3</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>spooky_init</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>adcd1f9807b707dda15bca5631eb7b994</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>spooky_update</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>a8775e953dc08980a830e0cc25679da02</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>spooky_final</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>af874da3f5317f352df1588ecf4cad2a1</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>spooky_hash128</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>ad0b01b5103558a2019dd27775728034e</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>spooky_hash64</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>added16e7799524f72f1719e6632d908f</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>spooky_hash32</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>spooky-c_8h.html</Path>
+    <Anchor>a00bc230863798078b720c306a6a1a169</Anchor>
+    <DeclaredIn>spooky-c.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_err_t</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a4b60ab298033ffd117678b224448a136</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_NOERR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a3a34c4739b7f1b91d501f841ef60fe98</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_GENERIC_ERR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a7ee7d6b72ac49e4a19e68e1418d70f77</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_BADARGS</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a32f4a63066d826fbcca059559c7f8fc7</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_UPDATE_ERR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a7a221833e7e2dc6dbb245ccbe5abdc7d</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_OPEN_FILE_ERR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a600290edb47f56bf0a91374c43228edc</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_PARSER_GENERIC_ERR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a07b1e3bf9597b818734d2ff6cc06cfa2</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_MEMORY_ERR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a5f06fc9834d39e8c9ce4265e16799d82</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_LINKLIST_ERR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a1a7ee7a25cdd89993e94f91d6c6d9b62</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_BAD_CHARS</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>aa554abe811cd83bf0c84d41605b13675</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_MROOT_ERR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ac7c08dd931ca0c044b995cd655c631fc</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_NODETYPE_SIMPLE</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a5464690add568a5972644886412a282d</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_NODETYPE_COMMENT</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ad5431d4d89f13ed235128843544cdf40</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TXML_NODETYPE_CDATA</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>macro</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a4e036565ad11cc7131de0efb155a64fd</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_HEAD</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a34a8f0771107180bc5b8ee84474ce8c0</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_context_create</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ace8c4d27aabeaa5c5e392d9dfd523fa3</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_context_reset</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ae337e22457ecddfb1dd8979225f4ed28</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_context_destroy</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a0c8c7c2442d585fc31cc7976909d1e41</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_parse_buffer</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ad83bd06a3850e7cf597f3e0202f5fa5e</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_parse_file</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ab83d007ec87e40dd9448455fa7783142</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_dump</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a68dcb365051bfe9f516ea0bf55039a1d</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_set_output_encoding</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>aad1331a47dcc748dd4d61c3db1d74cb4</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_dump_branch</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a77d3134439399503f99f909839f04726</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_add_root_node</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a5423c850097ed629325068d8fbf329d6</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_create</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>af1437bbe3382678e36022fdaa16b9585</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_set_value</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a633652055684782c1dada78051be0be8</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_get_value</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a3c19313def6316231b0ddcbed28a6ae6</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_destroy</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a12f000b7a2ef9dad804223a2369b966a</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_add_child</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a7247b74683bc2fa64a2281936dc1a33a</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_next_sibling</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a232d28d9bad6525a69d864da8cf252e4</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_prev_sibling</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a5b43462193afefff786c0a4d1579d618</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_add_attribute</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ab33aa648229a2dbebd82d6b0aae5f435</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_subst_branch</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>aff6b58e6dd6d967e20f823de52e7249b</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_remove_node</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a45b52155cff5f8adc7a64d215973ccbe</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_remove_branch</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>abf5315b5ad044b652f095598cad32b5a</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_count_branches</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a493c6fa36afcd6c45727b650cba0b196</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_count_children</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>aa37e6ce06c6e26c522d3a824b3f517a5</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_count_attributes</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>aa74a1320cca89d8ad499627d9e9f78b8</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_get_node</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a02e2f11a11554dfdd572a037464e01e7</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_get_branch</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a0a7effe20ea92279f8b43c6d746363f7</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_get_child</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a1434385fd23b3d244f57a3143e33d37c</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_get_child_byname</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>accc6c9464d28331536562b742095294f</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_get_attribute</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ab0295c31ded19547335e3f8eb448e8f8</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_get_attribute_byname</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a7ca90302bb040b6602480d10a52bd8f3</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_remove_attribute</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>afb68ecfcd7686d84d7cec90473aae2aa</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_clear_attributes</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a1625dc4256a228c5a2dd56ea4fdcd0f8</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_save</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ab88dbc150e2366df2b0374d4aacb4725</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_namespace_create</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a6e978779f29265f7a76847088ad5a4c1</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_namespace_destroy</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a92d3b90cb2e3606f1407b65c754f2711</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_get_namespace_byname</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ae1becea6fb70ce1317ec7f70bc07b493</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_get_namespace_byuri</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ae245923b39a5a0c397a64a55df566bba</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_add_namespace</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ae765aa6b78c594532a9b4d24f04e71ee</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_get_namespace</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>a07e59933e6a6e42ebb1c166e937ccf42</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_set_namespace</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ab5c0829ac527f570ea77185ee494dcb8</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_set_cnamespace</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ad2aad65531095f5f2572e4c4a4e17516</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_has_iconv</Name>
+      <APILanguage>c</APILanguage>
+      <Type>func</Type>
+    </TokenIdentifier>
+    <Path>txml_8h.html</Path>
+    <Anchor>ab51482c1b0dd30e0320742b9a52b2d72</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>todo</Name>
       <APILanguage>unknown</APILanguage>
     </TokenIdentifier>
     <Path>todo.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_attribute_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>cl</Type>
+      <Scope>txml_attribute_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__attribute__t.html</Path>
+    <Abstract>One attribute associated to an element. </Abstract>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_ENTRY</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>func</Type>
+      <Scope>txml_attribute_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__attribute__t.html</Path>
+    <Anchor>a9e40aa204b8779f2b51c80f3f776da41</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_attribute_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__attribute__t.html</Path>
+    <Anchor>acf492301e50f045e5d8925610e4512a5</Anchor>
+    <Abstract>the attribute name </Abstract>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>value</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_attribute_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__attribute__t.html</Path>
+    <Anchor>a77e6620107a9352c65fe478781f2d219</Anchor>
+    <Abstract>the attribute value </Abstract>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>node</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_attribute_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__attribute__t.html</Path>
+    <Anchor>ab5473a2e56daba8849aba903ebc114fd</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_namespace_set_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>cl</Type>
+      <Scope>txml_namespace_set_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__namespace__set__t.html</Path>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_ENTRY</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>func</Type>
+      <Scope>txml_namespace_set_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__namespace__set__t.html</Path>
+    <Anchor>a0a0046192d574db0474b5e8901b2048d</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>ns</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_namespace_set_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__namespace__set__t.html</Path>
+    <Anchor>a6c1c58561c7c9df23d61eb8da7128b5c</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_namespace_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>cl</Type>
+      <Scope>txml_namespace_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__namespace__t.html</Path>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_ENTRY</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>func</Type>
+      <Scope>txml_namespace_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__namespace__t.html</Path>
+    <Anchor>a7619a135f444f6713497ea72b4ad4ca1</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_namespace_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__namespace__t.html</Path>
+    <Anchor>a887e4454f269341b60b977bcaf841ae1</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>uri</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_namespace_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__namespace__t.html</Path>
+    <Anchor>aaacf531d29540984453665296b108814</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_node_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>cl</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_HEAD</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>func</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>afba07c08313a093b429d41d20729e81c</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_HEAD</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>func</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>ad54ea9bcd2a82039b24c5a1c75b9aaa2</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_HEAD</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>func</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>ade2079df59181ae1c9e82f5f60494509</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_HEAD</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>func</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>a6311ca079e0244907a9bca7847cfed44</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_ENTRY</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>func</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>a202a89fdf206dc8a2949898681acc9d1</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>path</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>ae027a24a706bf0a2eb705d5fe66c17fc</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>abb387147133ea226538afd427f305023</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>parent</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>a7b25e065f9275e43b639b39f32438f1d</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>value</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>abbebfeb4aec838c37c87fd2c7cc57210</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>type</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>a657bc6c8826d3277d8776103a600a67a</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>ns</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>ad70b39aab54e9fe22ee281d06071cdd9</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>cns</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>ab99e5901257cc6cea584980f795d09e6</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>hns</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>a407f4cb5dc547192c301b5adf7e618eb</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>context</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_node_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__node__t.html</Path>
+    <Anchor>aecab43ce77c94d845ce20ec4edd99653</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>txml_t</Name>
+      <APILanguage>c</APILanguage>
+      <Type>cl</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TAILQ_HEAD</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>func</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <Anchor>a8815193f2f199daa6aad399ecc449b3b</Anchor>
+    <DeclaredIn>txml.h</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>cnode</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <Anchor>a9625d6fa4e9a8bef184bb2743c9d3b17</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>head</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <Anchor>a4236ed3a423a60be9e4bc2b3a72d20c4</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>output_encoding</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <Anchor>a9f4e663bdc3ce527346dab5bdda32b72</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>document_encoding</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <Anchor>a0bb7a1ff3eaf8b5f65978d160bbb30d5</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>use_namespaces</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <Anchor>a35bdc3bfa81aa84ce2412d80ff567f83</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>allow_multiple_root_nodes</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <Anchor>a9ef4d63a22b4373630353cef0133975f</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>ignore_white_spaces</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <Anchor>ae08198788ccaaba47547b93321a7204d</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>ignore_blanks</Name>
+      <APILanguage>cpp</APILanguage>
+      <Type>data</Type>
+      <Scope>txml_t</Scope>
+    </TokenIdentifier>
+    <Path>structtxml__t.html</Path>
+    <Anchor>a6cbce82787029e83a80cc05305d2cd93</Anchor>
   </Token>
 </Tokens>

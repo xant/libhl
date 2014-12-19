@@ -146,17 +146,23 @@ $(document).ready(function(){initNavTree('rqueue_8h_source.html','');});
 <div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;</div>
 <div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;<span class="keywordtype">char</span> *<a class="code" href="rqueue_8h.html#a455f5f762c97cc38fea0aa87383063cb">rqueue_stats</a>(<a class="code" href="rqueue_8h.html#accbc3ef232e863e20201ed60c44029b2">rqueue_t</a> *rb);</div>
 <div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;</div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;<span class="keywordtype">int</span> <a class="code" href="rqueue_8h.html#a55c7ad4235d3a011fbfd63126c57ff18">rqueue_isempty</a>(<a class="code" href="rqueue_8h.html#accbc3ef232e863e20201ed60c44029b2">rqueue_t</a> *tb);</div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;uint32_t <a class="code" href="rqueue_8h.html#aee2528bd0e34ed3a0943c94b4009af82">rqueue_size</a>(<a class="code" href="rqueue_8h.html#accbc3ef232e863e20201ed60c44029b2">rqueue_t</a> *rb);</div>
 <div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;</div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;<span class="preprocessor"></span>}</div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;<span class="preprocessor"></span></div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;<span class="keywordtype">int</span> <a class="code" href="rqueue_8h.html#a55c7ad4235d3a011fbfd63126c57ff18">rqueue_isempty</a>(<a class="code" href="rqueue_8h.html#accbc3ef232e863e20201ed60c44029b2">rqueue_t</a> *tb);</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;<span class="preprocessor"></span>}</div>
 <div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;<span class="preprocessor"></span></div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;<span class="preprocessor"></span></div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;<span class="comment">// vim: tabstop=4 shiftwidth=4 expandtab:</span></div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;<span class="comment">/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */</span></div>
 <div class="ttc" id="rqueue_8h_html_a15d64f5859c79ce47c2790f33f559eef"><div class="ttname"><a href="rqueue_8h.html#a15d64f5859c79ce47c2790f33f559eef">rqueue_read</a></div><div class="ttdeci">void * rqueue_read(rqueue_t *rb)</div><div class="ttdoc">Read the next value in the ringbuffer. </div></div>
 <div class="ttc" id="rqueue_8h_html_a425a2514600d8ba4ffb66951f6264abd"><div class="ttname"><a href="rqueue_8h.html#a425a2514600d8ba4ffb66951f6264abd">rqueue_create</a></div><div class="ttdeci">rqueue_t * rqueue_create(uint32_t size, rqueue_mode_t mode)</div><div class="ttdoc">Create a new ringbuffer descriptor. </div></div>
 <div class="ttc" id="rqueue_8h_html_a55c7ad4235d3a011fbfd63126c57ff18"><div class="ttname"><a href="rqueue_8h.html#a55c7ad4235d3a011fbfd63126c57ff18">rqueue_isempty</a></div><div class="ttdeci">int rqueue_isempty(rqueue_t *tb)</div></div>
 <div class="ttc" id="rqueue_8h_html_accbc3ef232e863e20201ed60c44029b2"><div class="ttname"><a href="rqueue_8h.html#accbc3ef232e863e20201ed60c44029b2">rqueue_t</a></div><div class="ttdeci">struct __rqueue rqueue_t</div><div class="ttdoc">Opaque structure representing the actual ringbuffer descriptor. </div><div class="ttdef"><b>Definition:</b> rqueue.h:19</div></div>
+<div class="ttc" id="rqueue_8h_html_aee2528bd0e34ed3a0943c94b4009af82"><div class="ttname"><a href="rqueue_8h.html#aee2528bd0e34ed3a0943c94b4009af82">rqueue_size</a></div><div class="ttdeci">uint32_t rqueue_size(rqueue_t *rb)</div></div>
 <div class="ttc" id="rqueue_8h_html_a6e7f6a49cc6fcb72d27dd0ebf3f7aed4a517a681255c962ba86d24aa4aa347deb"><div class="ttname"><a href="rqueue_8h.html#a6e7f6a49cc6fcb72d27dd0ebf3f7aed4a517a681255c962ba86d24aa4aa347deb">RQUEUE_MODE_OVERWRITE</a></div><div class="ttdef"><b>Definition:</b> rqueue.h:44</div></div>
 <div class="ttc" id="rqueue_8h_html_a95fbe59fc6fe70e458fc940e532929d7"><div class="ttname"><a href="rqueue_8h.html#a95fbe59fc6fe70e458fc940e532929d7">rqueue_write_count</a></div><div class="ttdeci">uint32_t rqueue_write_count(rqueue_t *rb)</div><div class="ttdoc">Returns the count of &amp;#39;write operations&amp;#39; executed so far. </div></div>
 <div class="ttc" id="rqueue_8h_html_a6e7f6a49cc6fcb72d27dd0ebf3f7aed4"><div class="ttname"><a href="rqueue_8h.html#a6e7f6a49cc6fcb72d27dd0ebf3f7aed4">rqueue_mode_t</a></div><div class="ttdeci">rqueue_mode_t</div><div class="ttdoc">The ringbuffer mode. </div><div class="ttdef"><b>Definition:</b> rqueue.h:42</div></div>
@@ -175,7 +181,7 @@ $(document).ready(function(){initNavTree('rqueue_8h_source.html','');});
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="rqueue_8h.html">rqueue.h</a></li>
-    <li class="footer">Generated on Thu Jun 26 2014 10:29:45 for libhl by
+    <li class="footer">Generated on Fri Dec 19 2014 10:27:28 for libhl by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.5 </li>
   </ul>

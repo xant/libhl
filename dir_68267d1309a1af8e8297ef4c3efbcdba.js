@@ -13,5 +13,7 @@ var dir_68267d1309a1af8e8297ef4c3efbcdba =
     [ "rbuf.h", "rbuf_8h.html", "rbuf_8h" ],
     [ "refcnt.h", "refcnt_8h.html", "refcnt_8h" ],
     [ "rqueue.h", "rqueue_8h.html", "rqueue_8h" ],
-    [ "skiplist.h", "skiplist_8h.html", "skiplist_8h" ]
+    [ "skiplist.h", "skiplist_8h.html", "skiplist_8h" ],
+    [ "spooky-c.h", "spooky-c_8h.html", "spooky-c_8h" ],
+    [ "txml.h", "txml_8h.html", "txml_8h" ]
 ];

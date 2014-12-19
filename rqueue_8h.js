@@ -16,5 +16,6 @@ var rqueue_8h =
     [ "rqueue_write_count", "rqueue_8h.html#a95fbe59fc6fe70e458fc940e532929d7", null ],
     [ "rqueue_read_count", "rqueue_8h.html#a05b2184be7c1423c568de96478a310b7", null ],
     [ "rqueue_stats", "rqueue_8h.html#a455f5f762c97cc38fea0aa87383063cb", null ],
+    [ "rqueue_size", "rqueue_8h.html#aee2528bd0e34ed3a0943c94b4009af82", null ],
     [ "rqueue_isempty", "rqueue_8h.html#a55c7ad4235d3a011fbfd63126c57ff18", null ]
 ];
