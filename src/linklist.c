@@ -817,14 +817,21 @@ void list_destroy_tagged_value(tagged_value_t *tval)
     list_destroy_tagged_value_internal(tval, NULL);
 }
 
-tagged_value_t *list_set_tagged_value(linked_list_t *list, tagged_value_t *tval)
+tagged_value_t *list_set_tagged_value(linked_list_t *list, char *tag, void *value, uint32_t len, int copy)
 {
     int i;
+
+    tagged_value_t *tval;
+    if (copy)
+        tval = list_create_tagged_value(tag, value, len);
+    else
+        tval = list_create_tagged_value_nocopy(tag, value);
+
     MUTEX_LOCK(&list->lock);
     for (i = 0; i < list->length; i++) {
         tagged_value_t *tv = list_pick_tagged_value(list, i);
-        if (tv && tv->tag && tv->tag[0] == tval->tag[0] &&
-            strcmp(tv->tag, tval->tag) == 0)
+        if (tv && tv->tag && tv->tag[0] == tag[0] &&
+            strcmp(tv->tag, tag) == 0)
         {
             list_set_value(list, i, tval);
             MUTEX_UNLOCK(&list->lock);
