@@ -286,6 +286,20 @@ tagged_value_t *list_create_tagged_sublist(char *tag, linked_list_t *list);
 void list_destroy_tagged_value(tagged_value_t *tval);
 
 /**
+ * @brief Set a new tagged value in the list. If the list already
+ *        contains one with the same tag, this will be replaced with the new value
+ *        (but still at the same index in the list)
+ * @param list: The list used as value
+ * @param tval: The new tagged value to insert to the list 
+ * @note If a tagged value with the same tag is already contained in the list, 
+ *       this function will replace the old tagged_value_t structure with the
+ *       new one preserving the position in the list.\n
+ *       If no matching tagged_value_t structure is found, then the new one
+ *       is added to the end of the list
+ */
+tagged_value_t *list_set_tagged_value(linked_list_t *list, tagged_value_t *tval);
+
+/**
  * @brief Same as pop_value but expect the value to be a pointer to a tagged_value_t structure
  * @param list : A valid pointer to a linked_list_t structure holding tagged values
  * @return The tagged value stored at the end of the list

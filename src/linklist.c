@@ -817,6 +817,25 @@ void list_destroy_tagged_value(tagged_value_t *tval)
     list_destroy_tagged_value_internal(tval, NULL);
 }
 
+tagged_value_t *list_set_tagged_value(linked_list_t *list, tagged_value_t *tval)
+{
+    int i;
+    MUTEX_LOCK(&list->lock);
+    for (i = 0; i < list->length; i++) {
+        tagged_value_t *tv = list_pick_tagged_value(list, i);
+        if (tv && tv->tag && tv->tag[0] == tval->tag[0] &&
+            strcmp(tv->tag, tval->tag) == 0)
+        {
+            list_set_value(list, i, tval);
+            MUTEX_UNLOCK(&list->lock);
+            return tv;
+        }
+    }
+    list_push_tagged_value(list, tval);
+    MUTEX_UNLOCK(&list->lock);
+    return NULL;
+}
+
 /* Pops a tagged_value_t from the list pointed by list */
 tagged_value_t *list_pop_tagged_value(linked_list_t *list) 
 {

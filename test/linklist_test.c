@@ -262,6 +262,16 @@ int main(int argc, char **argv) {
     tagged_value_t *test_tagged_value = list_get_tagged_value(tagged_list, "key10");
     ut_validate_string(test_tagged_value->value, "value10");
 
+    ut_testing("set_tagged_value()");
+    tagged_value_t *new_tagged_value = list_create_tagged_value("key10", "test", 4);
+    test_tagged_value = list_set_tagged_value(tagged_list, new_tagged_value);
+    if (strcmp(test_tagged_value->value, "value10") != 0)
+        ut_failure("Old value doesn't match");
+    else {
+        test_tagged_value = list_get_tagged_value(tagged_list, "key10");
+        ut_validate_string(test_tagged_value->value, new_tagged_value->value);
+    }
+
     list_destroy(tagged_list);
 
     ut_summary();
