@@ -28,7 +28,10 @@ int main(int argc, char **argv)
     size_t psize = 0;
     ut_testing("trie_find(trie, 'TEST', &psize) finds and returns the stored value");
     void *p = trie_find(trie, "TEST", &psize);
-    ut_validate_int((int)p, (int)&value);
+    if (p)
+        ut_validate_int(*((int *)p), value);
+    else
+        ut_failure("the value doesn't match");
 
     ut_testing("trie_insert(trie, 'TECH', &value, sizeof(value)) creates 2 nodes");
     nodes_inserted = trie_insert(trie, "TECH", &value, sizeof(value), 0);
@@ -40,7 +43,10 @@ int main(int argc, char **argv)
 
     ut_testing("trie_find(trie, 'TECH', &psize) finds and returns the stored value");
     p = trie_find(trie, "TECH", &psize);
-    ut_validate_int((int)p, (int)&value);
+    if (p)
+        ut_validate_int(*((int *)p), value);
+    else
+        ut_failure("the value doesn't match");
 
     int value2 = 2;
     void *p2 = NULL;
@@ -58,11 +64,17 @@ int main(int argc, char **argv)
     ut_validate_int(update_count, 0);
 
     ut_testing("prev value was correctly returned");
-    ut_validate_int((int)p2, (int)&value2);
+    if (p2)
+        ut_validate_int(*((int *)p2), value2);
+    else
+        ut_failure("the value doesn't match");
 
     ut_testing("the value has been correctly updated");
     p = trie_find(trie, "TEST", &psize);
-    ut_validate_int((int)p, (int)&value);
+    if (p)
+        ut_validate_int(*((int *)p), value);
+    else
+        ut_failure("the value doesn't match");
 
     trie_destroy(trie);
 
