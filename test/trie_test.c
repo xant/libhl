@@ -53,7 +53,7 @@ int main(int argc, char **argv)
     update_count = trie_find_or_insert(trie, "TEST", &value2, sizeof(value2), &p2, &p2size, 0);
     ut_validate_int(update_count, 2);
 
-    ut_testing("trie_find_and_insert finds a stored value, returns it and updates the value");
+    ut_testing("trie_find_and_insert finds a stored value and doesn't create any new node");
     update_count = trie_find_and_insert(trie, "TEST", &value, sizeof(value), &p2, &p2size, 0);
     ut_validate_int(update_count, 0);
 
