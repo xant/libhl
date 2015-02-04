@@ -1,0 +1,216 @@
+
+#include "trie.h"
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct __trie_node_s {
+    void *value;
+    size_t vsize;
+    int is_copy;
+    int num_children;
+    struct __trie_node_s *child[256];
+    struct __trie_node_s *parent;
+    char pidx;
+} trie_node_t;
+
+struct __trie_s {
+    int count;
+    int node_count;
+    trie_node_t *root;
+    trie_free_value_callback_t free_value_cb;
+};
+
+trie_t *
+trie_create(trie_free_value_callback_t free_value_cb)
+{
+    trie_t *trie = calloc(1, sizeof(trie_t));
+    trie->root = calloc(1, sizeof(trie_node_t));
+    trie->free_value_cb = free_value_cb;
+    return trie;
+}
+
+
+static void
+trie_node_destroy(trie_t *trie, trie_node_t *node)
+{
+    trie_node_t *parent = node->parent;
+    int pidx = node->pidx;
+
+    while (parent && parent != trie->root) {
+        if (parent->value || parent->num_children > 1)
+            break;
+        trie_node_t *empty_node = parent;
+        pidx = parent->pidx;
+        parent = parent->parent;
+        free(empty_node);
+        trie->node_count--;
+    }
+
+    if (parent) {
+        parent->child[pidx] = NULL;
+        parent->num_children--;
+    }
+
+    int i;
+    for (i = 0; i < 256; i++)
+        if (node->child[i]) {
+            node->child[i]->parent = NULL;
+            trie_node_destroy(trie, node->child[i]);
+            node->child[i] = NULL;
+            node->num_children--;
+        }
+
+    if (node->value) {
+        trie->count--;
+        if (node->is_copy)
+            free(node->value);
+        else if (trie->free_value_cb)
+            trie->free_value_cb(node->value);
+    }
+
+    trie->node_count--;
+    free(node);
+}
+
+void
+trie_destroy(trie_t *trie)
+{
+    trie_node_destroy(trie, trie->root);
+    free(trie);
+}
+
+static inline void
+trie_node_set_value(trie_t *trie, trie_node_t *node, void *value, size_t vsize, int copy)
+{
+    if (node->value) {
+        if (node->is_copy)
+            free(node->value);
+        else if (trie->free_value_cb)
+            trie->free_value_cb(node->value);
+    }
+
+    if (copy) {
+        node->value = malloc(vsize);
+        memcpy(node->value, value, vsize);
+        node->vsize = vsize;
+        node->is_copy = 1;
+    } else {
+        node->value = value;
+        node->vsize = vsize;
+        node->is_copy = 0;
+    }
+}
+
+int
+trie_insert(trie_t *trie, char *key, void *value, size_t vsize, int copy)
+{
+    trie_node_t *node = trie->root;
+    int i = 0;
+    int n = strlen(key);
+    int new_nodes = 0;
+    while (i < n) {
+        if (node->child[(int)key[i]])
+            node = node->child[(int)key[i++]];
+        else
+            break;
+    }
+
+    while (i < n) {
+        new_nodes++;
+        node->child[(int)key[i]] = calloc(1, sizeof(trie_node_t));
+        node->num_children++;
+        trie_node_t *parent = node;
+        node = node->child[(int)key[i]];
+        node->parent = parent;
+        node->pidx = key[i++];
+    }
+
+    if (new_nodes) {
+        trie->count++;
+        trie->node_count += new_nodes;
+    }
+
+    trie_node_set_value(trie, node, value, vsize, copy);
+
+    return new_nodes;
+}
+
+static inline trie_node_t *
+trie_find_internal(trie_t *trie, char *key)
+{
+    int i;
+    trie_node_t *node = trie->root;;
+    for (i = 0; i < strlen(key); i++) {
+        node = node->child[(int)key[i]];
+        if (!node)
+            return NULL;
+    }
+    return node;
+}
+
+void *
+trie_find(trie_t *trie, char *key, size_t *vsize)
+{
+    trie_node_t *node = trie_find_internal(trie, key);
+    if (!node)
+        return NULL;
+
+    if (vsize)
+        *vsize = node->vsize;
+
+    return node->value;
+}
+
+int
+trie_remove(trie_t *trie, char *key, void **value, size_t *vsize)
+{
+    trie_node_t *node = trie_find_internal(trie, key);
+    if (!node)
+        return 0;
+
+    int num_nodes = trie->node_count;
+
+    trie_node_destroy(trie, node);
+
+    if (value)
+        *value = node->value;
+
+    if (vsize)
+        *vsize = node->vsize;
+
+    return num_nodes - trie->node_count;
+}
+
+int
+trie_find_or_insert(trie_t *trie, char *key, void *value, size_t vsize, void **prev_value, size_t *prev_vsize, int copy)
+{
+    trie_node_t *node = trie_find_internal(trie, key);
+    if (!node)
+        return trie_insert(trie, key, value, vsize, copy);
+
+    if (prev_value)
+        *prev_value = node->value;
+    if (prev_vsize)
+        *prev_vsize = node->vsize;
+
+    return 0;
+}
+
+int
+trie_find_and_insert(trie_t *trie, char *key, void *value, size_t vsize, void **prev_value, size_t *prev_vsize, int copy)
+{
+
+    trie_node_t *node = trie_find_internal(trie, key);
+    if (node) {
+        if (prev_value)
+            *prev_value = node->value;
+        if (prev_vsize)
+            *prev_vsize = node->vsize;
+        trie_node_set_value(trie, node, value, vsize, copy);
+        return 0;
+    }
+
+    return trie_insert(trie, key, value, vsize, copy);
+}
+
+
