@@ -98,11 +98,15 @@ typedef enum {
  * @param key  The key of the node where to store the new value
  * @param klen The size of the key
  * @param value The new value to store
- * @param priv  The private pointer passed to either rbt_walk() or rbt_walk_sorted()
- * @return 1 If the walker can go ahead visiting the next node,
- *         0 if the walker should stop and return
- *        -1 if the current node should be removed and the walker can go ahead
- *        -2 if the current node should be removed and the walker should stop
+ * @param priv  The private pointer passed to either rbt_walk()
+ *              or rbt_walk_sorted()
+ * @return
+ *   RBT_WALK_CONTINUE If the walker can go ahead visiting the next node,\n
+ *   RBT_WALK_STOP if the walker should stop and return\n
+ *   RBT_WALK_DELETE_AND_CONTINUE if the current node should be removed and the
+ *                                walker can go ahead\n
+ *   RBT_WALK_DELETE_AND_STOP if the current node should be removed and the
+ *                            walker should stop
  */
 typedef rbt_walk_return_code_t (*rbt_walk_callback)(rbt_t *rbt,
                                                     void *key,
