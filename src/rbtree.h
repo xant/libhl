@@ -85,6 +85,13 @@ int rbt_remove(rbt_t *rbt, void *key, size_t klen, void **value);
  */
 int rbt_find(rbt_t *rbt, void *key, size_t klen, void **value);
 
+typedef enum {
+    RBT_WALK_STOP = 0,
+    RBT_WALK_CONTINUE = 1,
+    RBT_WALK_DELETE_AND_CONTINUE = -1,
+    RBT_WALK_DELETE_AND_STOP = -2
+} rbt_walk_return_code_t;
+
 /**
  * @brief Callback called for each node when walking the tree
  * @param rbt   A valid pointer to an initialized rbt_t structure
@@ -97,11 +104,11 @@ int rbt_find(rbt_t *rbt, void *key, size_t klen, void **value);
  *        -1 if the current node should be removed and the walker can go ahead
  *        -2 if the current node should be removed and the walker should stop
  */
-typedef int (*rbt_walk_callback)(rbt_t *rbt,
-                                    void *key,
-                                    size_t klen,
-                                    void *value,
-                                    void *priv);
+typedef rbt_walk_return_code_t (*rbt_walk_callback)(rbt_t *rbt,
+                                                    void *key,
+                                                    size_t klen,
+                                                    void *value,
+                                                    void *priv);
 
 /**
  * @brief Walk the entire tree and call the callback for each visited node

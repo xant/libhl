@@ -86,10 +86,10 @@ rbt_walk_internal(rbt_t *rbt, rbt_node_t *node, int sorted, rbt_walk_callback cb
 
     cbrc = cb(rbt, node->key, node->klen, node->value, priv);
     switch(cbrc) {
-        case -2:
+        case RBT_WALK_DELETE_AND_STOP:
             rbt_remove(rbt, node->key, node->klen, NULL);
             return 0;
-        case -1:
+        case RBT_WALK_DELETE_AND_CONTINUE:
             {
                 if (node->left && node->right) {
                     rbt_remove(rbt, node->key, node->klen, NULL);
@@ -100,9 +100,9 @@ rbt_walk_internal(rbt_t *rbt, rbt_node_t *node, int sorted, rbt_walk_callback cb
                 // this node was a leaf
                 return 1;
             }
-        case 0:
+        case RBT_WALK_STOP:
             return 0;
-        case 1:
+        case RBT_WALK_CONTINUE:
             break;
         default:
             // TODO - Error Messages
