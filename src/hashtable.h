@@ -207,9 +207,16 @@ int ht_set_if_not_exists(hashtable_t *table, void *key, size_t klen, void *data,
  * @param dlen  : The size of the data
  * @param match : A valid pointer to the data we need to match in order to delete the value
  * @param match_size : The value of the data to match
- * @return 0 on success, -1 otherwise
+ * @param prev_data : If not NULL the pointer will be set to point to the previous data
+ * @param prev_len : If not NULL the integer pointer will be set to the size of the previous data
+ * @node If the prev_data pointer is provided, the caller will be responsible of relasing
+ *       the resources pointed after the call. If not provided (NULL) the free_value callback
+ *       will be eventually used (if defined)
+ * @return 0 on success;\n
+ *         1 if the value didn't match (a the new value was not set),
+ *         -1 in case of errors
  */
-int ht_set_if_equals(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen, void *match, size_t match_size);
+int ht_set_if_equals(hashtable_t *table, void *key, size_t klen, void *data, size_t dlen, void *match, size_t match_size, void **prev_data, size_t *prev_len);
 
 /**
  * @brief Unset the value stored at a specific key

@@ -572,6 +572,9 @@ typedef struct {
     size_t dlen;
     void *match;
     size_t match_size;
+    int matched;
+    void **prev_data;
+    size_t *prev_len;
 } ht_set_if_equals_helper_arg_t;
 
 static int
@@ -579,14 +582,24 @@ ht_set_if_equals_helper(hashtable_t *table, void *key, size_t klen, void **value
 {
     ht_set_if_equals_helper_arg_t *arg = (ht_set_if_equals_helper_arg_t *)user;
      
+    if (arg->prev_len)
+        *arg->prev_len = *vlen;
+
+    if (arg->prev_data)
+        *arg->prev_data = *value;
+
     if (arg->match_size == *vlen && ((char *)*value)[0] == *((char *)arg->match) &&
         memcmp(*value, arg->match, arg->match_size) == 0)
     {
-        if (table->free_item_cb)
+        arg->matched = 1;
+
+        if (!arg->prev_data && table->free_item_cb)
             table->free_item_cb(*value);
+
         *value = arg->data;
         *vlen = arg->dlen;
     }
+
     return 0;
 }
 
@@ -597,7 +610,9 @@ ht_set_if_equals(hashtable_t *table,
                  void *data,
                  size_t dlen,
                  void *match,
-                 size_t match_size)
+                 size_t match_size,
+                 void **prev_data,
+                 size_t *prev_len)
 {
     if (!match && match_size == 0)
         return ht_set_if_not_exists(table, key, klen, data, dlen);
@@ -606,9 +621,16 @@ ht_set_if_equals(hashtable_t *table,
         .data = data,
         .dlen = dlen,
         .match = match,
-        .match_size = match_size
+        .match_size = match_size,
+        .matched = 0,
+        .prev_data = prev_data,
+        .prev_len = prev_len
     };
-    return ht_call_internal(table, key, klen, ht_set_if_equals_helper, (void *)&arg);
+    if (ht_call_internal(table, key, klen, ht_set_if_equals_helper, (void *)&arg) == 0)
+    {
+        return arg.matched ? 0 : 1;
+    }
+    return -1;
 }
 
 
