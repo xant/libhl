@@ -288,7 +288,10 @@ unsigned int fbuf_attach(fbuf_t *fbuf, char *buf, int len, int used)
     if (fbuf->data)
         free(fbuf->data);
     fbuf->skip = 0;
-    fbuf->data = buf;
+    if (used < len)
+        fbuf->data = buf;
+    else
+        fbuf->data = realloc(buf, used + 1);
     fbuf->len = len;
     fbuf->used = used;
     fbuf->data[used] = '\0';
