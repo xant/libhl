@@ -52,6 +52,7 @@ extern "C" {
         (__fbuf)->slowgrowsize = (__slowgrow); \
         (__fbuf)->used = 0; \
         (__fbuf)->skip = 0; \
+        (__fbuf)->len = 0; \
     }
 
 typedef struct __fbuf {
