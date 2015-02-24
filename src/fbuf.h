@@ -253,6 +253,17 @@ int fbuf_set(fbuf_t *fbuf, const char *data);
 int fbuf_printf(fbuf_t *fbuf, const char *fmt, ...);
 
 /**
+ * @brief Add a string produced through printf to the fbuf
+ *        without exceding a maximum size for the newly added data
+ * @param fbuf fbuf
+ * @param max maximum size to write into te buffer
+ * @param fmt printf style format string
+ * @param ... printf style parameter list
+ * @returns number characters copied on success; -1 otherwise.
+ */
+int fbuf_nprintf(fbuf_t *fbuf, int max, const char *fmt, ...);
+
+/**
  * @brief Read at most explen bytes from a file.
  * @param fbuf fbuf
  * @param file file descriptor

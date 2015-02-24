@@ -466,6 +466,28 @@ fbuf_set(fbuf_t *fbuf, const char *data)
 }
 
 int
+fbuf_nprintf(fbuf_t *fbuf, int max, const char *fmt, ...)
+{
+    va_list args;
+    unsigned int n;
+
+    if (!fbuf_extend(fbuf, fbuf->used+max))
+        return -1;
+
+    va_start(args, fmt);
+    n = vsnprintf(fbuf->data + fbuf->skip + fbuf->used,
+            fbuf->len - (fbuf->skip + fbuf->used), fmt, args);
+    va_end(args);
+
+    fbuf->used += n;
+    fbuf->data[fbuf->skip + fbuf->used] = '\0'; // terminate the buffer string
+
+    va_end(args);
+
+    return n;
+}
+
+int
 fbuf_printf(fbuf_t *fbuf, const char *fmt, ...)
 {
     va_list args;
