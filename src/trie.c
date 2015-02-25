@@ -104,25 +104,22 @@ trie_node_set_value(trie_t *trie, trie_node_t *node, void *value, size_t vsize, 
 int
 trie_insert(trie_t *trie, char *key, void *value, size_t vsize, int copy)
 {
-    trie_node_t *node = trie->root;
-    int i = 0;
-    int n = strlen(key);
+    trie_node_t *node = trie->root, *tmp;
+    char* ptr = key;
     int new_nodes = 0;
-    while (i < n) {
-        if (node->child[(int)key[i]])
-            node = node->child[(int)key[i++]];
-        else
-            break;
+    while (*ptr && (tmp = node->child[(int)*ptr])) {
+            node = tmp;
+            ++ptr;
     }
 
-    while (i < n) {
+    while (*ptr) {
         new_nodes++;
-        node->child[(int)key[i]] = calloc(1, sizeof(trie_node_t));
         node->num_children++;
-        trie_node_t *parent = node;
-        node = node->child[(int)key[i]];
-        node->parent = parent;
-        node->pidx = key[i++];
+        tmp = node->child[(int)*ptr] = calloc(1, sizeof(trie_node_t));
+        tmp->parent = node;
+        tmp->pidx = *ptr;
+        node = tmp;
+        ++ptr;
     }
 
     if (new_nodes) {
@@ -138,12 +135,9 @@ trie_insert(trie_t *trie, char *key, void *value, size_t vsize, int copy)
 static inline trie_node_t *
 trie_find_internal(trie_t *trie, char *key)
 {
-    int i;
-    trie_node_t *node = trie->root;;
-    for (i = 0; i < strlen(key); i++) {
-        node = node->child[(int)key[i]];
-        if (!node)
-            return NULL;
+    trie_node_t *node;
+    for (node = trie->root; *key && node; ++key) {
+        node = node->child[(int)*key];
     }
     return node;
 }
