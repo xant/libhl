@@ -390,7 +390,8 @@ static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
     }
 
     uint32_t half_length = list->length >> 1;
-    if (list->cur && (uint32_t)abs(list->pos - pos) < half_length) {
+    /* we rely on integer underflow for the argument to abs(). */
+    if (list->cur && (uint32_t)abs((int)(list->pos - pos)) < half_length) {
         entry = list->cur;
         if (list->pos != pos) {
             if (list->pos < pos) {
