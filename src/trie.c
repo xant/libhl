@@ -105,21 +105,20 @@ int
 trie_insert(trie_t *trie, char *key, void *value, size_t vsize, int copy)
 {
     trie_node_t *node = trie->root, *tmp;
-    char* ptr = key;
     int new_nodes = 0;
-    while (*ptr && (tmp = node->child[(int)*ptr])) {
+    while (*key && (tmp = node->child[(int)*key])) {
             node = tmp;
-            ++ptr;
+            ++key;
     }
 
-    while (*ptr) {
+    while (*key) {
         new_nodes++;
         node->num_children++;
-        tmp = node->child[(int)*ptr] = calloc(1, sizeof(trie_node_t));
+        tmp = node->child[(int)*key] = calloc(1, sizeof(trie_node_t));
         tmp->parent = node;
-        tmp->pidx = *ptr;
+        tmp->pidx = *key;
         node = tmp;
-        ++ptr;
+        ++key;
     }
 
     if (new_nodes) {
