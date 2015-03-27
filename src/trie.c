@@ -126,7 +126,8 @@ trie_insert(trie_t *trie, char *key, void *value, size_t vsize, int copy)
         trie->node_count += new_nodes;
     }
 
-    trie_node_set_value(trie, node, value, vsize, copy);
+    if (node)
+        trie_node_set_value(trie, node, value, vsize, copy);
 
     return new_nodes;
 }
