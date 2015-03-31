@@ -362,6 +362,7 @@ tagged_value_t *list_get_tagged_value(linked_list_t *list, char *tag);
  *        (but still at the same index in the list)
  * @param list: The list used as value
  * @param tval: The new tagged value to insert to the list 
+ * @return The previous tagged_value_t matching the given tag if any; NULL otherwise
  * @note If a tagged value with the same tag is already contained in the list, 
  *       this function will replace the old tagged_value_t structure with the
  *       new one preserving the position in the list.\n

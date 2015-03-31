@@ -834,12 +834,18 @@ tagged_value_t *list_set_tagged_value(linked_list_t *list, char *tag, void *valu
         if (tv && tv->tag && tv->tag[0] == tag[0] &&
             strcmp(tv->tag, tag) == 0)
         {
-            list_set_value(list, i, tval);
             MUTEX_UNLOCK(&list->lock);
+            if (!list_set_value(list, i, tval)) {
+                list_destroy_tagged_value(tval);
+                return NULL;
+            }
             return tv;
         }
     }
-    list_push_tagged_value(list, tval);
+    if (list_push_tagged_value(list, tval) == 0) {
+        list_destroy_tagged_value(tval);
+        tval = NULL;
+    }
     MUTEX_UNLOCK(&list->lock);
     return NULL;
 }
