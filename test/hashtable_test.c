@@ -114,6 +114,8 @@ int main(int argc, char **argv) {
     int num_parallel_threads = 5;
     int num_parallel_items = 100000;
 
+    ut_testing("Parallel insert (%d items, %d threads)", num_parallel_items, num_parallel_threads);
+
     parallel_insert_arg args[num_parallel_threads];
     pthread_t threads[num_parallel_threads];
     for (i = 0; i < num_parallel_threads; i++) {
@@ -127,7 +129,6 @@ int main(int argc, char **argv) {
         pthread_join(threads[i], NULL);
     }
 
-    ut_testing("Parallel insert (%d items, %d threads)", num_parallel_items, num_parallel_threads);
     ut_result(ht_count(table) == num_parallel_items,
             "Count is not %d after parallel insert (%d)",
             num_parallel_items, ht_count(table));
