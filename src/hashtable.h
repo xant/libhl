@@ -300,9 +300,9 @@ typedef struct __hashtable_key_s {
  * @param table : A valid pointer to an hashtable_t structure
  * @return A list of hashtable_key_t pointers with all the
  *         keys present in the table
+ * @note The returned list should be released calling list_destroy()
  */
 linked_list_t *ht_get_all_keys(hashtable_t *table);
-
 
 typedef struct __hashtable_value_s {
     void  *data;
@@ -312,7 +312,10 @@ typedef struct __hashtable_value_s {
 /**
  * @brief Get all stored values
  * @param table : A valid pointer to an hashtable_t structure
- * @return A list of all keys present in the table
+ * @return A list containing a pointer to all the values stored in the table
+ * @note The returned list will contain pointers to the actual stored values
+ *       and not copies
+ * @note The returned list should be released calling list_destroy()
  */
 linked_list_t *ht_get_all_values(hashtable_t *table);
 
