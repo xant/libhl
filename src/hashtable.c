@@ -839,6 +839,7 @@ linked_list_t *
 ht_get_all_values(hashtable_t *table)
 {
     linked_list_t *output = list_create();
+    list_set_free_value_callback(output, (free_value_callback_t)free);
 
     MUTEX_LOCK(table->iterator_lock);
     ht_items_list_t *list = NULL;
@@ -848,7 +849,7 @@ ht_get_all_values(hashtable_t *table)
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
             hashtable_value_t *v = malloc(sizeof(hashtable_value_t));
-            v->data = malloc(item->dlen);
+            v->data = item->data;
             v->len = item->dlen;
             list_push_value(output, v);
         }
