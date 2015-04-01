@@ -77,11 +77,11 @@ typedef struct {
 } ht_iterator_list_t;
 
 typedef enum {
-    HT_STATUS_IDLE,
-    HT_STATUS_READ,
-    HT_STATUS_WRITE,
-    HT_STATUS_GROW,
-    HT_STATUS_CLEAR
+    HT_STATUS_IDLE = 0,
+    HT_STATUS_READ = 1,
+    HT_STATUS_WRITE = 2,
+    HT_STATUS_GROW = 3,
+    HT_STATUS_CLEAR = 4
 } ht_status_t;
 
 struct __hashtable {
@@ -213,10 +213,14 @@ ht_destroy(hashtable_t *table)
 static inline void
 ht_grow_table(hashtable_t *table)
 {
-    // if we need to extend the table, better locking it globally
-    // preventing any operation on the actual one
+    // if we are not able to change the status now, let's return.
+    // ht_grow_table() will be called again next time a new key has been set
+    if (!ATOMIC_CAS(table->status, HT_STATUS_IDLE, HT_STATUS_GROW))
+        return;
+
+    // extra check if the table has been already updated by another thread in the meanwhile
     if (table->max_size && ATOMIC_READ(table->size) >= table->max_size) {
-        ATOMIC_SET(table->status, HT_STATUS_IDLE);
+        ATOMIC_CAS(table->status, HT_STATUS_GROW, HT_STATUS_IDLE);
         return;
     }
 
@@ -242,19 +246,19 @@ ht_grow_table(hashtable_t *table)
     ht_items_list_t *tmp, *list = NULL;
     TAILQ_FOREACH_SAFE(list, &table->iterator_list->head, iterator_next, tmp) {
         // NOTE : list->index is safe to access outside of the lock
-        ATOMIC_SET(old_items[list->index], NULL);
+        ATOMIC_SET(ATOMIC_READ(old_items)[list->index], NULL);
         // now readers can't access this list anymore
         SPIN_LOCK(list->lock);
         
         // move all the items from the old list to the new one
         while((item = TAILQ_FIRST(&list->head))) {
-            ht_items_list_t *new_list = items_list[item->hash%new_size];
+            ht_items_list_t *new_list = ATOMIC_READ(ATOMIC_READ(items_list)[item->hash%new_size]);
             if (!new_list) {
                 new_list = malloc(sizeof(ht_items_list_t));
                 TAILQ_INIT(&new_list->head);
                 SPIN_INIT(new_list->lock);
                 uint32_t index = item->hash%new_size;
-                items_list[index] = new_list;
+                ATOMIC_SET(ATOMIC_READ(items_list)[index], new_list);
                 new_list->index = index;
                 TAILQ_INSERT_TAIL(&new_iterator_list->head, new_list, iterator_next);
             }
@@ -264,8 +268,8 @@ ht_grow_table(hashtable_t *table)
         }
 
         // we can now unregister the list from the iterator and release it
-        SPIN_UNLOCK(list->lock);
         TAILQ_REMOVE(&table->iterator_list->head, list, iterator_next);
+        SPIN_UNLOCK(list->lock);
         SPIN_DESTROY(list->lock);
         free(list);
     }
@@ -275,15 +279,16 @@ ht_grow_table(hashtable_t *table)
     table->iterator_list = new_iterator_list;
     MUTEX_UNLOCK(table->iterator_lock);
 
-    free(old_items);
+    while (!ATOMIC_CAS(table->status, HT_STATUS_GROW, HT_STATUS_IDLE))
+        sched_yield();
 
-    ATOMIC_SET(table->status, HT_STATUS_IDLE);
+    free(old_items);
 
     //fprintf(stderr, "Done growing table\n");
 }
 
 static inline ht_items_list_t *
-ht_get_list_internal(hashtable_t *table, uint32_t hash)
+ht_get_list(hashtable_t *table, uint32_t hash)
 {
     uint32_t status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
     uint32_t index = hash%ATOMIC_READ(table->size);
@@ -293,53 +298,44 @@ ht_get_list_internal(hashtable_t *table, uint32_t hash)
         status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
     }
 
+    ht_items_list_t *list = ATOMIC_READ(ATOMIC_READ(table->items)[index]);
+
+    if (list)
+        SPIN_LOCK(list->lock);
+
     if (status == HT_STATUS_IDLE)
         ATOMIC_CAS(table->status, HT_STATUS_READ, HT_STATUS_IDLE);
 
-    return ATOMIC_READ(table->items[index]);
-}
-
-static inline ht_items_list_t *
-ht_get_list(hashtable_t *table, uint32_t hash)
-{
-    ht_items_list_t *list = ht_get_list_internal(table, hash);
-    if (list)
-        SPIN_LOCK(list->lock);
     return list;
 }
 
-static inline int
-ht_set_list_internal(hashtable_t *table, ht_items_list_t *list, uint32_t hash)
+static inline ht_items_list_t *
+ht_set_list(hashtable_t *table, uint32_t hash)
 {
     int done = 0;
+
+    ht_items_list_t *list = malloc(sizeof(ht_items_list_t));
+    SPIN_INIT(list->lock);
+    TAILQ_INIT(&list->head);
+    SPIN_LOCK(list->lock);
+
     uint32_t index = hash%ATOMIC_READ(table->size);
     list->index = index;
 
     ht_status_t status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE);
-    while (status != HT_STATUS_IDLE && status == HT_STATUS_READ) {
+    while (status != HT_STATUS_IDLE) {
         status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE);
         sched_yield();
     }
 
     index = hash%ATOMIC_READ(table->size);
     list->index = index;
-    done = ATOMIC_CAS(table->items[index], NULL, list);
+    done = ATOMIC_CAS(ATOMIC_READ(table->items)[index], NULL, list);
 
     if (status == HT_STATUS_IDLE)
         ATOMIC_CAS(table->status, HT_STATUS_WRITE, HT_STATUS_IDLE);
 
-    return done;
-}
-
-static inline ht_items_list_t *
-ht_set_list(hashtable_t *table, uint32_t hash)
-{ 
-    ht_items_list_t *list = malloc(sizeof(ht_items_list_t));
-    SPIN_INIT(list->lock);
-    TAILQ_INIT(&list->head);
-    SPIN_LOCK(list->lock);
-
-    if (!ht_set_list_internal(table, list, hash)) {
+    if (!done) {
         SPIN_UNLOCK(list->lock);
         SPIN_DESTROY(list->lock);
         free(list);
@@ -352,7 +348,6 @@ ht_set_list(hashtable_t *table, uint32_t hash)
 
     return list;
 }
-
 
 static inline int
 ht_set_internal(hashtable_t *table,
@@ -445,8 +440,7 @@ ht_set_internal(hashtable_t *table,
 
     uint32_t current_size = ATOMIC_READ(table->size);
     if (ht_count(table) > (current_size + (current_size/3)) && 
-        (!table->max_size || current_size < table->max_size) &&
-        ATOMIC_CAS(table->status, HT_STATUS_IDLE, HT_STATUS_GROW))
+        (!table->max_size || current_size < table->max_size))
     {
         ht_grow_table(table);
     }
