@@ -279,8 +279,7 @@ ht_grow_table(hashtable_t *table)
     table->iterator_list = new_iterator_list;
     MUTEX_UNLOCK(table->iterator_lock);
 
-    while (!ATOMIC_CAS(table->status, HT_STATUS_GROW, HT_STATUS_IDLE))
-        sched_yield();
+    ATOMIC_CAS(table->status, HT_STATUS_GROW, HT_STATUS_IDLE);
 
     free(old_items);
 
