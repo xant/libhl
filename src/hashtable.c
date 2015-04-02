@@ -355,14 +355,23 @@ ht_set_list(hashtable_t *table, uint32_t hash)
         sched_yield();
     }
 
+    // NOTE: once the status has been set to WRITE no other threads can access the table
+
     index = hash%ATOMIC_READ(table->size);
     list->index = index;
     done = ATOMIC_CAS(ATOMIC_READ(table->items)[index], NULL, list);
 
-    if (status == HT_STATUS_IDLE)
-        ATOMIC_CAS(table->status, HT_STATUS_WRITE, HT_STATUS_IDLE);
+    // NOTE: since nobody could have changed the status in the meanwhile
+    // it's safe to assume it's still WRITE, so we don't need to check
+    // if the CAS operation succeeded
+    ATOMIC_CAS(table->status, HT_STATUS_WRITE, HT_STATUS_IDLE);
 
     if (!done) {
+        // if we were not able to set the new list it means
+        // that some other thread did that already, completing its job before we were able
+        // to update the table status, so a list was already present and we were not
+        // able to store the new one in the table.
+        // So we can release our newly created list and let ht_get_list() do its job
         SPIN_UNLOCK(list->lock);
         SPIN_DESTROY(list->lock);
         free(list);
