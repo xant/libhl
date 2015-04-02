@@ -76,12 +76,13 @@ typedef struct {
     TAILQ_HEAD(, __ht_item_list) head;
 } ht_iterator_list_t;
 
+// NOTE : order here matters (and also numbering)
 typedef enum {
-    HT_STATUS_IDLE = 0,
-    HT_STATUS_READ = 1,
-    HT_STATUS_WRITE = 2,
-    HT_STATUS_GROW = 3,
-    HT_STATUS_CLEAR = 4
+    HT_STATUS_CLEAR = 0,
+    HT_STATUS_WRITE = 1,
+    HT_STATUS_GROW  = 2,
+    HT_STATUS_IDLE  = 3,
+    HT_STATUS_READ  = 4
 } ht_status_t;
 
 struct __hashtable {
@@ -147,6 +148,8 @@ ht_init(hashtable_t *table,
     table->size = initial_size > HT_SIZE_MIN ? initial_size : HT_SIZE_MIN;
     table->max_size = max_size;
     table->items = (ht_items_list_t **)calloc(table->size, sizeof(ht_items_list_t *));
+
+    table->status = HT_STATUS_IDLE;
 
     ht_set_free_item_callback(table, cb);
 #ifdef BSD
@@ -289,21 +292,46 @@ ht_grow_table(hashtable_t *table)
 static inline ht_items_list_t *
 ht_get_list(hashtable_t *table, uint32_t hash)
 {
-    uint32_t status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
     uint32_t index = hash%ATOMIC_READ(table->size);
 
-    while (status != HT_STATUS_IDLE && status != HT_STATUS_READ) {
+    // first let's update the status assuming we are the first reader
+    uint32_t status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
+    while (status < HT_STATUS_IDLE) {
         sched_yield();
         status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
     }
 
+    // if some other reader is running in a background thread and has already
+    // updated the status, let's take into account and increment the status value by one
+    while (status >= HT_STATUS_READ) {
+        if (ATOMIC_CAS(table->status, status, status + 1)) {
+            status += 1;
+            break;
+        }
+        sched_yield();
+        status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
+    }
+
+    // if in the meanwhile all background readers have finished,
+    // we become the 'first reader' so let's take it into account
+    if (status == HT_STATUS_IDLE)
+        status = HT_STATUS_READ;
+
     ht_items_list_t *list = ATOMIC_READ(ATOMIC_READ(table->items)[index]);
 
+    // NOTE: it's important here to lock the list while the status
+    //       has not been put back to idle yet
     if (list)
         SPIN_LOCK(list->lock);
 
-    if (status == HT_STATUS_IDLE)
-        ATOMIC_CAS(table->status, HT_STATUS_READ, HT_STATUS_IDLE);
+    // now let's update the status by decrementing it
+    // NOTE: if we are the last active reader it will go down to the idle state
+    while (status >= HT_STATUS_READ) {
+        if (ATOMIC_CAS(table->status, status, status -1))
+            break;
+        sched_yield();
+        status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_READ, HT_STATUS_IDLE);
+    }
 
     return list;
 }
