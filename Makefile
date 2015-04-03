@@ -58,7 +58,7 @@ shared: objects
 	$(CC) $(LDFLAGS) $(SHAREDFLAGS) src/*.o -o libhl.$(SHAREDEXT)
 
 .PHONY: objects
-objects: CFLAGS += -fPIC -Isrc -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function $(CLANG_FLAGS) -DTHREAD_SAFE -g -O3
+objects: CFLAGS += -fPIC -Isrc -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function $(CLANG_FLAGS) -DTHREAD_SAFE -g
 objects: $(TARGETS)
 
 clean:
@@ -73,7 +73,7 @@ libut:
 	@if [ ! -f support/libut/Makefile ]; then git submodule init; git submodule update; fi; make -C support/libut
 
 .PHONY:tests
-tests: CFLAGS += -Isrc -Isupport/libut/src -Wall -Werror -Wno-parentheses -Wno-pointer-sign $(CLANG_FLAGS) -DTHREAD_SAFE -g -O3
+tests: CFLAGS += -Isrc -Isupport/libut/src -Wall -Werror -Wno-parentheses -Wno-pointer-sign $(CLANG_FLAGS) -DTHREAD_SAFE -g
 tests: libut static
 	@for i in $(TESTS); do\
 	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS) -lm";\

@@ -300,8 +300,12 @@ ht_get_list(hashtable_t *table, uint32_t hash)
     do {
         status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
         // NOTE : if some writer is accessing the table we need to wait,
-        // multiple readers (status greater than IDLE) are allowed
-    } while (status < HT_STATUS_IDLE && sched_yield());
+        //        multiple readers (status greater than IDLE) are allowed.
+        //        In the unlikely event that sched_yield() fails, we break the loop
+        //        but we will still check if the status is valid and in case it's not
+        //        (so the cas operation didn't succeed) we will synchronize again with
+        //        the other threads
+    } while (status < HT_STATUS_IDLE && sched_yield() == 0);
 
     // if some other reader is running in a background thread and has already
     // updated the status (so it's already greater than IDLE), let's take that
@@ -349,9 +353,8 @@ ht_set_list(hashtable_t *table, uint32_t hash)
     uint32_t index = hash%ATOMIC_READ(table->size);
     list->index = index;
 
-    while (!ATOMIC_CAS(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE)) {
+    while (!ATOMIC_CAS(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE))
         sched_yield();
-    }
 
     // NOTE: once the status has been set to WRITE no other threads can access the table
 
