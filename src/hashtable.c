@@ -192,7 +192,7 @@ ht_clear(hashtable_t *table)
             ATOMIC_DECREMENT(table->count);
         }
 
-        ATOMIC_SET(table->items[list->index], NULL);
+        table->items[list->index] = NULL;
         TAILQ_REMOVE(&table->iterator_list->head, list, iterator_next);
         SPIN_UNLOCK(list->lock);
         SPIN_DESTROY(list->lock);
@@ -242,8 +242,8 @@ ht_grow_table(hashtable_t *table)
 
     MUTEX_LOCK(table->iterator_lock);
 
-    ht_items_list_t **old_items = ATOMIC_READ(table->items);
-    ATOMIC_SET(table->items, items_list);
+    ht_items_list_t **old_items = table->items;
+    table->items = items_list;
     ATOMIC_SET(table->size, new_size);
 
     ht_items_list_t *tmp, *list = NULL;
@@ -319,7 +319,7 @@ ht_get_list(hashtable_t *table, uint32_t hash)
     status++; // status now holds the value we have updated in table->status
 
     // we can now safely retrieve the list
-    ht_items_list_t *list = ATOMIC_READ(ATOMIC_READ(table->items)[index]);
+    ht_items_list_t *list = table->items[index];
 
     // NOTE: it's important here to lock the list while the status
     //       has not been put back to idle yet (so writes can't happen)
@@ -341,8 +341,6 @@ ht_get_list(hashtable_t *table, uint32_t hash)
 static inline ht_items_list_t *
 ht_set_list(hashtable_t *table, uint32_t hash)
 {
-    int done = 0;
-
     ht_items_list_t *list = malloc(sizeof(ht_items_list_t));
     SPIN_INIT(list->lock);
     TAILQ_INIT(&list->head);
@@ -351,33 +349,35 @@ ht_set_list(hashtable_t *table, uint32_t hash)
     uint32_t index = hash%ATOMIC_READ(table->size);
     list->index = index;
 
-    ht_status_t status;
-    do {
-        status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE);
-    } while (status != HT_STATUS_IDLE && sched_yield());
+    while (!ATOMIC_CAS(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE)) {
+        sched_yield();
+    }
 
     // NOTE: once the status has been set to WRITE no other threads can access the table
 
     index = hash%ATOMIC_READ(table->size);
     list->index = index;
-    done = ATOMIC_CAS(ATOMIC_READ(table->items)[index], NULL, list);
 
     // NOTE: since nobody could have changed the status in the meanwhile
-    // it's safe to assume it's still WRITE, so we don't need to check
-    // if the CAS operation succeeded
-    ATOMIC_CAS(table->status, HT_STATUS_WRITE, HT_STATUS_IDLE);
-
-    if (!done) {
-        // if we were not able to set the new list it means
-        // that some other thread did that already, completing its job before we were able
-        // to update the table status, so a list was already present and we were not
-        // able to store the new one in the table.
-        // So we can release our newly created list and let ht_get_list() do its job
+    if (table->items[index]) {
+        // if there is a list already set at our index it means that some other
+        // thread succeded in setting a new list already, completing its job before
+        // we were able to update the table status.
+        // So we can release our newly created list and return the existing one
         SPIN_UNLOCK(list->lock);
         SPIN_DESTROY(list->lock);
         free(list);
-        return ht_get_list(table, hash);
+        list = table->items[index];
+        SPIN_LOCK(list->lock);
+        ATOMIC_CAS(table->status, HT_STATUS_WRITE, HT_STATUS_IDLE);
+        return list;
     }
+
+    table->items[index] = list;
+
+    // it's safe to assume the status still WRITE,
+    // so we don't need to check if the CAS operation succeeded
+    ATOMIC_CAS(table->status, HT_STATUS_WRITE, HT_STATUS_IDLE);
 
     MUTEX_LOCK(table->iterator_lock);
     TAILQ_INSERT_TAIL(&table->iterator_list->head, list, iterator_next);
