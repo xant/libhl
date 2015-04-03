@@ -294,45 +294,47 @@ ht_get_list(hashtable_t *table, uint32_t hash)
 {
     uint32_t index = hash%ATOMIC_READ(table->size);
 
-    // first let's update the status assuming we are the first reader
-    uint32_t status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
-    while (status < HT_STATUS_IDLE) {
-        sched_yield();
+    // first try updating the status assuming we are the first reader requesting
+    // access to the table
+    uint32_t status;
+    do {
         status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
-    }
+        // NOTE : if some writer is accessing the table we need to wait,
+        // multiple readers (status greater than IDLE) are allowed
+    } while (status < HT_STATUS_IDLE && sched_yield());
 
     // if some other reader is running in a background thread and has already
-    // updated the status, let's take into account and increment the status value by one
-    while (status >= HT_STATUS_READ) {
-        if (ATOMIC_CAS(table->status, status, status + 1)) {
-            status += 1;
-            break;
-        }
-        sched_yield();
+    // updated the status (so it's already greater than IDLE), let's take that
+    // into account and try incrementing the status value by one
+    while (status != HT_STATUS_IDLE &&
+           !(status >= HT_STATUS_READ && ATOMIC_CAS(table->status, status, status + 1)))
+    {
+        // if we didn't succeed incrementing the status, maybe the other readers finished
+        // their job and it was already put back to IDLE
         status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_READ);
+        if (status < HT_STATUS_IDLE) // some writer is accessing the table, we need to wait
+            sched_yield();
     }
 
-    // if in the meanwhile all background readers have finished,
-    // we become the 'first reader' so let's take it into account
-    if (status == HT_STATUS_IDLE)
-        status = HT_STATUS_READ;
+    status++; // status now holds the value we have updated in table->status
 
+    // we can now safely retrieve the list
     ht_items_list_t *list = ATOMIC_READ(ATOMIC_READ(table->items)[index]);
 
     // NOTE: it's important here to lock the list while the status
-    //       has not been put back to idle yet
+    //       has not been put back to idle yet (so writes can't happen)
     if (list)
         SPIN_LOCK(list->lock);
 
     // now let's update the status by decrementing it
     // NOTE: if we are the last active reader it will go down to the idle state
-    while (status >= HT_STATUS_READ) {
+    do {
         if (ATOMIC_CAS(table->status, status, status -1))
             break;
-        sched_yield();
         status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_READ, HT_STATUS_IDLE);
-    }
+    } while (status > HT_STATUS_READ);
 
+    // NOTE: the returned list is already locked
     return list;
 }
 
@@ -349,11 +351,10 @@ ht_set_list(hashtable_t *table, uint32_t hash)
     uint32_t index = hash%ATOMIC_READ(table->size);
     list->index = index;
 
-    ht_status_t status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE);
-    while (status != HT_STATUS_IDLE) {
+    ht_status_t status;
+    do {
         status = ATOMIC_CAS_RETURN(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE);
-        sched_yield();
-    }
+    } while (status != HT_STATUS_IDLE && sched_yield());
 
     // NOTE: once the status has been set to WRITE no other threads can access the table
 
@@ -382,6 +383,7 @@ ht_set_list(hashtable_t *table, uint32_t hash)
     TAILQ_INSERT_TAIL(&table->iterator_list->head, list, iterator_next);
     MUTEX_UNLOCK(table->iterator_lock);
 
+    // NOTE: the newly created list is already locked
     return list;
 }
 
@@ -404,9 +406,10 @@ ht_set_internal(hashtable_t *table,
 
     uint32_t hash = ht_hash_one_at_a_time(table, key, klen);
 
+    // let's first try checking if we fall in an existing bucket list
     ht_items_list_t *list  = ht_get_list(table, hash);
 
-    if (!list)
+    if (!list) // if not, let's create a new bucket list
         list = ht_set_list(table, hash);
 
     if (!list)
