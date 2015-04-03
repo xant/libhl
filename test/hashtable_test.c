@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     ut_testing("ht_get()");
     ut_validate_string(ht_get(table, "key1", 4, NULL), "value1");
 
-    ut_testing("ht_get_and_set() overrides previous value (and returns it)");
+    ut_testing("ht_get_and_set() overwrite the previous value and returns it");
     char *test_value = "blah";
     void *old_value = NULL;
     ht_get_and_set(table, "key1", 4, test_value, strlen(test_value), &old_value, NULL);
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     int rc = ht_set_if_not_exists(table, "test_key", 7, "blah", 4);
     ut_validate_int(rc, 1);
 
-    ut_testing("ht_get_or_set() doesn't overrides current value (and returns it)");
+    ut_testing("ht_get_or_set() doesn't overwrite the current value and returns it");
     ht_get_or_set(table, "test_key", 7, "blah", 4, &old_value, NULL);
     new_value = ht_get(table, "test_key", 7, NULL);
     ut_validate_string(new_value, "test_value");
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     ht_unset(table, "test_key", 7, &old_value, NULL);
     ut_result(ht_get(table, "test_key", 7, NULL) == NULL && ht_count(table) == 1, "ht_unset() failed");
 
-    ut_testing("ht_unset() returns old value");
+    ut_testing("ht_unset() returns the old value");
     ut_result(strcmp(old_value, "test_value") == 0, "ht_unset() didn't return the correct old value (was: %s)", old_value);
 
     ut_testing("ht_delete()");
