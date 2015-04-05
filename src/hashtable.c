@@ -887,6 +887,8 @@ ht_get_all_values(hashtable_t *table)
             hashtable_value_t *v = malloc(sizeof(hashtable_value_t));
             v->data = item->data;
             v->len = item->dlen;
+            v->key = item->key;
+            v->klen = item->klen;
             list_push_value(output, v);
         }
 

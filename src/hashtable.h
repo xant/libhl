@@ -305,6 +305,8 @@ typedef struct __hashtable_key_s {
 linked_list_t *ht_get_all_keys(hashtable_t *table);
 
 typedef struct __hashtable_value_s {
+    void *key;
+    size_t klen;
     void  *data;
     size_t len;
 } hashtable_value_t;
