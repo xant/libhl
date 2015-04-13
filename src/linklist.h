@@ -27,6 +27,8 @@ extern "C" {
  */
 typedef void (*free_value_callback_t)(void *v);
 
+typedef int (*list_comparator_callback_t)(void *v1, void *v2);
+
 /**
  * @brief Opaque structure representing the actual linked list descriptor
  */
@@ -384,6 +386,15 @@ tagged_value_t *list_set_tagged_value(linked_list_t *list, char *tag, void *valu
  * (since still pointed by the tagged_value_t still in list)
  */
 uint32_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *values);
+
+/**
+ * @brief Sort the content of the list using an in-place quicksort algorithm and a
+ *        provided callback able to compare the value stored in the list
+ * @param list : A valid pointer to a linked_list_t structure holding tagged values
+ * @param comparator : A valid list_comparator_callback_t callback able to compare the
+ *                     actual value stored in the list
+ */
+void list_sort(linked_list_t *list, list_comparator_callback_t comparator);
 
 
 

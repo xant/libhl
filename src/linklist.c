@@ -980,5 +980,131 @@ uint32_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *v
     return ret;
 }
 
+static inline void
+list_sort_internal(list_entry_t *head,
+                   list_entry_t *tail,
+                   list_entry_t *pivot,
+                   int length,
+                   list_comparator_callback_t comparator)
+{
+    int direction;
+    int l1 = 0;
+    int l2 = 0;
+    list_entry_t *p1 = NULL;
+    list_entry_t *p2 = NULL;
+    list_entry_t *e1 = pivot->prev;
+    list_entry_t *e2 = pivot->next;
+    for (direction = 0; direction <= 1; direction++) {
+        list_entry_t *start = direction == 0 ? head : tail;
+        list_entry_t *end = direction == 0 ? e1 : e2;
+        while (start && start != pivot) {
+            int cmp = comparator(start->value, pivot->value); 
+            switch(direction) {
+                case 0:
+                    if (cmp < 0) {
+
+                        list_entry_t *next = start->next;
+                        if (start == head)
+                            head = next;
+
+                        if (pivot->list->head == start)
+                            pivot->list->head = start->next;
+                        else if (pivot->list->tail == start)
+                            pivot->list->tail = start->prev;
+
+                        if (start->prev)
+                            start->prev->next = start->next;
+                        if (start->next)
+                            start->next->prev = start->prev;
+
+
+                        start->next = pivot->next;
+                        if (start->next)
+                            start->next->prev = start;
+                        pivot->next = start;
+                        start->prev = pivot;
+
+                        l2++;
+                        if (l2 == (length/4) + 1)
+                            p2 = start;
+
+                        if (start == end)
+                            start = NULL;
+                        else
+                            start = next;
+                    } else {
+                        l1++;
+                        if (l1 == (length/4) + 1)
+                            p1 = start;
+                        if (start == end)
+                            start = NULL;
+                        else
+                            start = start->next;
+                    }
+                    break;
+                case 1:
+                    if (cmp > 0) {
+
+                        list_entry_t *next = start->prev;
+                        if (start == tail)
+                            tail = next;
+
+                        if (pivot->list->head == start)
+                            pivot->list->head = start->next;
+                        else if (pivot->list->tail == start)
+                            pivot->list->tail = start->prev;
+
+                        if (start->prev)
+                            start->prev->next = start->next;
+                        if (start->next)
+                            start->next->prev = start->prev;
+
+                        start->prev = pivot->prev;
+                        if (start->prev)
+                            start->prev->next = start;
+                        pivot->prev = start;
+                        start->next = pivot;
+
+                        l1++;
+                        if (l1 == (length/4) + 1)
+                            p1 = start;
+
+                        if (start == end)
+                            start = NULL;
+                        else
+                            start = next;
+                    } else {
+                        l2++;
+                        if (l2 == (length/4) + 1)
+                            p2 = start;
+                        if (start == end)
+                            start = NULL;
+                        else
+                            start = start->prev;
+                    }
+                    break;
+                default:
+                    // XXX - impossible
+                    break;
+            }
+        }
+    }
+    if (l1 > 1 && p1)
+        list_sort_internal(head, pivot->prev, p1, l1, comparator);
+    if (l2 > 1 && p2)
+        list_sort_internal(pivot->next, tail, p2, l2, comparator);
+}
+
+void
+list_sort(linked_list_t *list, list_comparator_callback_t comparator)
+{
+    MUTEX_LOCK(&list->lock);
+    list_entry_t *pivot = pick_entry(list, (list->length/2) - 1);
+    list_sort_internal(list->head, list->tail, pivot, list->length, comparator);
+    list->cur = NULL;
+    list->pos = 0;
+    MUTEX_UNLOCK(&list->lock);
+}
+
 // vim: tabstop=4 shiftwidth=4 expandtab:
 /* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
