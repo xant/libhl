@@ -63,6 +63,18 @@ void *queue_worker(void *user) {
     return NULL;
 }
 
+static int
+cmp(void *v1, void *v2)
+{
+    int *i1 = (int *)v1;
+    int *i2 = (int *)v2;
+    if (*i1 == *i2)
+        return 0;
+    else if (*i1 > *i2)
+        return -1;
+    return 1;
+}
+
 int main(int argc, char **argv) {
     ut_init(basename(argv[0]));
 
@@ -273,6 +285,29 @@ int main(int argc, char **argv) {
 
     list_destroy(tagged_list);
 
+    ut_testing("list_sort()");
+    linked_list_t *t = list_create();
+    int i1 = 5,i2 = 2,i3 = 1,i4 = 7,i5 = 4,i6 = 3;
+    list_push_value(t, &i1);
+    list_push_value(t, &i2);
+    list_push_value(t, &i3);
+    list_push_value(t, &i4);
+    list_push_value(t, &i5);
+    list_push_value(t, &i6);
+
+    list_sort(t, cmp);
+    failed = 0;
+    int prev;
+    for (i = 0; i < 6; i++) {
+        int cur = *((int *)list_pick_value(t, i));
+        if (i > 0 && cur < prev) {
+            ut_failure("%d is smaller than the previous element %d", cur, prev);
+            failed++;
+        }
+        prev = cur;
+    }
+    if (!failed)
+        ut_success();
     ut_summary();
 
     exit(ut_failed);
