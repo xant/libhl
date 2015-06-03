@@ -980,6 +980,65 @@ uint32_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *v
     return ret;
 }
 
+static inline void swap_entry_node_val(list_entry_t *p1, list_entry_t *p2)
+{
+    if (!p1 || !p2) return;
+
+    void *tmp = p1->value;
+    p1->value = p2->value;
+    p2->value = tmp;
+}
+
+static inline void list_quick_sort(list_entry_t *head,
+   list_entry_t *tail, list_entry_t *pivot, int length,
+   list_comparator_callback_t comparator)
+{
+    if (!head || !tail || !pivot || length < 2 || !comparator) return;
+
+    if (length == 2) {
+        if (comparator(head->value, tail->value) < 0)
+            swap_entry_node_val(head, tail);
+        return;
+    }
+
+    void *pvalue = pivot->value;
+    int l1 = 0, l2 = 0;
+    list_entry_t *p1 = head, *p2 = tail;
+    list_entry_t *pv1 = head, *pv2 = tail;
+
+    while ((l1 + l2) < length && p2 != head->prev && p1 != tail->next) {
+        while(p1 != tail->next && comparator(p1->value, pvalue) > 0) {
+            ++l1;
+            p1 = p1->next;
+        }
+        while(p2 != head->prev && comparator(p2->value, pvalue) < 0) {
+            ++l2;
+            p2 = p2->prev;
+        }
+
+        if (l1 + l2 >= length || p1 == p2 || p1 == head->prev || p2 == tail->next || p1 == p2->next || p2 == p1->prev) break;
+
+        swap_entry_node_val(p1, p2);
+
+        p1 = p1->next;
+        p2 = p2->prev;
+        ++l1;
+        ++l2;
+    }
+
+    l2 = length - l1;
+    int i;
+    for (i = 0; i < l1/2; ++i)
+        pv1 = pv1->next;
+    for (i = 0; i < l2/2; ++i)
+        pv2 = pv2->prev;
+
+    if (l1 > 1 && p1 != tail->next)
+        list_quick_sort(head, p1->prev, pv1, l1, comparator);
+    if (l2 > 1 && p2 != head->prev)
+        list_quick_sort(p2->next, tail, pv2, l2, comparator);
+}
+
 static inline void
 list_sort_internal(list_entry_t *head,
                    list_entry_t *tail,
@@ -1095,8 +1154,16 @@ list_sort_internal(list_entry_t *head,
         list_sort_internal(pivot->next, tail, p2, l2, comparator);
 }
 
-void
-list_sort(linked_list_t *list, list_comparator_callback_t comparator)
+void list_qsort(linked_list_t *list, list_comparator_callback_t comparator)
+{
+    MUTEX_LOCK(&list->lock);
+    list_entry_t *pivot = pick_entry(list, (list->length/2) - 1);
+    list_quick_sort(list->head, list->tail, pivot, list->length, comparator);
+    list->cur = NULL;
+    list->pos = 0;
+    MUTEX_UNLOCK(&list->lock);
+}
+void list_sort(linked_list_t *list, list_comparator_callback_t comparator)
 {
     MUTEX_LOCK(&list->lock);
     list_entry_t *pivot = pick_entry(list, (list->length/2) - 1);
