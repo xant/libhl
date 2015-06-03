@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <libgen.h>
-
+#include <time.h>
 
 typedef struct {
     int start;
@@ -287,18 +287,26 @@ int main(int argc, char **argv) {
 
     ut_testing("list_sort()");
     linked_list_t *t = list_create();
-    int i1 = 5,i2 = 2,i3 = 1,i4 = 7,i5 = 4,i6 = 3;
+    int i1 = 5,i2 = 2,i3 = 1,i4 = 7,i5 = 4,i6 = 3, i7 = 1, i8 = 1, i9 = 1, i10 = 1, i11 = 1, i12 = 5, i13 = 5, i14 = 5;
     list_push_value(t, &i1);
     list_push_value(t, &i2);
     list_push_value(t, &i3);
     list_push_value(t, &i4);
     list_push_value(t, &i5);
     list_push_value(t, &i6);
+    list_push_value(t, &i7);
+    list_push_value(t, &i8);
+    list_push_value(t, &i9);
+    list_push_value(t, &i10);
+    list_push_value(t, &i11);
+    list_push_value(t, &i12);
+    list_push_value(t, &i13);
+    list_push_value(t, &i14);
 
     list_sort(t, cmp);
     failed = 0;
-    int prev;
-    for (i = 0; i < 6; i++) {
+    int prev, len = list_count(t);
+    for (i = 0; i < len; i++) {
         int cur = *((int *)list_pick_value(t, i));
         if (i > 0 && cur < prev) {
             ut_failure("%d is smaller than the previous element %d", cur, prev);
@@ -308,6 +316,131 @@ int main(int argc, char **argv) {
     }
     if (!failed)
         ut_success();
+
+    //sort performance
+    int loop = 10000, max_num = 10000;
+    int a[max_num];
+    int end, begin = time(NULL);
+
+    for (i = 0; i < loop; ++i) {
+        linked_list_t *t = list_create();
+        int j = 0;
+        for (j = 0; j < max_num; ++j) {
+            a[j] = 10;
+            list_push_value(t, a + j);
+        }
+        list_qsort(t, cmp);
+        list_destroy(t);
+    }
+    end = time(NULL);
+    fprintf(stderr, "qsort time consumed: %d\n", end - begin);
+
+    begin = time(NULL);
+    for (i = 0; i < loop; ++i) {
+        linked_list_t *t = list_create();
+        int j = 0;
+        for (j = 0; j < max_num; ++j) {
+            a[j] = 10;
+            list_push_value(t, a + j);
+        }
+        list_sort(t, cmp);
+        list_destroy(t);
+    }
+    end = time(NULL);
+    fprintf(stderr, "time consumed: %d\n", end - begin);
+
+    begin = time(NULL);
+    for (i = 0; i < loop; ++i) {
+        linked_list_t *t = list_create();
+        int j = 0;
+        for (j = 0; j < max_num; ++j) {
+            a[j] = j;
+            list_push_value(t, a + j);
+        }
+        list_qsort(t, cmp);
+        list_destroy(t);
+    }
+    end = time(NULL);
+    fprintf(stderr, "qsort time consumed: %d\n", end - begin);
+
+    begin = time(NULL);
+    for (i = 0; i < loop; ++i) {
+        linked_list_t *t = list_create();
+        int j = 0;
+        for (j = 0; j < max_num; ++j) {
+            a[j] = j;
+            list_push_value(t, a + j);
+        }
+        list_sort(t, cmp);
+        list_destroy(t);
+    }
+    end = time(NULL);
+    fprintf(stderr, "time consumed: %d\n", end - begin);
+
+    begin = time(NULL);
+    for (i = 0; i < loop; ++i) {
+        linked_list_t *t = list_create();
+        int j = 0;
+        for (j = 0; j < max_num; ++j) {
+            a[j] = max_num - j;
+            list_push_value(t, a + j);
+        }
+        list_qsort(t, cmp);
+        list_destroy(t);
+    }
+    end = time(NULL);
+    fprintf(stderr, "qsort time consumed: %d\n", end - begin);
+
+    begin = time(NULL);
+    for (i = 0; i < loop; ++i) {
+        linked_list_t *t = list_create();
+        int j = 0;
+        for (j = 0; j < max_num; ++j) {
+            a[j] = max_num - j;
+            list_push_value(t, a + j);
+        }
+        list_sort(t, cmp);
+        list_destroy(t);
+    }
+    end = time(NULL);
+    fprintf(stderr, "time consumed: %d\n", end - begin);
+
+    {
+        int j;
+        for (j = 0; j < max_num; ++j)
+            a[j] = rand();
+    }
+    begin = time(NULL);
+    for (i = 0; i < loop; ++i) {
+        linked_list_t *t = list_create();
+        int j = 0;
+        for (j = 0; j < max_num; ++j) {
+            list_push_value(t, a + j);
+        }
+        list_qsort(t, cmp);
+        list_destroy(t);
+    }
+    end = time(NULL);
+    fprintf(stderr, "qsort time consumed: %d\n", end - begin);
+
+    {
+        int j;
+        for (j = 0; j < max_num; ++j)
+            a[j] = rand();
+    }
+    begin = time(NULL);
+    for (i = 0; i < loop; ++i) {
+        linked_list_t *t = list_create();
+        int j = 0;
+        for (j = 0; j < max_num; ++j) {
+            list_push_value(t, a + j);
+        }
+        list_sort(t, cmp);
+        list_destroy(t);
+    }
+    end = time(NULL);
+    fprintf(stderr, "time consumed: %d\n", end - begin);
+
     ut_summary();
 
     exit(ut_failed);
