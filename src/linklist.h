@@ -396,17 +396,6 @@ uint32_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *v
  */
 void list_sort(linked_list_t *list, list_comparator_callback_t comparator);
 
-/**
- * @brief Sort the content of the list using quicksort algorithm and a
- *        provided callback able to compare the value stored in the list
- * @param list : A valid pointer to a linked_list_t structure holding tagged values
- * @param comparator : A valid list_comparator_callback_t callback able to compare the
- *                     actual value stored in the list
- */
-void list_qsort(linked_list_t *list, list_comparator_callback_t comparator);
-
-
-
 #ifdef __cplusplus
 }
 #endif
