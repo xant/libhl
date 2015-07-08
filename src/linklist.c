@@ -424,6 +424,7 @@ static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
         list->pos = pos;
         list->cur = entry;
     }
+
     MUTEX_UNLOCK(&list->lock);
     return entry;
 }
@@ -1002,41 +1003,117 @@ static inline void list_quick_sort(list_entry_t *head,
     }
 
     void *pvalue = pivot->value;
-    int l1 = 0, l2 = 0;
+    int length_modifier = 0;
     list_entry_t *p1 = head, *p2 = tail;
-    list_entry_t *pv1 = head, *pv2 = tail;
 
-    while ((l1 + l2) < length && p2 != head->prev && p1 != tail->next) {
-        while(p1 != tail->next && comparator(p1->value, pvalue) > 0) {
-            ++l1;
+    while (p2 != head->prev && p1 != tail->next) {
+
+        while(p1 && p1 != pivot && comparator(p1->value, pvalue) > 0)
             p1 = p1->next;
-        }
-        while(p2 != head->prev && comparator(p2->value, pvalue) < 0) {
-            ++l2;
+
+        while(p2 && p2 != pivot && comparator(p2->value, pvalue) < 0)
             p2 = p2->prev;
+
+        if (p1 == p2 || !p1 || !p2)
+            break;
+
+        if (p1 == pivot) {
+            // all the elements on the left of the pivot are smaller
+            // so we can't just swap values anymore
+            length_modifier++;
+            if (p2->prev)
+                p2->prev->next = p2->next;
+            if (p2->next)
+                p2->next->prev = p2->prev;
+            
+            if (pivot->prev)
+                pivot->prev->next = p2;
+            else if (pivot == pivot->list->head)
+                pivot->list->head = p2;
+
+            if (p2 == pivot->list->tail)
+                pivot->list->tail = p2->prev;
+
+            list_entry_t *tmp = p2->prev;
+            p2->prev = pivot->prev;
+            pivot->prev = p2;
+            if (p2->prev)
+                p2->prev->next = p2;
+
+            p2->next = pivot;
+            if (p2->next == head)
+                head = p2;
+            if (p2 == tail)
+                tail = tmp;
+            p2 = tmp;
+
+            if (p1 != pivot)
+                p1 = p1->next;
+
+
+        } else if (p2 == pivot) {
+            // all the elements on the right of the pivot are bigger
+            // so we can't just swap values anymore
+            length_modifier--;
+            if (p1->prev)
+                p1->prev->next = p1->next;
+            if (p1->next)
+                p1->next->prev = p1->prev;
+            
+            if (pivot->next)
+                pivot->next->prev = p1;
+            else if (pivot == pivot->list->tail)
+                pivot->list->tail = p1;
+
+            if (p1 == pivot->list->head)
+                pivot->list->head = p1->next;
+
+            list_entry_t *tmp = p1->next;
+            p1->next = pivot->next;
+            pivot->next = p1;
+            if (p1->next)
+                p1->next->prev = p1;
+
+            p1->prev = pivot;
+            if (p1->prev == tail)
+                tail = p1;
+            if (p1 == head)
+                head = tmp;
+            p1 = tmp;
+
+            if (p2 != pivot)
+                p2 = p2->prev;
+
+        } else {
+            swap_entry_node_val(p1, p2);
+
+            if (p1 != pivot)
+                p1 = p1->next;
+            if (p2 != pivot)
+                p2 = p2->prev;
         }
 
-        if (l1 + l2 >= length || p1 == p2 || p1 == head->prev || p2 == tail->next || p1 == p2->next || p2 == p1->prev) break;
-
-        swap_entry_node_val(p1, p2);
-
-        p1 = p1->next;
-        p2 = p2->prev;
-        ++l1;
-        ++l2;
     }
 
-    l2 = length - l1;
+    //int l1 = length/2 + length_modifier - 1;
+    int l1 = 0;
+    p1 = head;
+    while (p1 != pivot) {
+        p1 = p1->next;
+        l1++;
+    }
+    int l2 = length - (l1 + 1);
     int i;
-    for (i = 0; i < l1/2; ++i)
+    list_entry_t *pv1 = head, *pv2 = tail;
+    for (i = 0; pv1->next && i < l1/2; ++i)
         pv1 = pv1->next;
-    for (i = 0; i < l2/2; ++i)
+    for (i = 0; pv2->prev && i < l2/2; ++i)
         pv2 = pv2->prev;
 
-    if (l1 > 1 && p1 != tail->next)
-        list_quick_sort(head, p1->prev, pv1, l1, comparator);
-    if (l2 > 1 && p2 != head->prev)
-        list_quick_sort(p2->next, tail, pv2, l2, comparator);
+    if (l1 > 1 && pivot->prev && head != pivot->prev)
+        list_quick_sort(head, pivot->prev, pv1, l1, comparator);
+    if (l2 > 1 && pivot->next && tail != pivot->next)
+        list_quick_sort(pivot->next, tail, pv2, l2, comparator);
 }
 
 void list_sort(linked_list_t *list, list_comparator_callback_t comparator)
