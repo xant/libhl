@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <time.h>
+#include <sys/time.h>
 
 typedef struct {
     int start;
@@ -287,21 +288,19 @@ int main(int argc, char **argv) {
 
     ut_testing("list_sort()");
     linked_list_t *t = list_create();
-    int i1 = 5,i2 = 2,i3 = 1,i4 = 7,i5 = 4,i6 = 3, i7 = 1, i8 = 1, i9 = 1, i10 = 1, i11 = 1, i12 = 5, i13 = 5, i14 = 5;
-    list_push_value(t, &i1);
-    list_push_value(t, &i2);
-    list_push_value(t, &i3);
-    list_push_value(t, &i4);
-    list_push_value(t, &i5);
-    list_push_value(t, &i6);
-    list_push_value(t, &i7);
-    list_push_value(t, &i8);
-    list_push_value(t, &i9);
-    list_push_value(t, &i10);
-    list_push_value(t, &i11);
-    list_push_value(t, &i12);
-    list_push_value(t, &i13);
-    list_push_value(t, &i14);
+
+    int max_num = 100;
+    int a[max_num];
+    struct timeval tv = { 0, 0 };
+    gettimeofday(&tv, NULL);
+    int seed = tv.tv_sec + tv.tv_usec;
+    srand(seed);
+
+    int j;
+    for (j = 0; j < max_num; ++j) {
+        a[j] = rand() % max_num; 
+        list_push_value(t, a + j); 
+    }
 
     list_sort(t, cmp);
     failed = 0;
@@ -309,7 +308,7 @@ int main(int argc, char **argv) {
     for (i = 0; i < len; i++) {
         int cur = *((int *)list_pick_value(t, i));
         if (i > 0 && cur < prev) {
-            ut_failure("%d is smaller than the previous element %d", cur, prev);
+            ut_failure("%d is smaller than the previous element %d (index: %d)", cur, prev, i);
             failed++;
         }
         prev = cur;
