@@ -1006,7 +1006,7 @@ static inline void list_quick_sort(list_entry_t *head,
     int length_modifier = 0;
     list_entry_t *p1 = head, *p2 = tail;
 
-    while (p2 != head->prev && p1 != tail->next) {
+    for (;;) {
 
         while(p1 && p1 != pivot && comparator(p1->value, pvalue) > 0)
             p1 = p1->next;
