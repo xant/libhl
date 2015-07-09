@@ -1,6 +1,6 @@
-/* linked list management library - by xant 
+/* linked list management library - by xant
  */
- 
+
 #include <stdio.h>
 #ifdef THREAD_SAFE
 #define __USE_UNIX98
@@ -32,7 +32,7 @@ struct __linked_list {
 };
 
 /********************************************************************
- * Entry-based API   
+ * Entry-based API
  * - Internal use only
  ********************************************************************/
 
@@ -56,18 +56,19 @@ static inline list_entry_t *subst_entry(linked_list_t *list, uint32_t pos, list_
 static inline int swap_entries(linked_list_t *list, uint32_t pos1, uint32_t pos2);
 
 #ifdef THREAD_SAFE
-#define MUTEX_LOCK(__mutex) pthread_mutex_lock(__mutex) 
-#define MUTEX_UNLOCK(__mutex) pthread_mutex_unlock(__mutex) 
+#define MUTEX_LOCK(__mutex) pthread_mutex_lock(__mutex)
+#define MUTEX_UNLOCK(__mutex) pthread_mutex_unlock(__mutex)
 #else
 #define MUTEX_LOCK(__mutex)
 #define MUTEX_UNLOCK(__mutex)
 #endif
 
-/* 
- * Create a new linked_list_t. Allocates resources and returns 
- * a linked_list_t opaque structure for later use 
+/*
+ * Create a new linked_list_t. Allocates resources and returns
+ * a linked_list_t opaque structure for later use
  */
-linked_list_t *list_create() 
+linked_list_t *
+list_create()
 {
     linked_list_t *list = (linked_list_t *)malloc(sizeof(linked_list_t));
     if(list) {
@@ -81,10 +82,11 @@ linked_list_t *list_create()
 }
 
 /*
- * Initialize a preallocated linked_list_t pointed by list 
+ * Initialize a preallocated linked_list_t pointed by list
  * useful when using static list handlers
- */ 
-void list_init(linked_list_t *list) 
+ */
+void
+list_init(linked_list_t *list)
 {
     memset(list,  0, sizeof(linked_list_t));
 #ifdef THREAD_SAFE
@@ -100,9 +102,10 @@ void list_init(linked_list_t *list)
 /*
  * Destroy a linked_list_t. Free resources allocated for list
  */
-void list_destroy(linked_list_t *list) 
+void
+list_destroy(linked_list_t *list)
 {
-    if(list) 
+    if(list)
     {
         list_clear(list);
 #ifdef THREAD_SAFE
@@ -112,14 +115,15 @@ void list_destroy(linked_list_t *list)
     }
 }
 
-static void list_destroy_tagged_value_internal(tagged_value_t *tval, void (*free_cb)(void *v))
+static void
+list_destroy_tagged_value_internal(tagged_value_t *tval, void (*free_cb)(void *v))
 {
-    if(tval) 
+    if(tval)
     {
         if(tval->tag)
             free(tval->tag);
         if(tval->value) {
-            if(tval->type == TV_TYPE_LIST) 
+            if(tval->type == TV_TYPE_LIST)
                 list_destroy((linked_list_t *)tval->value);
             else if (free_cb)
                 free_cb(tval->value);
@@ -136,25 +140,27 @@ static void list_destroy_tagged_value_internal(tagged_value_t *tval, void (*free
  * list_clear() can be used safely with entry-based and tagged-based api,
  * otherwise you must really know what you are doing
  */
-void list_clear(linked_list_t *list) 
+void
+list_clear(linked_list_t *list)
 {
     list_entry_t *e;
     /* Destroy all entries still in list */
     while((e = shift_entry(list)) != NULL)
     {
-        /* if there is a tagged_value_t associated to the entry, 
+        /* if there is a tagged_value_t associated to the entry,
         * let's free memory also for it */
         if(e->tagged && e->value)
             list_destroy_tagged_value_internal((tagged_value_t *)e->value, list->free_value_cb);
         else if (list->free_value_cb)
             list->free_value_cb(e->value);
-        
+
         destroy_entry(e);
     }
 }
 
 /* Returns actual lenght of linked_list_t pointed by l */
-uint32_t list_count(linked_list_t *l) 
+uint32_t
+list_count(linked_list_t *l)
 {
     uint32_t len;
     MUTEX_LOCK(&l->lock);
@@ -163,25 +169,32 @@ uint32_t list_count(linked_list_t *l)
     return len;
 }
 
-void list_set_free_value_callback(linked_list_t *list, free_value_callback_t free_value_cb) {
+void
+list_set_free_value_callback(linked_list_t *list, free_value_callback_t free_value_cb)
+{
     MUTEX_LOCK(&list->lock);
     list->free_value_cb = free_value_cb;
     MUTEX_UNLOCK(&list->lock);
 }
 
-void list_lock(linked_list_t *list) {
+void
+list_lock(linked_list_t *list)
+{
     MUTEX_LOCK(&list->lock);
 }
 
-void list_unlock(linked_list_t *list) {
+void
+list_unlock(linked_list_t *list)
+{
     MUTEX_UNLOCK(&list->lock);
 }
 
-/* 
- * Create a new list_entry_t structure. Allocates resources and returns  
+/*
+ * Create a new list_entry_t structure. Allocates resources and returns
  * a pointer to the just created list_entry_t opaque structure
  */
-static inline list_entry_t *create_entry() 
+static inline
+list_entry_t *create_entry()
 {
     list_entry_t *new_entry = (list_entry_t *)calloc(1, sizeof(list_entry_t));
     /*
@@ -192,17 +205,18 @@ static inline list_entry_t *create_entry()
     return new_entry;
 }
 
-/* 
- * Free resources allocated for a list_entry_t structure. 
+/*
+ * Free resources allocated for a list_entry_t structure
  * If the entry is linked in a list this routine will also unlink correctly
  * the entry from the list.
  */
-static inline void destroy_entry(list_entry_t *entry) 
+static inline void
+destroy_entry(list_entry_t *entry)
 {
     long pos;
-    if(entry) 
+    if(entry)
     {
-        if(entry->list) 
+        if(entry->list)
         {
             /* entry is linked in a list...let's remove that reference */
             pos = get_entry_position(entry);
@@ -217,13 +231,14 @@ static inline void destroy_entry(list_entry_t *entry)
  * Pops a list_entry_t from the end of the list (or bottom of the stack
  * if you are using the list as a stack)
  */
-static inline list_entry_t *pop_entry(linked_list_t *list) 
+static inline
+list_entry_t *pop_entry(linked_list_t *list)
 {
     list_entry_t *entry;
     MUTEX_LOCK(&list->lock);
 
     entry = list->tail;
-    if(entry) 
+    if(entry)
     {
         list->tail = entry->prev;
         if(list->tail)
@@ -247,17 +262,18 @@ static inline list_entry_t *pop_entry(linked_list_t *list)
 /*
  * Pushs a list_entry_t at the end of a list
  */
-static inline int push_entry(linked_list_t *list, list_entry_t *entry) 
+static inline int
+push_entry(linked_list_t *list, list_entry_t *entry)
 {
     list_entry_t *p;
     if(!entry)
         return -1;
     MUTEX_LOCK(&list->lock);
-    if(list->length == 0) 
+    if(list->length == 0)
     {
         list->head = list->tail = entry;
     }
-    else 
+    else
     {
         p = list->tail;
         p->next = entry;
@@ -270,20 +286,21 @@ static inline int push_entry(linked_list_t *list, list_entry_t *entry)
     MUTEX_UNLOCK(&list->lock);
     return 0;
 }
- 
+
 /*
  * Retreive a list_entry_t from the beginning of a list (or top of the stack
- * if you are using the list as a stack) 
+ * if you are using the list as a stack)
  */
-static inline list_entry_t *shift_entry(linked_list_t *list) 
+static inline
+list_entry_t *shift_entry(linked_list_t *list)
 {
     list_entry_t *entry;
     MUTEX_LOCK(&list->lock);
     entry = list->head;
-    if(entry) 
+    if(entry)
     {
         list->head = entry->next;
-        if(list->head) 
+        if(list->head)
             list->head->prev = NULL;
         list->length--;
 
@@ -303,20 +320,21 @@ static inline list_entry_t *shift_entry(linked_list_t *list)
 }
 
 
-/* 
+/*
  * Insert a list_entry_t at the beginning of a list (or at the top if the stack)
  */
-static inline int unshift_entry(linked_list_t *list, list_entry_t *entry) 
+static inline int
+unshift_entry(linked_list_t *list, list_entry_t *entry)
 {
     list_entry_t *p;
     if(!entry)
         return -1;
     MUTEX_LOCK(&list->lock);
-    if(list->length == 0) 
+    if(list->length == 0)
     {
         list->head = list->tail = entry;
-    } 
-    else 
+    }
+    else
     {
         p = list->head;
         p->prev = entry;
@@ -335,7 +353,8 @@ static inline int unshift_entry(linked_list_t *list, list_entry_t *entry)
 /*
  * Instert an entry at a specified position in a linked_list_t
  */
-static inline int insert_entry(linked_list_t *list, list_entry_t *entry, uint32_t pos) 
+static inline int
+insert_entry(linked_list_t *list, list_entry_t *entry, uint32_t pos)
 {
     list_entry_t *prev, *next;
     int ret = -1;
@@ -359,7 +378,7 @@ static inline int insert_entry(linked_list_t *list, list_entry_t *entry, uint32_
     }
 
     prev = pick_entry(list, pos-1);
-    if(prev) 
+    if(prev)
     {
         next = prev->next;
         prev->next = entry;
@@ -374,10 +393,11 @@ static inline int insert_entry(linked_list_t *list, list_entry_t *entry, uint32_
     return ret;
 }
 
-/* 
+/*
  * Retreive the list_entry_t at pos in a linked_list_t without removing it from the list
  */
-static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos) 
+static inline
+list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
 {
     unsigned int i;
     list_entry_t *entry;
@@ -405,14 +425,14 @@ static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
             }
         }
     } else {
-        if (pos > half_length) 
+        if (pos > half_length)
         {
             entry = list->tail;
             for(i=list->length - 1;i>pos;i--)  {
                 entry = entry->prev;
             }
         }
-        else 
+        else
         {
             entry = list->head;
             for(i=0;i<pos;i++) {
@@ -429,11 +449,12 @@ static inline list_entry_t *pick_entry(linked_list_t *list, uint32_t pos)
     return entry;
 }
 
-/* Retreive the list_entry_t at pos in a linked_list_t removing it from the list 
+/* Retreive the list_entry_t at pos in a linked_list_t removing it from the list
  * XXX - no locking here because this routine is just an accessor to other routines
  * Caller MUST destroy the returned entry trough destroy_entry() call
  */
-static inline list_entry_t *fetch_entry(linked_list_t *list, uint32_t pos) 
+static inline
+list_entry_t *fetch_entry(linked_list_t *list, uint32_t pos)
 {
     list_entry_t *entry = NULL;
     if(pos == 0 )
@@ -441,20 +462,21 @@ static inline list_entry_t *fetch_entry(linked_list_t *list, uint32_t pos)
     else if(pos == list_count(list) - 1)
         return pop_entry(list);
 
-    entry = remove_entry(list, pos); 
+    entry = remove_entry(list, pos);
     return entry;
 }
 
-static inline int move_entry(linked_list_t *list, uint32_t srcPos, uint32_t dstPos) 
+static inline int
+move_entry(linked_list_t *list, uint32_t srcPos, uint32_t dstPos)
 {
     list_entry_t *e;
-    
+
     e = fetch_entry(list, srcPos);
     if(e)
     {
         if(insert_entry(list, e, dstPos) == 0)
             return 0;
-        else 
+        else
         {
             if(insert_entry(list, e, srcPos) != 0)
             {
@@ -467,7 +489,8 @@ static inline int move_entry(linked_list_t *list, uint32_t srcPos, uint32_t dstP
 }
 
 /* XXX - still dangerous ... */
-static inline int swap_entries(linked_list_t *list, uint32_t pos1, uint32_t pos2) 
+static inline int
+swap_entries(linked_list_t *list, uint32_t pos1, uint32_t pos2)
 {
     list_entry_t *e1;
     list_entry_t *e2;
@@ -487,13 +510,14 @@ static inline int swap_entries(linked_list_t *list, uint32_t pos1, uint32_t pos2
     }
     else
         return -1;
-    
+
     /* TODO - Unimplemented */
     return 0;
 }
 
 /* return old entry at pos */
-static inline list_entry_t *subst_entry(linked_list_t *list, uint32_t pos, list_entry_t *entry)
+static inline
+list_entry_t *subst_entry(linked_list_t *list, uint32_t pos, list_entry_t *entry)
 {
     list_entry_t *old;
 
@@ -510,12 +534,13 @@ static inline list_entry_t *subst_entry(linked_list_t *list, uint32_t pos, list_
 }
 
 /* XXX - POSSIBLE RACE CONDITION BETWEEN pick_entry and the actual removal */
-static inline list_entry_t *remove_entry(linked_list_t *list, uint32_t pos) 
+static inline
+list_entry_t *remove_entry(linked_list_t *list, uint32_t pos)
 {
     list_entry_t *next, *prev;
     list_entry_t *entry = pick_entry(list, pos);
     MUTEX_LOCK(&list->lock);
-    if(entry) 
+    if(entry)
     {
         prev = entry->prev;
         next = entry->next;
@@ -524,7 +549,7 @@ static inline list_entry_t *remove_entry(linked_list_t *list, uint32_t pos)
         else if (pos == list->length - 1)
             list->tail = prev;
 
-        if(prev) 
+        if(prev)
             prev->next = next;
         if(next)
             next->prev = prev;
@@ -549,16 +574,17 @@ static inline list_entry_t *remove_entry(linked_list_t *list, uint32_t pos)
 
 /* return position of entry if linked in a list.
  * Scans entire list so it can be slow for very long lists */
-long get_entry_position(list_entry_t *entry) 
+long
+get_entry_position(list_entry_t *entry)
 {
     int i = 0;
     linked_list_t *list;
     list_entry_t *p;
     list = entry->list;
-    if(list) 
+    if(list)
     {
         p  = list->head;
-        while(p) 
+        while(p)
         {
             if(p == entry) return i;
             p = p->next;
@@ -568,11 +594,12 @@ long get_entry_position(list_entry_t *entry)
     return -1;
 }
 
-void *list_pop_value(linked_list_t *list) 
+void *
+list_pop_value(linked_list_t *list)
 {
     void *val = NULL;
     list_entry_t *entry = pop_entry(list);
-    if(entry) 
+    if(entry)
     {
         val = entry->value;
         destroy_entry(entry);
@@ -580,7 +607,8 @@ void *list_pop_value(linked_list_t *list)
     return val;
 }
 
-int list_push_value(linked_list_t *list, void *val) 
+int
+list_push_value(linked_list_t *list, void *val)
 {
     int res;
     list_entry_t *new_entry = create_entry();
@@ -593,7 +621,8 @@ int list_push_value(linked_list_t *list, void *val)
     return res;
 }
 
-int list_unshift_value(linked_list_t *list, void *val) 
+int
+list_unshift_value(linked_list_t *list, void *val)
 {
     int res;
     list_entry_t *new_entry = create_entry();
@@ -606,11 +635,12 @@ int list_unshift_value(linked_list_t *list, void *val)
     return res;
 }
 
-void *list_shift_value(linked_list_t *list) 
+void *
+list_shift_value(linked_list_t *list)
 {
     void *val = NULL;
     list_entry_t *entry = shift_entry(list);
-    if(entry) 
+    if(entry)
     {
         val = entry->value;
         destroy_entry(entry);
@@ -618,7 +648,8 @@ void *list_shift_value(linked_list_t *list)
     return val;
 }
 
-int list_insert_value(linked_list_t *list, void *val, uint32_t pos) 
+int
+list_insert_value(linked_list_t *list, void *val, uint32_t pos)
 {
     int res;
     list_entry_t *new_entry = create_entry();
@@ -631,7 +662,8 @@ int list_insert_value(linked_list_t *list, void *val, uint32_t pos)
     return res;
 }
 
-void *list_pick_value(linked_list_t *list, uint32_t pos) 
+void *
+list_pick_value(linked_list_t *list, uint32_t pos)
 {
     list_entry_t *entry = pick_entry(list, pos);
     if(entry)
@@ -639,11 +671,12 @@ void *list_pick_value(linked_list_t *list, uint32_t pos)
     return NULL;
 }
 
-void *list_fetch_value(linked_list_t *list, uint32_t pos) 
+void *
+list_fetch_value(linked_list_t *list, uint32_t pos)
 {
     void *val = NULL;
     list_entry_t *entry = fetch_entry(list, pos);
-    if(entry) 
+    if(entry)
     {
         val = entry->value;
         destroy_entry(entry);
@@ -652,12 +685,14 @@ void *list_fetch_value(linked_list_t *list, uint32_t pos)
 }
 
 /* just an accessor to move_entry */
-int list_move_value(linked_list_t *list, uint32_t srcPos, uint32_t dstPos)
+int
+list_move_value(linked_list_t *list, uint32_t srcPos, uint32_t dstPos)
 {
     return move_entry(list, srcPos, dstPos);
 }
 
-void *list_set_value(linked_list_t *list, uint32_t pos, void *newval)
+void *
+list_set_value(linked_list_t *list, uint32_t pos, void *newval)
 {
     void *old_value = NULL;
     MUTEX_LOCK(&list->lock);
@@ -673,7 +708,8 @@ void *list_set_value(linked_list_t *list, uint32_t pos, void *newval)
 }
 
 /* return old value at pos */
-void *list_subst_value(linked_list_t *list, uint32_t pos, void *newval)
+void *
+list_subst_value(linked_list_t *list, uint32_t pos, void *newval)
 {
     void *old_value = NULL;
     MUTEX_LOCK(&list->lock);
@@ -686,12 +722,14 @@ void *list_subst_value(linked_list_t *list, uint32_t pos, void *newval)
     return old_value;
 }
 
-int list_swap_values(linked_list_t *list,  uint32_t pos1, uint32_t pos2)
+int
+list_swap_values(linked_list_t *list,  uint32_t pos1, uint32_t pos2)
 {
     return swap_entries(list, pos1, pos2);
 }
 
-int list_foreach_value(linked_list_t *list, int (*item_handler)(void *item, uint32_t idx, void *user), void *user)
+int
+list_foreach_value(linked_list_t *list, int (*item_handler)(void *item, uint32_t idx, void *user), void *user)
 {
     MUTEX_LOCK(&list->lock);
     uint32_t idx = 0;
@@ -731,7 +769,8 @@ int list_foreach_value(linked_list_t *list, int (*item_handler)(void *item, uint
     return idx;
 }
 
-tagged_value_t *list_create_tagged_value_nocopy(char *tag, void *val) 
+tagged_value_t *
+list_create_tagged_value_nocopy(char *tag, void *val)
 {
     tagged_value_t *newval = (tagged_value_t *)calloc(1, sizeof(tagged_value_t));
     if(!newval) {
@@ -747,14 +786,15 @@ tagged_value_t *list_create_tagged_value_nocopy(char *tag, void *val)
     return newval;
 }
 
-/* 
+/*
  * Allocates resources for a new tagged_value_t initializing both tag and value
  * to what received as argument.
- * if vlen is 0 or negative, then val is assumed to be a string and 
+ * if vlen is 0 or negative, then val is assumed to be a string and
  * strdup is used to copy it.
  * Return a pointer to the new allocated tagged_value_t.
  */
-tagged_value_t *list_create_tagged_value(char *tag, void *val, uint32_t vlen) 
+tagged_value_t *
+list_create_tagged_value(char *tag, void *val, uint32_t vlen)
 {
     tagged_value_t *newval = (tagged_value_t *)calloc(1, sizeof(tagged_value_t));
     if(!newval) {
@@ -764,12 +804,12 @@ tagged_value_t *list_create_tagged_value(char *tag, void *val, uint32_t vlen)
 
     if(tag)
         newval->tag = strdup(tag);
-    if(val) 
+    if(val)
     {
-        if(vlen) 
+        if(vlen)
         {
             newval->value = malloc(vlen+1);
-            if(newval->value) 
+            if(newval->value)
             {
                 memcpy(newval->value, val, vlen);
                 memset((char *)newval->value+vlen, 0, 1);
@@ -781,8 +821,8 @@ tagged_value_t *list_create_tagged_value(char *tag, void *val, uint32_t vlen)
                 return NULL;
             }
             newval->type = TV_TYPE_BINARY;
-        } 
-        else 
+        }
+        else
         {
             newval->value = (void *)strdup((char *)val);
             newval->vlen = (uint32_t)strlen((char *)val);
@@ -792,13 +832,14 @@ tagged_value_t *list_create_tagged_value(char *tag, void *val, uint32_t vlen)
     return newval;
 }
 
-/* 
- * Allocates resources for a new tagged_value_t 
+/*
+ * Allocates resources for a new tagged_value_t
  * containing a linked_list_t instead of a simple buffer.
  * This let us define folded linked_list_t and therefore represent
  * trees (or a sort of folded hashrefs)
  */
-tagged_value_t *list_create_tagged_sublist(char *tag, linked_list_t *sublist)  
+tagged_value_t *
+list_create_tagged_sublist(char *tag, linked_list_t *sublist)
 {
     tagged_value_t *newval = (tagged_value_t *)calloc(1, sizeof(tagged_value_t));
     if(!newval) {
@@ -814,12 +855,14 @@ tagged_value_t *list_create_tagged_sublist(char *tag, linked_list_t *sublist)
 }
 
 /* Release resources for tagged_value_t pointed by tval */
-void list_destroy_tagged_value(tagged_value_t *tval) 
+void
+list_destroy_tagged_value(tagged_value_t *tval)
 {
     list_destroy_tagged_value_internal(tval, NULL);
 }
 
-tagged_value_t *list_set_tagged_value(linked_list_t *list, char *tag, void *value, uint32_t len, int copy)
+tagged_value_t *
+list_set_tagged_value(linked_list_t *list, char *tag, void *value, uint32_t len, int copy)
 {
     int i;
 
@@ -852,23 +895,25 @@ tagged_value_t *list_set_tagged_value(linked_list_t *list, char *tag, void *valu
 }
 
 /* Pops a tagged_value_t from the list pointed by list */
-tagged_value_t *list_pop_tagged_value(linked_list_t *list) 
+tagged_value_t *
+list_pop_tagged_value(linked_list_t *list)
 {
     return (tagged_value_t *)list_pop_value(list);
 }
 
-/* 
- * Pushes a new tagged_value_t into list. user must give a valid tagged_value_t pointer 
- * created trough a call to create_tagged_value() routine 
+/*
+ * Pushes a new tagged_value_t into list. user must give a valid tagged_value_t pointer
+ * created trough a call to create_tagged_value() routine
  */
-int list_push_tagged_value(linked_list_t *list, tagged_value_t *tval) 
+int
+list_push_tagged_value(linked_list_t *list, tagged_value_t *tval)
 {
     list_entry_t *new_entry;
     int res = 0;
-    if(tval) 
+    if(tval)
     {
         new_entry = create_entry();
-        if(new_entry) 
+        if(new_entry)
         {
             new_entry->tagged = 1;
             new_entry->value = tval;
@@ -880,11 +925,12 @@ int list_push_tagged_value(linked_list_t *list, tagged_value_t *tval)
     return res;
 }
 
-int list_unshift_tagged_value(linked_list_t *list, tagged_value_t *tval) 
+int
+list_unshift_tagged_value(linked_list_t *list, tagged_value_t *tval)
 {
     int res = 0;
     list_entry_t *new_entry;
-    if(tval) 
+    if(tval)
     {
         new_entry = create_entry();
         if(new_entry)
@@ -898,20 +944,22 @@ int list_unshift_tagged_value(linked_list_t *list, tagged_value_t *tval)
     }
     return res;
 }
- 
-tagged_value_t *shift_tagged_value(linked_list_t *list) 
+
+tagged_value_t *
+shift_tagged_value(linked_list_t *list)
 {
     return (tagged_value_t *)list_shift_value(list);
 }
 
-int list_insert_tagged_value(linked_list_t *list, tagged_value_t *tval, uint32_t pos) 
+int
+list_insert_tagged_value(linked_list_t *list, tagged_value_t *tval, uint32_t pos)
 {
     int res = 0;
     list_entry_t *new_entry;
-    if(tval) 
+    if(tval)
     {
         new_entry = create_entry();
-        if(new_entry) 
+        if(new_entry)
         {
             new_entry->tagged = 1;
             new_entry->value = tval;
@@ -923,20 +971,23 @@ int list_insert_tagged_value(linked_list_t *list, tagged_value_t *tval, uint32_t
     return res;
 }
 
-tagged_value_t *list_pick_tagged_value(linked_list_t *list, uint32_t pos) 
+tagged_value_t *
+list_pick_tagged_value(linked_list_t *list, uint32_t pos)
 {
     return (tagged_value_t *)list_pick_value(list, pos);
 }
 
-tagged_value_t *list_fetch_tagged_value(linked_list_t *list, uint32_t pos) 
+tagged_value_t *
+list_fetch_tagged_value(linked_list_t *list, uint32_t pos)
 {
     return (tagged_value_t *)list_fetch_value(list, pos);
 }
 
-/* 
+/*
  * ... without removing it from the list
  */
-tagged_value_t *list_get_tagged_value(linked_list_t *list, char *tag) 
+tagged_value_t *
+list_get_tagged_value(linked_list_t *list, char *tag)
 {
     int i;
     tagged_value_t *tval;
@@ -952,15 +1003,16 @@ tagged_value_t *list_get_tagged_value(linked_list_t *list, char *tag)
     return NULL;
 }
 
-/* 
+/*
  * ... without removing it from the list
  * USER MUST NOT FREE MEMORY FOR RETURNED VALUES
  * User MUST create a new list, pass it as 'values'
- * and destroy it when no more needed .... entries 
- * returned inside the 'values' list MUST not be freed, 
+ * and destroy it when no more needed .... entries
+ * returned inside the 'values' list MUST not be freed,
  * because they reference directly the real entries inside 'list'.
  */
-uint32_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *values) 
+uint32_t
+list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *values)
 {
     int i;
     int ret;
@@ -981,7 +1033,8 @@ uint32_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *v
     return ret;
 }
 
-static inline void swap_entry_node_val(list_entry_t *p1, list_entry_t *p2)
+static inline void
+swap_entry_node_val(list_entry_t *p1, list_entry_t *p2)
 {
     if (!p1 || !p2) return;
 
@@ -990,9 +1043,12 @@ static inline void swap_entry_node_val(list_entry_t *p1, list_entry_t *p2)
     p2->value = tmp;
 }
 
-static inline void list_quick_sort(list_entry_t *head,
-   list_entry_t *tail, list_entry_t *pivot, int length,
-   list_comparator_callback_t comparator)
+static inline void
+list_quick_sort(list_entry_t *head,
+               list_entry_t *tail,
+               list_entry_t *pivot,
+               int length,
+               list_comparator_callback_t comparator)
 {
     if (!head || !tail || !pivot || length < 2 || !comparator) return;
 
@@ -1023,7 +1079,7 @@ static inline void list_quick_sort(list_entry_t *head,
                 p2->prev->next = p2->next;
             if (p2->next)
                 p2->next->prev = p2->prev;
-            
+
             if (pivot->prev)
                 pivot->prev->next = p2;
             else if (pivot == pivot->list->head)
@@ -1056,7 +1112,7 @@ static inline void list_quick_sort(list_entry_t *head,
                 p1->prev->next = p1->next;
             if (p1->next)
                 p1->next->prev = p1->prev;
-            
+
             if (pivot->next)
                 pivot->next->prev = p1;
             else if (pivot == pivot->list->tail)
@@ -1092,6 +1148,9 @@ static inline void list_quick_sort(list_entry_t *head,
 
     }
 
+    // TODO - optimize the pivot selection on the sublists
+    //        (it could be done while traversing the list
+    //        earlier in this function)
     int l1 = 0;
     p1 = head;
     while (p1 != pivot) {
@@ -1106,13 +1165,15 @@ static inline void list_quick_sort(list_entry_t *head,
     for (i = 0; pv2->prev && i < l2/2; ++i)
         pv2 = pv2->prev;
 
+    // recursion here
     if (l1 > 1 && pivot->prev && head != pivot->prev)
         list_quick_sort(head, pivot->prev, pv1, l1, comparator);
     if (l2 > 1 && pivot->next && tail != pivot->next)
         list_quick_sort(pivot->next, tail, pv2, l2, comparator);
 }
 
-void list_sort(linked_list_t *list, list_comparator_callback_t comparator)
+void
+list_sort(linked_list_t *list, list_comparator_callback_t comparator)
 {
     MUTEX_LOCK(&list->lock);
     list_entry_t *pivot = pick_entry(list, (list->length/2) - 1);
