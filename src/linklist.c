@@ -1003,7 +1003,6 @@ static inline void list_quick_sort(list_entry_t *head,
     }
 
     void *pvalue = pivot->value;
-    int length_modifier = 0;
     list_entry_t *p1 = head, *p2 = tail;
 
     for (;;) {
@@ -1020,7 +1019,6 @@ static inline void list_quick_sort(list_entry_t *head,
         if (p1 == pivot) {
             // all the elements on the left of the pivot are smaller
             // so we can't just swap values anymore
-            length_modifier++;
             if (p2->prev)
                 p2->prev->next = p2->next;
             if (p2->next)
@@ -1054,7 +1052,6 @@ static inline void list_quick_sort(list_entry_t *head,
         } else if (p2 == pivot) {
             // all the elements on the right of the pivot are bigger
             // so we can't just swap values anymore
-            length_modifier--;
             if (p1->prev)
                 p1->prev->next = p1->next;
             if (p1->next)
@@ -1095,7 +1092,6 @@ static inline void list_quick_sort(list_entry_t *head,
 
     }
 
-    //int l1 = length/2 + length_modifier - 1;
     int l1 = 0;
     p1 = head;
     while (p1 != pivot) {
