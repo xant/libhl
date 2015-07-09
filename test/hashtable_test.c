@@ -113,6 +113,7 @@ int main(int argc, char **argv) {
 
     int num_parallel_threads = 5;
     int num_parallel_items = 100000;
+    ht_clear(table);
 
     ut_testing("Parallel insert (%d items, %d threads)", num_parallel_items, num_parallel_threads);
 
@@ -147,7 +148,35 @@ int main(int argc, char **argv) {
               "returned list doesn't match the table count (%u != %u)",
               list_count(values),
               ht_count(table));
+
+    ut_testing("returned list contains all correct values");
+    hashtable_t *tmptable = ht_create(0, 0, NULL);
+    int failed = 0;
+    for (i = 0; i < list_count(values); i++) {
+        hashtable_value_t *val = list_pick_value(values, i);
+        if (ht_get(tmptable, val->data, val->len, NULL)) {
+            ut_failure("same value found twice!");
+            failed++;
+            break;
+        }
+        char test[25];
+        char keystr[val->klen+1];
+        memcpy(keystr, val->key, val->klen);
+        keystr[val->klen] = 0;
+        int num = atoi(keystr);
+        sprintf(test, "test%d", num+1);
+        if (strlen(test) != val->len || memcmp(test, val->data, val->len) != 0) {
+            ut_failure("returned value for key %s doesn't match! (%.*s != %s)",
+                       keystr, val->len, val->data, test);
+            failed++;
+            break;
+        }
+        ht_set(tmptable, val->data, val->len, "", 1);
+    }
+    if (!failed)
+        ut_success();
     list_destroy(values);
+    ht_destroy(tmptable);
 
     ht_set_free_item_callback(table, free_item);
     ut_testing("ht_clear() and free_item_callback");

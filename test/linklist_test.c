@@ -289,7 +289,7 @@ int main(int argc, char **argv) {
     ut_testing("list_sort()");
     linked_list_t *t = list_create();
 
-    int max_num = 100;
+    int max_num = 1000;
     int a[max_num];
     struct timeval tv = { 0, 0 };
     gettimeofday(&tv, NULL);
