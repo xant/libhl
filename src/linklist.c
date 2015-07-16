@@ -1160,9 +1160,9 @@ list_quick_sort(list_entry_t *head,
     int l2 = length - (l1 + 1);
     int i;
     list_entry_t *pv1 = head, *pv2 = tail;
-    for (i = 0; pv1->next && i < l1/2; ++i)
+    for (i = 0; pv1 && pv1->next && i < l1/2; ++i)
         pv1 = pv1->next;
-    for (i = 0; pv2->prev && i < l2/2; ++i)
+    for (i = 0; pv2 && pv2->prev && i < l2/2; ++i)
         pv2 = pv2->prev;
 
     // recursion here
