@@ -35,7 +35,14 @@ skiplist_create(int num_layers,
                 skiplist_free_value_callback_t free_value_cb)
 {
     skiplist_t *skl = calloc(1, sizeof(skiplist_t));
+    if (!skl)
+        return NULL;
+
     skl->layers = calloc(num_layers, sizeof(struct layer_list));
+    if (!skl->layers) {
+        free(skl);
+        return NULL;
+    }
     int i;
     for (i = 0; i < num_layers; i++)
         TAILQ_INIT(&skl->layers[i]);
@@ -84,6 +91,9 @@ int
 skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
 {
     skl_item_wrapper_t **path = calloc(skl->num_layers, sizeof(skl_item_wrapper_t *));
+    if (!path)
+        return -1;
+
     skl_item_t *prev_item = skiplist_search_internal(skl, key, klen, path);
     if (prev_item && skl->cmp_keys_cb(prev_item->key, prev_item->klen, key, klen) == 0) {
         // we have found an item with the same key, let's just update the value
@@ -96,12 +106,37 @@ skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
 
     // create a new item
     skl_item_t *new_item = calloc(1, sizeof(skl_item_t));
+    if (new_item) {
+        free(path);
+        return -1;
+    }
     new_item->key = calloc(1, klen);
+    if (!new_item->key) {
+        free(new_item);
+        free(path);
+        return -1;
+    }
     memcpy(new_item->key, key, klen);
+
     new_item->klen = klen;
     new_item->value = value;
+
     new_item->layer_check = calloc(skl->num_layers, sizeof(char));
+    if (!new_item->layer_check) {
+        free(new_item->key);
+        free(new_item);
+        free(path);
+        return -1;
+    }
+
     new_item->wrappers = calloc(skl->num_layers, sizeof(skl_item_wrapper_t));
+    if (!new_item->wrappers) {
+        free(new_item->layer_check);
+        free(new_item->key);
+        free(new_item);
+        free(path);
+        return -1;
+    }
     // initialize the list wrappers
     new_item->wrappers[0].data = new_item;
     // always insert the new item to the tail list
