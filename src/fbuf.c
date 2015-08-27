@@ -294,8 +294,7 @@ fbuf_clear(fbuf_t *fbuf)
 unsigned int fbuf_attach(fbuf_t *fbuf, char *buf, int len, int used)
 {
     int previously_used = fbuf->used;
-    if (fbuf->data)
-        free(fbuf->data);
+    free(fbuf->data);
     fbuf->skip = 0;
     if (used < len)
         fbuf->data = buf;
@@ -335,8 +334,7 @@ unsigned int fbuf_detach(fbuf_t *fbuf, char **buf, int *len)
 void
 fbuf_destroy(fbuf_t *fbuf)
 {
-    if (fbuf->data)
-        free(fbuf->data);
+    free(fbuf->data);
     fbuf->data = NULL;
     fbuf->used = fbuf->len = fbuf->skip = 0;
 
@@ -346,8 +344,7 @@ fbuf_destroy(fbuf_t *fbuf)
 void
 fbuf_free(fbuf_t *fbuf)
 {
-    if (fbuf->data)
-        free(fbuf->data);
+    free(fbuf->data);
 
 #ifdef DEBUG_BUILD
     fbuf->data = NULL;

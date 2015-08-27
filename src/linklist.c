@@ -124,8 +124,7 @@ list_destroy_tagged_value_internal(tagged_value_t *tval, void (*free_cb)(void *v
 {
     if(tval)
     {
-        if(tval->tag)
-            free(tval->tag);
+        free(tval->tag);
         if(tval->value) {
             if(tval->type == TV_TYPE_LIST)
                 list_destroy((linked_list_t *)tval->value);

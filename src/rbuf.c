@@ -183,8 +183,7 @@ rbuf_clear(rbuf_t *rb) {
 
 void
 rbuf_destroy(rbuf_t *rb) {
-    if(rb->buf)
-        free(rb->buf);
+    free(rb->buf);
     free(rb);
 }
 
