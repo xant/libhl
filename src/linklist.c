@@ -581,16 +581,21 @@ get_entry_position(list_entry_t *entry)
     linked_list_t *list;
     list_entry_t *p;
     list = entry->list;
+    MUTEX_LOCK(&list->lock);
     if(list)
     {
         p  = list->head;
         while(p)
         {
-            if(p == entry) return i;
+            if(p == entry) {
+                MUTEX_UNLOCK(&list->lock);
+                return i;
+            }
             p = p->next;
             i++;
         }
     }
+    MUTEX_UNLOCK(&list->lock);
     return -1;
 }
 
