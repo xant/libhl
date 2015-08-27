@@ -16,7 +16,7 @@ extern "C" {
 /**
  * @brief Opaque structure representing the actual ringbuffer descriptor
  */
-typedef struct __rqueue rqueue_t;
+typedef struct _rqueue_s rqueue_t;
 
 /**
  * @brief Callback that, if provided, will be called to release the value resources

@@ -10,21 +10,21 @@
 #define	MIN(a,b) (((a)<(b))?(a):(b))
 #define	MAX(a,b) (((a)>(b))?(a):(b))
 
-typedef struct __avlt_node_s {
+typedef struct _avlt_node_s {
     void *key;
     size_t klen;
     void *value;
-    struct __avlt_node_s *left;
-    struct __avlt_node_s *right;
-    struct __avlt_node_s *parent;
+    struct _avlt_node_s *left;
+    struct _avlt_node_s *right;
+    struct _avlt_node_s *parent;
     int hl;
     int hr;
-    TAILQ_ENTRY(__avlt_node_s) list; // used by the walker
+    TAILQ_ENTRY(_avlt_node_s) list; // used by the walker
 } avlt_node_t;
 
-struct __avlt_s {
+struct _avlt_s {
     int num_nodes;
-    struct __avlt_node_s *root;
+    struct _avlt_node_s *root;
     libhl_cmp_callback_t cmp_keys_cb;
     avlt_free_value_callback_t free_value_cb;
 };
@@ -396,7 +396,7 @@ avlt_walk(avlt_t *tree, avlt_walk_callback_t cb, void *priv)
     if (!tree->root)
         return 0;
 
-    TAILQ_HEAD(, __avlt_node_s) head;
+    TAILQ_HEAD(, _avlt_node_s) head;
     TAILQ_INIT(&head);
 
     avlt_node_t *cur = tree->root;

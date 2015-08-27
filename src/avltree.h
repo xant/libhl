@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <comparators.h>
 
-typedef struct __avlt_s avlt_t;
+typedef struct _avlt_s avlt_t;
 
 /**
  * @brief Callback that, if provided, will be called to release the value

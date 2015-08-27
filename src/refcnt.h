@@ -23,9 +23,9 @@
 #define REFCNT_RETAIN(__refcnt, __node, __type) ((__type) *)get_node_ptr(retain_ref((__refcnt), (__node)))
 #define REFCNT_RELEASE(__refcnt, __node, __type) ((__type) *)get_node_ptr(release_ref((__refcnt), (__node)))
 
-typedef struct __refcnt refcnt_t;
+typedef struct _refcnt_s refcnt_t;
 
-typedef struct __refcnt_node refcnt_node_t;
+typedef struct _refcnt_node_s refcnt_node_t;
 
 /**
  * @brief Callback called when a node is going to be terminated, which means

@@ -8,7 +8,7 @@
 
 #define RBUF_DEFAULT_SIZE 4096
 
-struct __rbuf_s {
+struct _rbuf_s {
     u_char *buf;        // the buffer
     int size;           // buffer size
     int available;      // buffer size

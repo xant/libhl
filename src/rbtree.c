@@ -17,17 +17,17 @@ typedef enum {
     RBTREE_COLOR_BLACK,
 } rbt_color_t;
 
-typedef struct __rbt_node_s {
+typedef struct _rbt_node_s {
     rbt_color_t color;
     void *key;
     size_t klen;
     void *value;
-    struct __rbt_node_s *left; 
-    struct __rbt_node_s *right; 
-    struct __rbt_node_s *parent;
+    struct _rbt_node_s *left; 
+    struct _rbt_node_s *right; 
+    struct _rbt_node_s *parent;
 } rbt_node_t;
 
-struct __rbt_s {
+struct _rbt_s {
     rbt_node_t *root;
     libhl_cmp_callback_t cmp_keys_cb;
     rbt_free_value_callback_t free_value_cb;

@@ -55,7 +55,7 @@ extern "C" {
         (__fbuf)->len = 0; \
     }
 
-typedef struct __fbuf {
+typedef struct _fbuf_s {
     unsigned int id;           //!< unique ID for the buffer for reference
     char *data;                //!< buffer. the caller should never access it directly but use 
                                //   the fbuf_data() function instead. If accessed directly,

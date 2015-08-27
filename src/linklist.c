@@ -10,15 +10,15 @@
 #include <string.h>
 #include <errno.h>
 
-typedef struct __list_entry {
-    struct __linked_list *list;
-    struct __list_entry *prev;
-    struct __list_entry *next;
+typedef struct _list_entry_s {
+    struct _linked_list_s *list;
+    struct _list_entry_s *prev;
+    struct _list_entry_s *next;
     void *value;
     int tagged;
 } list_entry_t;
 
-struct __linked_list {
+struct _linked_list_s {
     list_entry_t *head;
     list_entry_t *tail;
     list_entry_t *cur;

@@ -25,7 +25,7 @@ typedef enum {
 /**
  * @brief Opaque structure representing a ringbuffer handler
  */
-typedef struct __rbuf_s rbuf_t;
+typedef struct _rbuf_s rbuf_t;
 
 /**
  * @brief Create a new ringbuffer

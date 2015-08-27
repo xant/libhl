@@ -2,17 +2,17 @@
 #include "linklist.h"
 #include <stdio.h>
 
-typedef struct __binomial_tree_node_s {
+typedef struct _binomial_tree_node_s {
     void *key;
     size_t klen;
     void *value;
-    struct __binomial_tree_node_s *parent;
-    struct __binomial_tree_node_s **children;
+    struct _binomial_tree_node_s *parent;
+    struct _binomial_tree_node_s **children;
     int num_children;
     binheap_t *bh;
 } binomial_tree_node_t;
 
-struct __binheap_s {
+struct _binheap_s {
     linked_list_t *trees;
     binomial_tree_node_t *head;
     const binheap_callbacks_t *cbs;

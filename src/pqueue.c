@@ -10,7 +10,7 @@ typedef struct {
     uint64_t prio;
 } pqueue_item_t;
 
-struct __pqueue_s {
+struct _pqueue_s {
     binheap_t *heap;
     uint32_t max_size;
     pqueue_free_value_callback free_value_cb;

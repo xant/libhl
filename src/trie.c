@@ -3,17 +3,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct __trie_node_s {
+typedef struct _trie_node_s {
     void *value;
     size_t vsize;
     int is_copy;
     int num_children;
-    struct __trie_node_s *child[256];
-    struct __trie_node_s *parent;
+    struct _trie_node_s *child[256];
+    struct _trie_node_s *parent;
     char pidx;
 } trie_node_t;
 
-struct __trie_s {
+struct _trie_s {
     int count;
     int node_count;
     trie_node_t *root;

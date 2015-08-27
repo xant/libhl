@@ -17,13 +17,13 @@
 #define RQUEUE_MIN_SIZE 3
 
 #pragma pack(push, 4)
-typedef struct __rqueue_page {
+typedef struct _rqueue_page_s {
     void               *value;
-    struct __rqueue_page *next;
-    struct __rqueue_page *prev;
+    struct _rqueue_page_s *next;
+    struct _rqueue_page_s *prev;
 } rqueue_page_t;
 
-struct __rqueue {
+struct _rqueue_s {
     rqueue_page_t             *head;
     rqueue_page_t             *tail;
     rqueue_page_t             *commit;

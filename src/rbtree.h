@@ -19,7 +19,7 @@
 /**
  * @brief Opaque structure representing the tree
  */
-typedef struct __rbt_s rbt_t;
+typedef struct _rbt_s rbt_t;
 
 /**
  * @brief Callback that, if provided, will be called to release the value

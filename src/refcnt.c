@@ -9,7 +9,7 @@
 #define RQUEUE_MIN_SIZE 1<<8
 
 #pragma pack(push, 1)
-struct __refcnt_node {
+struct _refcnt_node_s {
     void *ptr;
     void *priv;
     uint32_t count;
@@ -17,7 +17,7 @@ struct __refcnt_node {
 };
 #pragma pack(pop)
 
-struct __refcnt {
+struct _refcnt_s {
     refcnt_terminate_node_callback_t terminate_node_cb;
     refcnt_free_node_ptr_callback_t free_node_ptr_cb;
     rqueue_t *free_list;

@@ -30,7 +30,7 @@ typedef void (*queue_free_value_callback_t)(void *v);
 /**
  * @brief Opaque structure representing the actual linked queue descriptor
  */
-typedef struct __queue queue_t;
+typedef struct _queue_s queue_t;
 
 
 /* Queue creation and destruction routines */

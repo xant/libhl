@@ -3,7 +3,7 @@
 #include "skiplist.h"
 #include "bsd_queue.h"
 
-typedef struct __skl_item_wrapper_s skl_item_wrapper_t;
+typedef struct _skl_item_wrapper_s skl_item_wrapper_t;
 
 typedef struct {
     void *key;
@@ -13,17 +13,17 @@ typedef struct {
     skl_item_wrapper_t *wrappers;
 } skl_item_t;
 
-struct __skl_item_wrapper_s {
+struct _skl_item_wrapper_s {
     skl_item_t *data;
-    TAILQ_ENTRY(__skl_item_wrapper_s) next;
+    TAILQ_ENTRY(_skl_item_wrapper_s) next;
 };
 
-struct __skiplist_s {
+struct _skiplist_s {
     int num_layers;
     int probability;
     libhl_cmp_callback_t cmp_keys_cb;
     skiplist_free_value_callback_t free_value_cb;
-    TAILQ_HEAD(layer_list, __skl_item_wrapper_s) *layers;
+    TAILQ_HEAD(layer_list, _skl_item_wrapper_s) *layers;
     uint32_t count;
 };
 

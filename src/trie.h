@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 
-typedef struct __trie_s trie_t;
+typedef struct _trie_s trie_t;
 
 typedef void (*trie_free_value_callback_t)(void *);
 

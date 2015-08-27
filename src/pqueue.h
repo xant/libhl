@@ -21,7 +21,7 @@ typedef enum {
 /**
  * @brief Opaque structure representing the priority queue
  */
-typedef struct __pqueue_s pqueue_t;
+typedef struct _pqueue_s pqueue_t;
 
 /**
  * @brief Callback that, if provided, will be called to release the value

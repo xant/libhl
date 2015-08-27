@@ -32,7 +32,7 @@ typedef int (*list_comparator_callback_t)(void *v1, void *v2);
 /**
  * @brief Opaque structure representing the actual linked list descriptor
  */
-typedef struct __linked_list linked_list_t;
+typedef struct _linked_list_s linked_list_t;
 
 
 /********************************************************************

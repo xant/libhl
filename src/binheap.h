@@ -27,7 +27,7 @@ typedef enum {
 /**
  * @brief Opaque structure representing the heap
  */
-typedef struct __binheap_s binheap_t;
+typedef struct _binheap_s binheap_t;
 
 /**
  * @brief Callback used to increment a given key by an arbitrary amount

@@ -85,7 +85,7 @@ typedef enum {
     HT_STATUS_READ  = 4
 } ht_status_t;
 
-struct __hashtable {
+struct _hashtable_s {
     uint32_t size;
     uint32_t max_size;
     uint32_t count;

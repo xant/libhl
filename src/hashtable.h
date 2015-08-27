@@ -18,7 +18,7 @@ extern "C" {
 /**
  * @brief Opaque structure representing the actual hash table descriptor
  */
-typedef struct __hashtable hashtable_t;
+typedef struct _hashtable_s hashtable_t;
 
 /**
  * @brief Callback that, if provided, will be called to release the value resources
@@ -290,7 +290,7 @@ uint32_t ht_count(hashtable_t *table);
 // use the following two functions only if the hashtable_t contains
 // a small number of keys, use the iterators otherwise
 
-typedef struct __hashtable_key_s {
+typedef struct _hashtable_key_s {
     void  *data;
     size_t len;
     size_t vlen;
@@ -305,7 +305,7 @@ typedef struct __hashtable_key_s {
  */
 linked_list_t *ht_get_all_keys(hashtable_t *table);
 
-typedef struct __hashtable_value_s {
+typedef struct _hashtable_value_s {
     void *key;
     size_t klen;
     void  *data;

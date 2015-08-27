@@ -12,7 +12,7 @@
 
 #pragma pack(push, 1)
 // size is 32 bytes on 32bit systems and 64 bytes on 64bit ones
-typedef struct __queue_entry {
+typedef struct _queue_entry_s {
     refcnt_node_t *node;
     refcnt_node_t *prev;
     refcnt_node_t *next;
@@ -21,7 +21,7 @@ typedef struct __queue_entry {
 } queue_entry_t;
 
 // size is 32 bytes on 32bit systems and 64 bytes on 64bit ones
-struct __queue {
+struct _queue_s {
     refcnt_t *refcnt;
     queue_entry_t *head;
     queue_entry_t *tail;

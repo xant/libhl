@@ -12,7 +12,7 @@
 /**
  * @brief Opaque structure representing the skip list
  */
-typedef struct __skiplist_s skiplist_t;
+typedef struct _skiplist_s skiplist_t;
 
 /**
  * @brief Callback that, if provided, will be called to release the value
