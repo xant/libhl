@@ -72,7 +72,10 @@ list_create()
 {
     linked_list_t *list = (linked_list_t *)malloc(sizeof(linked_list_t));
     if(list) {
-        list_init(list);
+        if (list_init(list) != 0) {
+            free(list);
+            return NULL;
+        }
         list->free = 1;
     }
     return list;
@@ -82,18 +85,22 @@ list_create()
  * Initialize a preallocated linked_list_t pointed by list
  * useful when using static list handlers
  */
-void
+int
 list_init(linked_list_t *list)
 {
     memset(list,  0, sizeof(linked_list_t));
 #ifdef THREAD_SAFE
     pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
+    if (pthread_mutexattr_init(&attr) != 0) {
+        return -1;
+    }
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&list->lock, &attr);
+    if (pthread_mutex_init(&list->lock, &attr) != 0) {
+        return -1;
+    }
     pthread_mutexattr_destroy(&attr);
 #endif
-
+    return 0;
 }
 
 /*

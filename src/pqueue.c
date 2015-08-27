@@ -22,12 +22,19 @@ pqueue_t *
 pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_callback free_value_cb)
 {
     pqueue_t *pq = calloc(1, sizeof(pqueue_t));
+    if (!pq)
+        return NULL;
+
+    if (pthread_mutex_init(&pq->lock, NULL) != 0) {
+        free(pq);
+        return NULL;
+    }
+
     pq->mode = mode;
     pq->max_size = size;
     pq->heap = binheap_create(binheap_keys_callbacks_uint64_t(),
                               (mode == PQUEUE_MODE_HIGHEST) ? BINHEAP_MODE_MAX : BINHEAP_MODE_MIN);
     pq->free_value_cb = free_value_cb;
-    pthread_mutex_init(&pq->lock, NULL);
     return pq;
 }
 
@@ -63,6 +70,9 @@ int
 pqueue_insert(pqueue_t *pq, uint64_t prio, void *value)
 {
     pqueue_item_t *item = malloc(sizeof(pqueue_item_t));
+    if (!item)
+        return -1;
+
     item->value = value;
     item->prio = prio;
 

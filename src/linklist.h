@@ -51,8 +51,9 @@ linked_list_t *list_create();
  * @brief Initialize a pre-allocated list
  *
  * This function can be used to initialize a statically defined list
+ * @return 0 on success; -1 otherwise
  */
-void list_init(linked_list_t *list);
+int list_init(linked_list_t *list);
 
 /**
  * @brief Release all resources related to the list

@@ -30,7 +30,7 @@
 #define SPIN_UNLOCK(__mutex) pthread_spin_unlock(&(__mutex))
 #endif
 #else
-#define MUTEX_INIT(__mutex)
+#define MUTEX_INIT(__mutex) 0
 #define MUTEX_DESTROY(__mutex)
 #define MUTEX_LOCK(__mutex)
 #define MUTEX_UNLOCK(__mutex)
@@ -133,8 +133,10 @@ ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb)
 {
     hashtable_t *table = (hashtable_t *)calloc(1, sizeof(hashtable_t));
 
-    if (table)
-        ht_init(table, initial_size, max_size, cb);
+    if (table && ht_init(table, initial_size, max_size, cb) != 0) {
+        free(table);
+        return NULL;
+    }
 
     return table;
 }
@@ -165,7 +167,12 @@ ht_init(hashtable_t *table,
         return -1;
     }
     TAILQ_INIT(&table->iterator_list->head);
-    MUTEX_INIT(table->iterator_lock);
+
+    if (MUTEX_INIT(table->iterator_lock) != 0) {
+        free(table->items);
+        free(table->iterator_list);
+        return -1;
+    }
     return 0;
 }
 
