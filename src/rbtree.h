@@ -10,8 +10,8 @@
  *
  */
 
-#ifndef __RBTREE_H__
-#define __RBTREE_H__
+#ifndef _HL_RBTREE_H_
+#define _HL_RBTREE_H_
 
 #include <stdint.h>
 #include "comparators.h"

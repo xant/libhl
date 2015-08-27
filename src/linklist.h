@@ -4,8 +4,8 @@
  * @date 22/09/2013
  * @brief Fast thread-safe linklist implementation
  */
-#ifndef __LINKLIST_H__
-#define __LINKLIST_H__
+#ifndef _HL_LINKLIST_H_
+#define _HL_LINKLIST_H_
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,5 @@
-#ifndef __LIBHL_COMPARATORS_H__
-#define __LIBHL_COMPARATORS_H__
+#ifndef _HL_COMPARATORS_H_
+#define _HL_COMPARATORS_H_
 
 #include <sys/types.h>
 #include <stdint.h>

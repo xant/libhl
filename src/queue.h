@@ -4,8 +4,8 @@
  * @date 22/10/2013
  * @brief lock-free queue implementation
  */
-#ifndef __QUEUE_H__
-#define __QUEUE_H__
+#ifndef _HL_QUEUE_H_
+#define _HL_QUEUE_H_
 
 #ifdef __cplusplus
 extern "C" {

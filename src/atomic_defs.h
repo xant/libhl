@@ -1,5 +1,5 @@
-#ifndef __ATOMIC_DEFS_H__
-#define __ATOMIC_DEFS_H__
+#ifndef _HL_ATOMIC_DEFS_H_
+#define _HL_ATOMIC_DEFS_H_
 
 #define ATOMIC_READ(__v) __sync_fetch_and_add(&(__v), 0)
 #define ATOMIC_INCREMENT(__v) (void)__sync_fetch_and_add(&(__v), 1)
