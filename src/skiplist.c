@@ -106,7 +106,7 @@ skiplist_insert(skiplist_t *skl, void *key, size_t klen, void *value)
 
     // create a new item
     skl_item_t *new_item = calloc(1, sizeof(skl_item_t));
-    if (new_item) {
+    if (!new_item) {
         free(path);
         return -1;
     }
