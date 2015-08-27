@@ -58,10 +58,17 @@ static void *rqueue_page_value(rqueue_page_t *page) {
 rqueue_t *rqueue_create(uint32_t size, rqueue_mode_t mode) {
     uint32_t i;
     rqueue_t *rb = calloc(1, sizeof(rqueue_t));
+    if (!rb)
+        return NULL;
     rb->size = (size > RQUEUE_MIN_SIZE) ? size : RQUEUE_MIN_SIZE;
     rb->mode = mode;
     for (i = 0; i < size; i++) {
         rqueue_page_t *page = calloc(1, sizeof(rqueue_page_t));
+        if (!page) {
+            free(rb);
+            // TODO - free the pages allocated so far
+            return NULL;
+        }
         if (!rb->head) {
             rb->head = rb->tail = page;
         } else if (rb->tail) {
@@ -87,6 +94,10 @@ rqueue_t *rqueue_create(uint32_t size, rqueue_mode_t mode) {
 
     // the reader page is out of the ringbuffer
     rb->reader = calloc(1, sizeof(rqueue_page_t));
+    if (!rb->reader) {
+        free(rb);
+        return NULL;
+    }
     rb->reader->prev = rb->head->prev;
     rb->reader->next = rb->head;
     return rb;
@@ -270,6 +281,8 @@ rqueue_mode_t rqueue_mode(rqueue_t *rb) {
 
 char *rqueue_stats(rqueue_t *rb) {
     char *buf = malloc(1024);
+    if (!buf)
+        return NULL;
 
     snprintf(buf, 1024,
            "reader:      %p \n"

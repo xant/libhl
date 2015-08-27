@@ -90,8 +90,11 @@ fbuf_maxlen(fbuf_t *fbuf, unsigned int len)
         fbuf->maxlen = len;
     if (fbuf->len > fbuf->maxlen) {
         fbuf_shrink(fbuf);
+        char *new_data = realloc(fbuf->data, fbuf->maxlen +1);
+        if (!new_data)
+            return 0;
+        fbuf->data = new_data;
         fbuf->len = fbuf->maxlen + 1;
-        fbuf->data = realloc(fbuf->data, fbuf->len);
         if (fbuf->used >= fbuf->maxlen)
             fbuf->used = fbuf->maxlen;
         fbuf->data[fbuf->maxlen] = 0;
@@ -106,8 +109,11 @@ fbuf_minlen(fbuf_t *fbuf, unsigned int len)
     if (len) {
         fbuf->minlen = len;
         if (fbuf->used < fbuf->minlen && fbuf->len > fbuf->minlen) {
+            char *new_data = realloc(fbuf->data, fbuf->minlen);
+            if (!new_data)
+                return 0;
             fbuf->len = fbuf->minlen;
-            fbuf->data = realloc(fbuf->data, fbuf->minlen);
+            fbuf->data = new_data;
         }
     }
 
@@ -206,6 +212,9 @@ fbuf_extend(fbuf_t *fbuf, unsigned int newlen)
 
     if (fbuf->skip) {
         p = (char *)malloc(fbuf->len);
+        if (!p)
+            return 0;
+
         if (fbuf->used)
             memcpy(p, fbuf->data + fbuf->skip, fbuf->used);
         fbuf->skip = 0;
@@ -290,8 +299,11 @@ unsigned int fbuf_attach(fbuf_t *fbuf, char *buf, int len, int used)
     fbuf->skip = 0;
     if (used < len)
         fbuf->data = buf;
-    else
+    else {
         fbuf->data = realloc(buf, used + 1);
+        if (!fbuf->data)
+            return 0;
+    }
     fbuf->len = len;
     fbuf->used = used;
     fbuf->data[used] = '\0';

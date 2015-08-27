@@ -35,6 +35,8 @@ refcnt_create(uint32_t gc_threshold,
               refcnt_free_node_ptr_callback_t free_node_ptr_cb)
 {
     refcnt_t *refcnt = calloc(1, sizeof(refcnt_t));
+    if (!refcnt)
+        return NULL;
     refcnt->terminate_node_cb = terminate_node_cb;
     refcnt->free_node_ptr_cb = free_node_ptr_cb;
     refcnt->gc_threshold = gc_threshold;
@@ -186,6 +188,9 @@ new_node(refcnt_t *refcnt, void *ptr, void *priv)
     refcnt_node_t *node = rqueue_read(refcnt->node_pool);
     if (!node)
         node = calloc(1, sizeof(refcnt_node_t));
+
+    if (!node) // calloc failed
+        return NULL;
 
     node->ptr = ptr;
     node->priv = priv;

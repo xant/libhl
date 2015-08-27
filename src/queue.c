@@ -89,6 +89,9 @@ static inline queue_entry_t *
 create_entry(queue_t *q)
 {
     queue_entry_t *new_entry = (queue_entry_t *)calloc(1, sizeof(queue_entry_t));
+    if (!new_entry)
+        return NULL;
+
     new_entry->node = new_node(q->refcnt, new_entry, NULL);
     new_entry->queue = q;
     return new_entry;

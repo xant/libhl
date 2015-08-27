@@ -41,8 +41,9 @@ hashtable_t *ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_ca
  * @brief Initialize a pre-allocated table descriptor
  *
  * This function can be used to initialize a statically defined table
+ * @return 0 on success; -1 otherwise
  */
-void ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t free_item_cb);
+int ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t free_item_cb);
 
 /**
  * @brief Set the callback which must be called to release values stored in the table

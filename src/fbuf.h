@@ -153,7 +153,8 @@ unsigned int fbuf_detach(fbuf_t *fbuf, char **buf, int *len);
  * @param used The amount of bytes used in the buffer
  * @return The amount of bytes eventually dropped from the current
  *         internal buffer (because swapping it with the newly 
- *         provided pre-existing buffer)
+ *         provided pre-existing buffer).\n
+ *         0 in case of error.
  */
 unsigned int fbuf_attach(fbuf_t *fbuf, char *buf, int len, int used);
 
@@ -367,7 +368,7 @@ unsigned int fbuf_len(fbuf_t *fbuf);
  * @param fbuf fbuf
  * @param maxlen new value for maxlen. If is passed no new
  *             value will be set but the current value will be still returned.
- * @returns Previous value for maxlen.
+ * @returns Previous value for maxlen. 0 In case of error
  * @note if the buffer is already bigger than the newly configured maxlen
  *       it will be truncated to to fit the actual prefmaxlen value
  */

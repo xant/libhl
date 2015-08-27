@@ -38,6 +38,8 @@ rbt_create(libhl_cmp_callback_t cmp_keys_cb,
               rbt_free_value_callback_t free_value_cb)
 {
     rbt_t *rbt = calloc(1, sizeof(rbt_t));
+    if (!rbt)
+        return NULL;
     rbt->free_value_cb = free_value_cb;
     rbt->cmp_keys_cb = cmp_keys_cb;
     return rbt;
@@ -296,7 +298,14 @@ rbt_add(rbt_t *rbt, void *k, size_t klen, void *v)
 {
     int rc = 0;
     rbt_node_t *node = calloc(1, sizeof(rbt_node_t));
+    if (!node)
+        return -1;
+
     node->key = malloc(klen);
+    if (!node->key) {
+        free(node);
+        return -1;
+    }
     memcpy(node->key, k, klen);
     node->klen = klen;
     node->value = v;
@@ -529,7 +538,10 @@ rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v)
                 n = rbt_find_prev(rbt, node);
             else
                 n = rbt_find_next(rbt, node);
-            node->key = realloc(node->key, n->klen);
+            void *new_key = realloc(node->key, n->klen);
+            if (!new_key)
+                return -1;
+            node->key = new_key;
             memcpy(node->key, n->key, n->klen);
             void *prev_value = node->value;
             node->value = n->value;

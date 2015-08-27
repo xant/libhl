@@ -139,7 +139,7 @@ ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb)
     return table;
 }
 
-void
+int
 ht_init(hashtable_t *table,
         uint32_t initial_size,
         uint32_t max_size,
@@ -148,6 +148,8 @@ ht_init(hashtable_t *table,
     table->size = initial_size > HT_SIZE_MIN ? initial_size : HT_SIZE_MIN;
     table->max_size = max_size;
     table->items = (ht_items_list_t **)calloc(table->size, sizeof(ht_items_list_t *));
+    if (!table->items)
+        return -1;
 
     table->status = HT_STATUS_IDLE;
 
@@ -158,8 +160,13 @@ ht_init(hashtable_t *table,
     table->seed = random()%UINT32_MAX;
 #endif
     table->iterator_list = calloc(1, sizeof(ht_iterator_list_t));
+    if (!table->iterator_list) {
+        free(table->items);
+        return -1;
+    }
     TAILQ_INIT(&table->iterator_list->head);
     MUTEX_INIT(table->iterator_lock);
+    return 0;
 }
 
 void
@@ -228,6 +235,11 @@ ht_grow_table(hashtable_t *table)
     }
 
     ht_iterator_list_t *new_iterator_list = calloc(1, sizeof(ht_iterator_list_t));
+    if (!new_iterator_list) {
+        ATOMIC_CAS(table->status, HT_STATUS_GROW, HT_STATUS_IDLE);
+        return;
+    }
+
     TAILQ_INIT(&new_iterator_list->head);
 
     uint32_t new_size = ATOMIC_READ(table->size) << 1;
@@ -237,6 +249,12 @@ ht_grow_table(hashtable_t *table)
 
     ht_items_list_t **items_list = 
         (ht_items_list_t **)calloc(new_size, sizeof(ht_items_list_t *));
+
+    if (!items_list) {
+        free(new_iterator_list);
+        ATOMIC_CAS(table->status, HT_STATUS_GROW, HT_STATUS_IDLE);
+        return;
+    }
 
     ht_item_t *item = NULL;
 
@@ -258,6 +276,10 @@ ht_grow_table(hashtable_t *table)
             ht_items_list_t *new_list = ATOMIC_READ(ATOMIC_READ(items_list)[item->hash%new_size]);
             if (!new_list) {
                 new_list = malloc(sizeof(ht_items_list_t));
+                // XXX - if malloc fails here the table is irremediably corrupted
+                //       so there is no point in handling the case.
+                //       TODO : using an internal prealloc'd bufferpool would ensure
+                //              us to always obtain a valid pointer here
                 TAILQ_INIT(&new_list->head);
                 SPIN_INIT(new_list->lock);
                 uint32_t index = item->hash%new_size;
@@ -346,6 +368,9 @@ static inline ht_items_list_t *
 ht_set_list(hashtable_t *table, uint32_t hash)
 {
     ht_items_list_t *list = malloc(sizeof(ht_items_list_t));
+    if (!list)
+        return NULL;
+
     SPIN_INIT(list->lock);
     TAILQ_INIT(&list->head);
     SPIN_LOCK(list->lock);
@@ -439,16 +464,29 @@ ht_set_internal(hashtable_t *table,
         item->hash = hash;
         item->klen = klen;
 
-        if (klen > sizeof(item->kbuf))
+        if (klen > sizeof(item->kbuf)) {
             item->key = malloc(klen);
-        else
+            if (!item->key) {
+                free(item);
+                SPIN_UNLOCK(list->lock);
+                return -1;
+            }
+        } else {
             item->key = item->kbuf;
+        }
 
         memcpy(item->key, key, klen);
 
         if (copy) {
             if (dlen) {
                 item->data = malloc(dlen);
+                if (!item->data) {
+                    if (klen > sizeof(item->kbuf))
+                        free(item->key);
+                    free(item);
+                    SPIN_UNLOCK(list->lock);
+                    return -1;
+                }
                 memcpy(item->data, data, dlen);
             } else {
                 item->data = NULL;
@@ -471,7 +509,13 @@ ht_set_internal(hashtable_t *table,
         }
         item->dlen = dlen;
         if (copy) {
-            item->data = malloc(dlen);
+            void *dcopy = malloc(dlen);
+            if (!dcopy) {
+                SPIN_UNLOCK(list->lock);
+                return -1;
+            }
+
+            item->data = dcopy;
             memcpy(item->data, data, dlen);
         } else {
             item->data = data;
@@ -783,6 +827,8 @@ ht_get_helper(hashtable_t *table, void *key, size_t klen, void **value, size_t *
             arg->data = arg->copy_cb(*value, *vlen, arg->user);
         } else {
             arg->data = malloc(*vlen);
+            if (!arg->data)
+                return -1;
             memcpy(arg->data, *value, *vlen);
         }
     } else {
@@ -858,7 +904,16 @@ ht_get_all_keys(hashtable_t *table)
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
             hashtable_key_t *key = malloc(sizeof(hashtable_key_t));
+            if (!key) {
+                list_destroy(output);
+                return NULL;
+            }
             key->data = malloc(item->klen);
+            if (!key->data) {
+                free(key);
+                list_destroy(output);
+                return NULL;
+            }
             memcpy(key->data, item->key, item->klen);
             key->len = item->klen;
             key->vlen = item->dlen;
@@ -885,6 +940,10 @@ ht_get_all_values(hashtable_t *table)
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
             hashtable_value_t *v = malloc(sizeof(hashtable_value_t));
+            if (!v) {
+                list_destroy(output);
+                return NULL;
+            }
             v->data = item->data;
             v->len = item->dlen;
             v->key = item->key;

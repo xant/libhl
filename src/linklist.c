@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #ifdef THREAD_SAFE
-#define __USE_UNIX98
+#define __POSIX_C_SOURCE
 #include <pthread.h>
 #endif
 #include "linklist.h"
@@ -74,9 +74,6 @@ list_create()
     if(list) {
         list_init(list);
         list->free = 1;
-    } else {
-        //fprintf(stderr, "Can't create new linklist: %s", strerror(errno));
-        return NULL;
     }
     return list;
 }

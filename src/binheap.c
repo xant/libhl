@@ -123,7 +123,11 @@ static inline int
 binomial_tree_node_add(binomial_tree_node_t *node,
                        binomial_tree_node_t *child)
 {
-    node->children = realloc(node->children, sizeof(binomial_tree_node_t *) * (node->num_children + 1));
+
+    binomial_tree_node_t **new_children = realloc(node->children, sizeof(binomial_tree_node_t *) * (node->num_children + 1));
+    if (!new_children)
+        return -1;
+    node->children = new_children;
     node->children[node->num_children++] = child;
 
     if (child->parent) {
@@ -363,6 +367,8 @@ binheap_t *
 binheap_create(const binheap_callbacks_t *keys_callbacks, binheap_mode_t mode)
 {
     binheap_t *bh = calloc(1, sizeof(binheap_t));
+    if (!bh)
+        return NULL;
     bh->trees = list_create();
     bh->cbs = keys_callbacks ? keys_callbacks : &__keys_callbacks_default;
     bh-> mode = mode;
@@ -388,7 +394,10 @@ binheap_destroy(binheap_t *bh)
 static inline int
 binomial_tree_merge(binomial_tree_node_t *node1, binomial_tree_node_t *node2)
 {
-    node1->children = realloc(node1->children, sizeof(binomial_tree_node_t *) * (node1->num_children + 1));
+    binomial_tree_node_t **new_children = realloc(node1->children, sizeof(binomial_tree_node_t *) * (node1->num_children + 1));
+    if (!new_children)
+        return -1;
+    node1->children = new_children;
     node1->children[node1->num_children++] = node2;
     node2->parent = node1;
     return 0;
@@ -398,8 +407,14 @@ int
 binheap_insert(binheap_t *bh, void *key, size_t klen, void *value)
 {
     binomial_tree_node_t *node = calloc(1, sizeof(binomial_tree_node_t));
+    if (!node)
+        return -1;
     node->bh = bh;
     node->key = malloc(klen);
+    if (!node->key) {
+        free(node);
+        return -1;
+    }
     memcpy(node->key, key, klen);
     node->klen = klen;
     node->value = value;
@@ -566,6 +581,8 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
     }
 
     linked_list_t *new_list = list_create();
+    if (!new_list)
+        return NULL;
 
     binomial_tree_node_t *node1 = list_shift_value(bh1->trees);
     binomial_tree_node_t *node2 = list_shift_value(bh2->trees);
@@ -690,6 +707,10 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
     }
 
     binheap_t *merged_heap = calloc(1, sizeof(binheap_t));
+    if (!merged_heap) {
+        list_destroy(new_list);
+        return NULL;
+    }
     merged_heap->mode = bh1->mode;
     merged_heap->trees = new_list;
     merged_heap->count = bh1->count + bh2->count;
