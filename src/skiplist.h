@@ -4,8 +4,8 @@
  * @brief Skip list implementation for arbitrary data
  */
 
-#ifndef _HL_SKIPLIST_H_
-#define _HL_SKIPLIST_H_
+#ifndef HL_SKIPLIST_H
+#define HL_SKIPLIST_H
 
 #include <comparators.h>
 

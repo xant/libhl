@@ -1,5 +1,5 @@
-#ifndef _HL_AVLT_H_
-#define _HL_AVLT_H_
+#ifndef HL_AVLT_H
+#define HL_AVLT_H
 
 #include <stdint.h>
 #include <sys/types.h>

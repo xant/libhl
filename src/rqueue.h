@@ -4,8 +4,8 @@
  * @date   15/10/2013
  * @brief  Fast lock-free (thread-safe) ringbuffer implementation
  */
-#ifndef _HL_RQUEUE_H_
-#define _HL_RQUEUE_H_
+#ifndef HL_RQUEUE_H
+#define HL_RQUEUE_H
 
 #ifdef __cplusplus
 extern "C" {

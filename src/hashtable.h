@@ -4,8 +4,8 @@
  * @date   22/09/2013
  * @brief  Fast thread-safe hashtable implementation
  */
-#ifndef _HL_HASHTABLE_H_
-#define _HL_HASHTABLE_H_
+#ifndef HL_HASHTABLE_H
+#define HL_HASHTABLE_H
 
 #ifdef __cplusplus
 extern "C" {

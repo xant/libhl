@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef _HL_RBUF_H_
-#define _HL_RBUF_H_
+#ifndef HL_RBUF_H
+#define HL_RBUF_H
 
 #ifdef __cplusplus
 extern "C" {

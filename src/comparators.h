@@ -1,5 +1,5 @@
-#ifndef _HL_COMPARATORS_H_
-#define _HL_COMPARATORS_H_
+#ifndef HL_COMPARATORS_H
+#define HL_COMPARATORS_H
 
 #include <sys/types.h>
 #include <stdint.h>

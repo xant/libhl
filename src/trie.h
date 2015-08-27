@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef _HL_TRIE_H_
-#define _HL_TRIE_H_
+#ifndef HL_TRIE_H
+#define HL_TRIE_H
 
 #include <sys/types.h>
 #include <stdint.h>

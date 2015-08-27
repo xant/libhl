@@ -1,5 +1,5 @@
-#ifndef _HL_PQUEUE_H_
-#define _HL_PQUEUE_H_
+#ifndef HL_PQUEUE_H
+#define HL_PQUEUE_H
 
 /**
  * @file pqueue.h

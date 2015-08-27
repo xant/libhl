@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef _HL_BINOMIAL_HEAP_H_
-#define _HL_BINOMIAL_HEAP_H_
+#ifndef HL_BINOMIAL_HEAP_H
+#define HL_BINOMIAL_HEAP_H
 
 #include <sys/types.h>
 #include <stdint.h>

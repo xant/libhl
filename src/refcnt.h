@@ -11,8 +11,8 @@
  */
 
 
-#ifndef _HL_REFCNT_H_
-#define _HL_REFCNT_H_
+#ifndef HL_REFCNT_H
+#define HL_REFCNT_H
 
 #include <stdint.h>
 

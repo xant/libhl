@@ -30,8 +30,8 @@
  * $FreeBSD: src/sys/sys/queue.h,v 1.60.2.1 2005/08/16 22:41:39 phk Exp $
  */
 
-#ifndef _HL_SYS_QUEUE_H_
-#define	_HL_SYS_QUEUE_H_
+#ifndef HL_SYS_QUEUE_H
+#define	HL_SYS_QUEUE_H
 
 #ifdef __cplusplus
 extern "C" {
