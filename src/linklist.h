@@ -238,7 +238,7 @@ int list_foreach_value(linked_list_t *list, item_handler_t item_handler, void *u
 typedef struct __tagged_value {
     char *tag;
     void *value;
-    uint32_t vlen;
+    size_t vlen;
     char type;
 #define TV_TYPE_STRING 0
 #define TV_TYPE_BINARY 1

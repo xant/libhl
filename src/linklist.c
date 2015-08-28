@@ -833,7 +833,7 @@ list_create_tagged_value(char *tag, void *val, uint32_t vlen)
         else
         {
             newval->value = (void *)strdup((char *)val);
-            newval->vlen = (uint32_t)strlen((char *)val);
+            newval->vlen = strlen((char *)val);
             newval->type = TV_TYPE_STRING;
         }
     }
