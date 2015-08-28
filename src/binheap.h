@@ -12,6 +12,10 @@
 #ifndef HL_BINOMIAL_HEAP_H
 #define HL_BINOMIAL_HEAP_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/types.h>
 #include <stdint.h>
 #include <comparators.h>
@@ -293,7 +297,11 @@ extern const binheap_callbacks_t *binheap_keys_callbacks_float();
  */
 extern const binheap_callbacks_t *binheap_keys_callbacks_double();
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif // HL_BINOMIAL_HEAP_H
 
 // vim: tabstop=4 shiftwidth=4 expandtab:
 /* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */

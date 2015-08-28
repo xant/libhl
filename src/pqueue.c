@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 
 #include "binheap.h"
 #include "pqueue.h"
+#include "atomic_defs.h"
 
 typedef struct {
     void *value;
@@ -25,10 +25,7 @@ pqueue_create(pqueue_mode_t mode, size_t size, pqueue_free_value_callback free_v
     if (!pq)
         return NULL;
 
-    if (pthread_mutex_init(&pq->lock, NULL) != 0) {
-        free(pq);
-        return NULL;
-    }
+    MUTEX_INIT(pq->lock);
 
     pq->mode = mode;
     pq->max_size = size;
@@ -62,7 +59,7 @@ pqueue_destroy(pqueue_t *pq)
 {
     pqueue_drop_items(pq, binheap_count(pq->heap));
     binheap_destroy(pq->heap);
-    pthread_mutex_destroy(&pq->lock);
+    MUTEX_DESTROY(pq->lock);
     free(pq);
 }
 
@@ -76,14 +73,14 @@ pqueue_insert(pqueue_t *pq, uint64_t prio, void *value)
     item->value = value;
     item->prio = prio;
 
-    pthread_mutex_lock(&pq->lock);
+    MUTEX_LOCK(pq->lock);
 
     int rc = binheap_insert(pq->heap, (void *)&item->prio, sizeof(item->prio), item);
 
     if (binheap_count(pq->heap) > pq->max_size)
         pqueue_drop_items(pq, binheap_count(pq->heap) - pq->max_size);
 
-    pthread_mutex_unlock(&pq->lock);
+    MUTEX_UNLOCK(pq->lock);
 
     return rc;
 }
@@ -93,13 +90,13 @@ pqueue_pull_highest(pqueue_t *pq, void **value, uint64_t *prio)
 {
     void *item = NULL;
 
-    pthread_mutex_lock(&pq->lock);
+    MUTEX_LOCK(pq->lock);
 
     int rc = (pq->mode == PQUEUE_MODE_HIGHEST)
            ? binheap_delete_maximum(pq->heap, &item)
            : binheap_delete_minimum(pq->heap, &item);
 
-    pthread_mutex_unlock(&pq->lock);
+    MUTEX_UNLOCK(pq->lock);
 
     if (rc == 0) {
 
@@ -122,13 +119,13 @@ pqueue_pull_lowest(pqueue_t *pq, void **value, uint64_t *prio)
 {
     void *item = NULL;
 
-    pthread_mutex_lock(&pq->lock);
+    MUTEX_LOCK(pq->lock);
 
     int rc = (pq->mode == PQUEUE_MODE_HIGHEST)
            ? binheap_delete_minimum(pq->heap, &item)
            : binheap_delete_maximum(pq->heap, &item);
 
-    pthread_mutex_unlock(&pq->lock);
+    MUTEX_UNLOCK(pq->lock);
 
     if (rc == 0) {
 
@@ -202,9 +199,9 @@ pqueue_remove(pqueue_t *pq, void *value)
 size_t
 pqueue_count(pqueue_t *pq)
 {
-    pthread_mutex_lock(&pq->lock);
+    MUTEX_LOCK(pq->lock);
     size_t count = binheap_count(pq->heap);
-    pthread_mutex_unlock(&pq->lock);
+    MUTEX_UNLOCK(pq->lock);
     return count;
 }
 

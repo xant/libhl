@@ -1,14 +1,13 @@
 /* linked list management library - by xant
  */
 
-#include <stdio.h>
-#ifdef THREAD_SAFE
-#define __POSIX_C_SOURCE
-#include <pthread.h>
-#endif
-#include "linklist.h"
+//#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+
+#include "linklist.h"
+#include "atomic_defs.h"
 
 typedef struct _list_entry_s {
     struct _linked_list_s *list;
@@ -54,14 +53,6 @@ static inline long get_entry_position(list_entry_t *entry);
 static inline int move_entry(linked_list_t *list, size_t srcPos, size_t dstPos);
 static inline list_entry_t *subst_entry(linked_list_t *list, size_t pos, list_entry_t *entry);
 static inline int swap_entries(linked_list_t *list, size_t pos1, size_t pos2);
-
-#ifdef THREAD_SAFE
-#define MUTEX_LOCK(__mutex) pthread_mutex_lock(__mutex)
-#define MUTEX_UNLOCK(__mutex) pthread_mutex_unlock(__mutex)
-#else
-#define MUTEX_LOCK(__mutex)
-#define MUTEX_UNLOCK(__mutex)
-#endif
 
 /*
  * Create a new linked_list_t. Allocates resources and returns
@@ -113,7 +104,7 @@ list_destroy(linked_list_t *list)
     {
         list_clear(list);
 #ifdef THREAD_SAFE
-        pthread_mutex_destroy(&list->lock);
+        MUTEX_DESTROY(list->lock);
 #endif
         if(list->free) free(list);
     }
@@ -166,30 +157,30 @@ size_t
 list_count(linked_list_t *l)
 {
     size_t len;
-    MUTEX_LOCK(&l->lock);
+    MUTEX_LOCK(l->lock);
     len = l->length;
-    MUTEX_UNLOCK(&l->lock);
+    MUTEX_UNLOCK(l->lock);
     return len;
 }
 
 void
 list_set_free_value_callback(linked_list_t *list, free_value_callback_t free_value_cb)
 {
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     list->free_value_cb = free_value_cb;
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
 }
 
 void
 list_lock(linked_list_t *list)
 {
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
 }
 
 void
 list_unlock(linked_list_t *list)
 {
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
 }
 
 /*
@@ -238,7 +229,7 @@ static inline
 list_entry_t *pop_entry(linked_list_t *list)
 {
     list_entry_t *entry;
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
 
     entry = list->tail;
     if(entry)
@@ -258,7 +249,7 @@ list_entry_t *pop_entry(linked_list_t *list)
     if(list->length == 0)
         list->head = list->tail = NULL;
 
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return entry;
 }
 
@@ -271,7 +262,7 @@ push_entry(linked_list_t *list, list_entry_t *entry)
     list_entry_t *p;
     if(!entry)
         return -1;
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     if(list->length == 0)
     {
         list->head = list->tail = entry;
@@ -286,7 +277,7 @@ push_entry(linked_list_t *list, list_entry_t *entry)
     }
     list->length++;
     entry->list = list;
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return 0;
 }
 
@@ -298,7 +289,7 @@ static inline
 list_entry_t *shift_entry(linked_list_t *list)
 {
     list_entry_t *entry;
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     entry = list->head;
     if(entry)
     {
@@ -318,7 +309,7 @@ list_entry_t *shift_entry(linked_list_t *list)
     }
     if(list->length == 0)
         list->head = list->tail = NULL;
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return entry;
 }
 
@@ -332,7 +323,7 @@ unshift_entry(linked_list_t *list, list_entry_t *entry)
     list_entry_t *p;
     if(!entry)
         return -1;
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     if(list->length == 0)
     {
         list->head = list->tail = entry;
@@ -349,7 +340,7 @@ unshift_entry(linked_list_t *list, list_entry_t *entry)
     entry->list = list;
     if (list->cur)
         list->pos++;
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return 0;
 }
 
@@ -361,7 +352,7 @@ insert_entry(linked_list_t *list, list_entry_t *entry, size_t pos)
 {
     list_entry_t *prev, *next;
     int ret = -1;
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     if(pos == 0) {
         ret = unshift_entry(list, entry);
     } else if(pos == list->length) {
@@ -376,7 +367,7 @@ insert_entry(linked_list_t *list, list_entry_t *entry, size_t pos)
     }
 
     if (ret == 0) {
-        MUTEX_UNLOCK(&list->lock);
+        MUTEX_UNLOCK(list->lock);
         return ret;
     }
 
@@ -392,7 +383,7 @@ insert_entry(linked_list_t *list, list_entry_t *entry, size_t pos)
         list->length++;
         ret = 0;
     }
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return ret;
 }
 
@@ -405,10 +396,10 @@ list_entry_t *pick_entry(linked_list_t *list, size_t pos)
     unsigned int i;
     list_entry_t *entry;
 
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
 
     if(list->length <= pos) {
-        MUTEX_UNLOCK(&list->lock);
+        MUTEX_UNLOCK(list->lock);
         return NULL;
     }
 
@@ -448,7 +439,7 @@ list_entry_t *pick_entry(linked_list_t *list, size_t pos)
         list->cur = entry;
     }
 
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return entry;
 }
 
@@ -524,14 +515,14 @@ list_entry_t *subst_entry(linked_list_t *list, size_t pos, list_entry_t *entry)
 {
     list_entry_t *old;
 
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
 
     old = fetch_entry(list,  pos);
     if(!old)
         return NULL;
     insert_entry(list, entry, pos);
 
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     /* XXX - NO CHECK ON INSERTION */
     return old;
 }
@@ -542,7 +533,7 @@ list_entry_t *remove_entry(linked_list_t *list, size_t pos)
 {
     list_entry_t *next, *prev;
     list_entry_t *entry = pick_entry(list, pos);
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     if(entry)
     {
         prev = entry->prev;
@@ -568,10 +559,10 @@ list_entry_t *remove_entry(linked_list_t *list, size_t pos)
         } else if (list->pos > pos) {
             list->pos--;
         }
-        MUTEX_UNLOCK(&list->lock);
+        MUTEX_UNLOCK(list->lock);
         return entry;
     }
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return NULL;
 }
 
@@ -584,21 +575,21 @@ get_entry_position(list_entry_t *entry)
     linked_list_t *list;
     list_entry_t *p;
     list = entry->list;
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     if(list)
     {
         p  = list->head;
         while(p)
         {
             if(p == entry) {
-                MUTEX_UNLOCK(&list->lock);
+                MUTEX_UNLOCK(list->lock);
                 return i;
             }
             p = p->next;
             i++;
         }
     }
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return -1;
 }
 
@@ -703,7 +694,7 @@ void *
 list_set_value(linked_list_t *list, size_t pos, void *newval)
 {
     void *old_value = NULL;
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     list_entry_t *entry = pick_entry(list, pos);
     if (entry) {
         old_value = entry->value;
@@ -711,7 +702,7 @@ list_set_value(linked_list_t *list, size_t pos, void *newval)
     } else {
         list_insert_value(list, newval, pos);
     }
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return old_value;
 }
 
@@ -720,13 +711,13 @@ void *
 list_subst_value(linked_list_t *list, size_t pos, void *newval)
 {
     void *old_value = NULL;
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     list_entry_t *entry = pick_entry(list, pos);
     if (entry) {
         old_value = entry->value;
         entry->value = newval;
     }
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return old_value;
 }
 
@@ -739,7 +730,7 @@ list_swap_values(linked_list_t *list,  size_t pos1, size_t pos2)
 int
 list_foreach_value(linked_list_t *list, int (*item_handler)(void *item, size_t idx, void *user), void *user)
 {
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     size_t idx = 0;
     list_entry_t *e = list->head;
     while(e) {
@@ -773,7 +764,7 @@ list_foreach_value(linked_list_t *list, int (*item_handler)(void *item, size_t i
             e = e->next;
         }
     }
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return idx;
 }
 
@@ -880,13 +871,13 @@ list_set_tagged_value(linked_list_t *list, char *tag, void *value, size_t len, i
     else
         tval = list_create_tagged_value_nocopy(tag, value);
 
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     for (i = 0; i < list->length; i++) {
         tagged_value_t *tv = list_pick_tagged_value(list, i);
         if (tv && tv->tag && tv->tag[0] == tag[0] &&
             strcmp(tv->tag, tag) == 0)
         {
-            MUTEX_UNLOCK(&list->lock);
+            MUTEX_UNLOCK(list->lock);
             if (!list_set_value(list, i, tval)) {
                 list_destroy_tagged_value(tval);
                 return NULL;
@@ -898,7 +889,7 @@ list_set_tagged_value(linked_list_t *list, char *tag, void *value, size_t len, i
         list_destroy_tagged_value(tval);
         tval = NULL;
     }
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
     return NULL;
 }
 
@@ -1183,12 +1174,12 @@ list_quick_sort(list_entry_t *head,
 void
 list_sort(linked_list_t *list, list_comparator_callback_t comparator)
 {
-    MUTEX_LOCK(&list->lock);
+    MUTEX_LOCK(list->lock);
     list_entry_t *pivot = pick_entry(list, (list->length/2) - 1);
     list_quick_sort(list->head, list->tail, pivot, list->length, comparator);
     list->cur = NULL;
     list->pos = 0;
-    MUTEX_UNLOCK(&list->lock);
+    MUTEX_UNLOCK(list->lock);
 }
 
 // vim: tabstop=4 shiftwidth=4 expandtab:

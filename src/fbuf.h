@@ -39,20 +39,20 @@ extern "C" {
 #define FBUF_MAXLEN_NONE 0 //!< No preferred maximum length for fbuf.
 #define FBUF_STATIC_INITIALIZER { 0, NULL, 0, FBUF_MAXLEN_NONE, FBUF_MINLEN, \
                                   FBUF_FASTGROWSIZE, FBUF_SLOWGROWSIZE, 0, 0 }
-#define FBUF_STATIC_INITIALIZER_PARAMS(__maxlen, __minlen, __fastgrow, __slowgrow) \
-    { 0, NULL, 0, (__maxlen), (__minlen), (__fastgrow), (__slowgrow), 0, 0 }
+#define FBUF_STATIC_INITIALIZER_PARAMS(_maxlen, _minlen, _fastgrow, _slowgrow) \
+    { 0, NULL, 0, (_maxlen), (_minlen), (_fastgrow), (_slowgrow), 0, 0 }
 
-#define FBUF_STATIC_INITIALIZER_POINTER(__fbuf, __maxlen, __minlen, __fastgrow, __slowgrow) \
+#define FBUF_STATIC_INITIALIZER_POINTER(_fbuf, _maxlen, _minlen, _fastgrow, _slowgrow) \
     { \
-        (__fbuf)->id = 0; \
-        (__fbuf)->data = NULL; \
-        (__fbuf)->maxlen = (__maxlen); \
-        (__fbuf)->minlen = (__minlen); \
-        (__fbuf)->fastgrowsize = (__fastgrow); \
-        (__fbuf)->slowgrowsize = (__slowgrow); \
-        (__fbuf)->used = 0; \
-        (__fbuf)->skip = 0; \
-        (__fbuf)->len = 0; \
+        (_fbuf)->id = 0; \
+        (_fbuf)->data = NULL; \
+        (_fbuf)->maxlen = (_maxlen); \
+        (_fbuf)->minlen = (_minlen); \
+        (_fbuf)->fastgrowsize = (_fastgrow); \
+        (_fbuf)->slowgrowsize = (_slowgrow); \
+        (_fbuf)->used = 0; \
+        (_fbuf)->skip = 0; \
+        (_fbuf)->len = 0; \
     }
 
 typedef struct _fbuf_s {

@@ -7,6 +7,10 @@
 #ifndef HL_SKIPLIST_H
 #define HL_SKIPLIST_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <comparators.h>
 
 /**
@@ -83,6 +87,10 @@ void skiplist_destroy(skiplist_t *skl);
  */
 size_t skiplist_count(skiplist_t *skl);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

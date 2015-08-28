@@ -14,14 +14,18 @@
 #ifndef HL_REFCNT_H
 #define HL_REFCNT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
-#define REFCNT_MARK_ON(__addr) (refcnt_node_t *)((intptr_t)ATOMIC_READ(__addr) | 1)
-#define REFCNT_MARK_OFF(__addr) (refcnt_node_t *)((intptr_t)ATOMIC_READ(__addr) & -2)
-#define REFCNT_IS_MARKED(__addr) (((intptr_t)ATOMIC_READ(__addr) & 1) == 1)
+#define REFCNT_MARK_ON(_addr) (refcnt_node_t *)((intptr_t)ATOMIC_READ(_addr) | 1)
+#define REFCNT_MARK_OFF(_addr) (refcnt_node_t *)((intptr_t)ATOMIC_READ(_addr) & -2)
+#define REFCNT_IS_MARKED(_addr) (((intptr_t)ATOMIC_READ(_addr) & 1) == 1)
 
-#define REFCNT_RETAIN(__refcnt, __node, __type) ((__type) *)get_node_ptr(retain_ref((__refcnt), (__node)))
-#define REFCNT_RELEASE(__refcnt, __node, __type) ((__type) *)get_node_ptr(release_ref((__refcnt), (__node)))
+#define REFCNT_RETAIN(_refcnt, _node, _type) ((_type) *)get_node_ptr(retain_ref((_refcnt), (_node)))
+#define REFCNT_RELEASE(_refcnt, _node, _type) ((_type) *)get_node_ptr(release_ref((_refcnt), (_node)))
 
 typedef struct _refcnt_s refcnt_t;
 
@@ -158,6 +162,10 @@ void store_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *ref);
  *                 This function has been introduced solely for debugging purposes
  */
 int get_node_refcount(refcnt_node_t *node);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

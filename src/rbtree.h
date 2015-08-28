@@ -13,6 +13,10 @@
 #ifndef HL_RBTREE_H
 #define HL_RBTREE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include "comparators.h"
 
@@ -142,7 +146,11 @@ int rbt_walk_sorted(rbt_t *rbt, rbt_walk_callback cb, void *priv);
 void rbtree_print(rbtree_t *rbt);
 #endif
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif // HL_RBTREE_H
 
 // vim: tabstop=4 shiftwidth=4 expandtab:
 /* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */

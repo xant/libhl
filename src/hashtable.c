@@ -2,43 +2,11 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
 #include <limits.h>
 #include <strings.h>
 
-#ifdef __MACH__
-#include <libkern/OSAtomic.h>
-#endif
-
 #include "bsd_queue.h"
 #include "atomic_defs.h"
-
-#ifdef THREAD_SAFE
-#define MUTEX_INIT(__mutex) pthread_mutex_init(&(__mutex), 0)
-#define MUTEX_DESTROY(__mutex) pthread_mutex_destroy(&(__mutex))
-#define MUTEX_LOCK(__mutex) pthread_mutex_lock(&(__mutex))
-#define MUTEX_UNLOCK(__mutex) pthread_mutex_unlock(&(__mutex))
-#ifdef __MACH__
-#define SPIN_INIT(__mutex) ((__mutex) = 0)
-#define SPIN_DESTROY(__mutex)
-#define SPIN_LOCK(__mutex) OSSpinLockLock(&(__mutex))
-#define SPIN_UNLOCK(__mutex) OSSpinLockUnlock(&(__mutex))
-#else
-#define SPIN_INIT(__mutex) pthread_spin_init(&(__mutex), 0)
-#define SPIN_DESTROY(__mutex) pthread_spin_destroy(&(__mutex))
-#define SPIN_LOCK(__mutex) pthread_spin_lock(&(__mutex))
-#define SPIN_UNLOCK(__mutex) pthread_spin_unlock(&(__mutex))
-#endif
-#else
-#define MUTEX_INIT(__mutex) 0
-#define MUTEX_DESTROY(__mutex)
-#define MUTEX_LOCK(__mutex)
-#define MUTEX_UNLOCK(__mutex)
-#define SPIN_INIT(__mutex)
-#define SPIN_DESTROY(__mutex)
-#define SPIN_LOCK(__mutex)
-#define SPIN_UNLOCK(__mutex)
-#endif
 
 #define HT_SIZE_MIN 128
 
@@ -168,11 +136,8 @@ ht_init(hashtable_t *table,
     }
     TAILQ_INIT(&table->iterator_list->head);
 
-    if (MUTEX_INIT(table->iterator_lock) != 0) {
-        free(table->items);
-        free(table->iterator_list);
-        return -1;
-    }
+    MUTEX_INIT(table->iterator_lock);
+
     return 0;
 }
 

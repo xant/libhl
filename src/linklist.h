@@ -3,6 +3,9 @@
  * @author Andrea Guzzo
  * @date 22/09/2013
  * @brief Fast thread-safe linklist implementation
+ * @note   In case of failures reported from the pthread interface
+ *         abort() will be called. Callers can catch SIGABRT if more
+ *         actions need to be taken.
  */
 #ifndef HL_LINKLIST_H
 #define HL_LINKLIST_H
@@ -235,7 +238,7 @@ int list_foreach_value(linked_list_t *list, item_handler_t item_handler, void *u
  * list_create_tagged_value() should be used to allocate resources and obtain 
  * a pointer to a tagged_value_t structure.
  */ 
-typedef struct __tagged_value {
+typedef struct _tagged_value_s {
     char *tag;
     void *value;
     size_t vlen;

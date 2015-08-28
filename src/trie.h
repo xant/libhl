@@ -8,6 +8,10 @@
 #ifndef HL_TRIE_H
 #define HL_TRIE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/types.h>
 #include <stdint.h>
 
@@ -134,5 +138,9 @@ void *trie_find(trie_t *trie, char *key, size_t *vsize);
  * @return The total number of internal nodes removed
  */
 int trie_remove(trie_t *trie, char *key, void **value, size_t *vsize);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

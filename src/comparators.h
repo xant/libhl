@@ -1,6 +1,10 @@
 #ifndef HL_COMPARATORS_H
 #define HL_COMPARATORS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/types.h>
 #include <stdint.h>
 
@@ -32,13 +36,13 @@ typedef int (*libhl_cmp_callback_t)(void *k1,
                                     size_t k2size);
 
 
-#define LIBHL_CMP_KEYS_TYPE(__type, __k1, __k1s, __k2, __k2s) \
+#define LIBHL_CMP_KEYS_TYPE(_type, _k1, _k1s, _k2, _k2s) \
 { \
-    if (__k1s < sizeof(__type) || __k2s < sizeof(__type) || __k1s != __k2s) \
-        return __k1s - __k2s; \
-    __type __k1i = *((__type *)__k1); \
-    __type __k2i = *((__type *)__k2); \
-    return __k1i - __k2i; \
+    if (_k1s < sizeof(_type) || _k2s < sizeof(_type) || _k1s != _k2s) \
+        return _k1s - _k2s; \
+    _type _k1i = *((_type *)_k1); \
+    _type _k2i = *((_type *)_k2); \
+    return _k1i - _k2i; \
 }
 
 /**
@@ -114,7 +118,9 @@ static inline int libhl_cmp_keys_double(void *k1, size_t k1size,
     LIBHL_CMP_KEYS_TYPE(double, k1, k1size, k2, k2size);
 }
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

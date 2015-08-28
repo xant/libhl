@@ -4,11 +4,16 @@
 /**
  * @file pqueue.h
  *
- * @brief Priority Queue
- *
- * Priority Queue implementation holding arbitrary data
+ * @brief  Priority Queue implementation holding arbitrary data
+ * @note   In case of failures reported from the pthread interface
+ *         abort() will be called. Callers can catch SIGABRT if more
+ *         actions need to be taken.
  *
  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -132,6 +137,10 @@ size_t pqueue_count(pqueue_t *pq);
  * @param pq A valid pointer to an initialized pqueue_t structure
  */
 void pqueue_destroy(pqueue_t *pq);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

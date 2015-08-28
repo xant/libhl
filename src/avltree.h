@@ -1,6 +1,10 @@
 #ifndef HL_AVLT_H
 #define HL_AVLT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <sys/types.h>
 #include <comparators.h>
@@ -102,6 +106,10 @@ int avlt_walk_sorted(avlt_t *tree, avlt_walk_callback_t cb, void *priv);
  * @brief Print out the whole tree on stdout (for debugging purposes only)
  */
 void avlt_print(avlt_t *tree);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif
