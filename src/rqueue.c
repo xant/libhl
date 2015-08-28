@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <rqueue.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include "atomic_defs.h"
 
 #define RQUEUE_FLAG_HEAD   (0x01)
@@ -290,8 +291,8 @@ char *rqueue_stats(rqueue_t *rb) {
            "tail:        %p \n"
            "commit:      %p \n"
            "commit_next: %p \n"
-           "reads:       %llu \n"
-           "writes:      %llu \n"
+           "reads:       %"PRId64" \n"
+           "writes:      %"PRId64" \n"
            "mode:        %s \n",
            ATOMIC_READ(rb->reader),
            ATOMIC_READ(rb->head),
