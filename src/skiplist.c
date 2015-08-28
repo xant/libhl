@@ -24,7 +24,7 @@ struct _skiplist_s {
     libhl_cmp_callback_t cmp_keys_cb;
     skiplist_free_value_callback_t free_value_cb;
     TAILQ_HEAD(layer_list, _skl_item_wrapper_s) *layers;
-    uint32_t count;
+    size_t count;
 };
 
 
@@ -214,7 +214,7 @@ skiplist_destroy(skiplist_t *skl)
     free(skl);
 }
 
-uint32_t
+size_t
 skiplist_count(skiplist_t *skl)
 {
     return skl->count;

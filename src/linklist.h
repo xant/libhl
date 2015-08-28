@@ -72,7 +72,7 @@ void list_clear(linked_list_t *list);
  * @param list : A valid pointer to a linked_list_t structure
  * @return the actual number of items stored in the list
  */
-uint32_t list_count(linked_list_t *list);
+size_t list_count(linked_list_t *list);
 
 /**
  * @brief Set the callback which must be called to release values stored in the list
@@ -141,7 +141,7 @@ void *list_shift_value(linked_list_t *list);
  * If the list is shorter than pos-1 empty values will be inserted up to
  * that position before inserting the new one
  */
-int list_insert_value(linked_list_t *list, void *val, uint32_t pos);
+int list_insert_value(linked_list_t *list, void *val, size_t pos);
 
 
 /**
@@ -153,7 +153,7 @@ int list_insert_value(linked_list_t *list, void *val, uint32_t pos);
  * This function will replace the value at pos if present or insert it if missing
  * filling in the gaps with NULL values if the length of the list is shorter than pos
  */
-void *list_set_value(linked_list_t *list, uint32_t pos, void *val);
+void *list_set_value(linked_list_t *list, size_t pos, void *val);
 
 /**
  * @brief Replace the value stored at a specific position with a new value
@@ -161,7 +161,7 @@ void *list_set_value(linked_list_t *list, uint32_t pos, void *val);
  * @param pos : The position of the value we want to replace
  * @param val : The new value
  */
-void *list_subst_value(linked_list_t *list, uint32_t pos, void *val);
+void *list_subst_value(linked_list_t *list, size_t pos, void *val);
 
 
 /**
@@ -172,7 +172,7 @@ void *list_subst_value(linked_list_t *list, uint32_t pos, void *val);
  *
  * Note this is a read-only access and the value will not be removed from the list
  */
-void *list_pick_value(linked_list_t *list, uint32_t pos);
+void *list_pick_value(linked_list_t *list, size_t pos);
 
 /**
  * @brief Fetch (aka: Pick and Remove) the value at a specific position
@@ -183,7 +183,7 @@ void *list_pick_value(linked_list_t *list, uint32_t pos);
  * Note this is a read-write access and the value will be removed from the list before returning it.
  * The value will not be released so the free_value_callback won't be called in this case
  */
-void *list_fetch_value(linked_list_t *list, uint32_t pos);
+void *list_fetch_value(linked_list_t *list, size_t pos);
 
 /**
  * @brief Move an existing value to a new position
@@ -192,7 +192,7 @@ void *list_fetch_value(linked_list_t *list, uint32_t pos);
  * @param dstPos : The new position where to move the value to
  * @return : 0 if success, -1 otherwise
  */ 
-int list_move_value(linked_list_t *list, uint32_t srcPos, uint32_t dstPos);
+int list_move_value(linked_list_t *list, size_t srcPos, size_t dstPos);
 
 /**
  * @brief Swap two values
@@ -201,7 +201,7 @@ int list_move_value(linked_list_t *list, uint32_t srcPos, uint32_t dstPos);
  * @param pos2 : The position of the second value to swap with the first
  * @return 0 if success, -1 otherwise
  */
-int list_swap_values(linked_list_t *list, uint32_t pos1, uint32_t pos2);
+int list_swap_values(linked_list_t *list, size_t pos1, size_t pos2);
 
 
 /**
@@ -211,7 +211,7 @@ int list_swap_values(linked_list_t *list, uint32_t pos1, uint32_t pos2);
  *        -1 to remove the current item from the list and go ahead with the iteration
  *        -2 to remove the current item from the list and stop the iteration
  */
-typedef int (*item_handler_t)(void *item, uint32_t idx, void *user);
+typedef int (*item_handler_t)(void *item, size_t idx, void *user);
 
 /* list iterator. This iterator can be used for both Tag-based and Value-based lists.
  * If tagged, items can simply be casted to a tagged_value_t pointer.
@@ -258,7 +258,7 @@ typedef struct __tagged_value {
  *
  * Both the tag and the value will be copied. len will be the size used by the copy
  */
-tagged_value_t *list_create_tagged_value(char *tag, void *val, uint32_t len);
+tagged_value_t *list_create_tagged_value(char *tag, void *val, size_t len);
 
 /**
  * @brief Allocate resources for a new tagged value without copying the value
@@ -325,7 +325,7 @@ tagged_value_t *list_shift_tagged_value(linked_list_t *list);
  * @param pos: The position (index) where to store the new tagged value
  * @return 0 if success, -1 otherwise
  */
-int list_insert_tagged_value(linked_list_t *list, tagged_value_t *tval, uint32_t pos);
+int list_insert_tagged_value(linked_list_t *list, tagged_value_t *tval, size_t pos);
 
 /**
  * @brief Same as pick_value but when using the list to store tagged values
@@ -335,7 +335,7 @@ int list_insert_tagged_value(linked_list_t *list, tagged_value_t *tval, uint32_t
  *
  * Note this is a read-only access and the tagged value will not be removed from the list
  */
-tagged_value_t *list_pick_tagged_value(linked_list_t *list, uint32_t pos);
+tagged_value_t *list_pick_tagged_value(linked_list_t *list, size_t pos);
 
 /**
  * @brief Same as fetch_value but when using the list to store tagged values
@@ -347,7 +347,7 @@ tagged_value_t *list_pick_tagged_value(linked_list_t *list, uint32_t pos);
  * the list before returning it.
  * The tagged value will not be released
  */
-tagged_value_t *list_fetch_tagged_value(linked_list_t *list, uint32_t pos);
+tagged_value_t *list_fetch_tagged_value(linked_list_t *list, size_t pos);
 
 /**
  * @brief Get a tagged value from the list by using its tag instead of the position
@@ -372,7 +372,7 @@ tagged_value_t *list_get_tagged_value(linked_list_t *list, char *tag);
  *       If no matching tagged_value_t structure is found, then the new one
  *       is added to the end of the list
  */
-tagged_value_t *list_set_tagged_value(linked_list_t *list, char *tag, void *value, uint32_t len, int copy);
+tagged_value_t *list_set_tagged_value(linked_list_t *list, char *tag, void *value, size_t len, int copy);
 
 
 /**
@@ -386,7 +386,7 @@ tagged_value_t *list_set_tagged_value(linked_list_t *list, char *tag, void *valu
  * Note The caller MUST NOT release resources for the returned values
  * (since still pointed by the tagged_value_t still in list)
  */
-uint32_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *values);
+size_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *values);
 
 /**
  * @brief Sort the content of the list using an in-place quicksort algorithm and a

@@ -35,7 +35,7 @@ typedef void (*ht_free_item_callback_t)(void *);
  *
  * The table will be expanded if necessary
  */
-hashtable_t *ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t free_item_cb);
+hashtable_t *ht_create(size_t initial_size, size_t max_size, ht_free_item_callback_t free_item_cb);
 
 /**
  * @brief Initialize a pre-allocated table descriptor
@@ -43,7 +43,7 @@ hashtable_t *ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_ca
  * This function can be used to initialize a statically defined table
  * @return 0 on success; -1 otherwise
  */
-int ht_init(hashtable_t *table, uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t free_item_cb);
+int ht_init(hashtable_t *table, size_t initial_size, size_t max_size, ht_free_item_callback_t free_item_cb);
 
 /**
  * @brief Set the callback which must be called to release values stored in the table
@@ -285,7 +285,7 @@ int ht_call(hashtable_t *table, void *key, size_t klen, ht_pair_callback_t cb, v
  * @param table : A valid pointer to an hashtable_t structure
  * @return The actual item count
  */
-uint32_t ht_count(hashtable_t *table);
+size_t ht_count(hashtable_t *table);
 
 // use the following two functions only if the hashtable_t contains
 // a small number of keys, use the iterators otherwise

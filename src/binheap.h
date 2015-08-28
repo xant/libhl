@@ -258,7 +258,7 @@ int binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv);
  * @param bh A valid pointer to an initialized binheap_t structure
  * @return the actual number of items in the heap
  */
-uint32_t binheap_count(binheap_t *bh);
+size_t binheap_count(binheap_t *bh);
 
 /**
  * @brief Default callbacks to handle 16bit signed integer keys

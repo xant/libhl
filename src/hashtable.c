@@ -68,7 +68,7 @@ typedef struct __ht_item_list {
     pthread_spinlock_t lock;
 #endif
 #endif
-    uint32_t index;
+    size_t index;
     TAILQ_ENTRY(__ht_item_list) iterator_next;
 } ht_items_list_t;
 
@@ -86,9 +86,9 @@ typedef enum {
 } ht_status_t;
 
 struct _hashtable_s {
-    uint32_t size;
-    uint32_t max_size;
-    uint32_t count;
+    size_t size;
+    size_t max_size;
+    size_t count;
     ht_status_t status;
     uint32_t seed;
     ht_items_list_t **items;
@@ -103,13 +103,13 @@ struct _hashtable_s {
 typedef struct __ht_iterator_callback {
     int (*cb)();
     void *user;
-    uint32_t count;
+    size_t count;
     hashtable_t *table;
 } ht_iterator_callback_t;
 
 typedef struct __ht_collector_arg {
     linked_list_t *output;
-    uint32_t count;
+    size_t count;
 } ht_collector_arg_t;
 
 static inline uint32_t
@@ -129,7 +129,7 @@ ht_hash_one_at_a_time(hashtable_t *table, const unsigned char *str, const ssize_
 
 
 hashtable_t *
-ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb)
+ht_create(size_t initial_size, size_t max_size, ht_free_item_callback_t cb)
 {
     hashtable_t *table = (hashtable_t *)calloc(1, sizeof(hashtable_t));
 
@@ -143,8 +143,8 @@ ht_create(uint32_t initial_size, uint32_t max_size, ht_free_item_callback_t cb)
 
 int
 ht_init(hashtable_t *table,
-        uint32_t initial_size,
-        uint32_t max_size,
+        size_t initial_size,
+        size_t max_size,
         ht_free_item_callback_t cb)
 {
     table->size = initial_size > HT_SIZE_MIN ? initial_size : HT_SIZE_MIN;
@@ -249,7 +249,7 @@ ht_grow_table(hashtable_t *table)
 
     TAILQ_INIT(&new_iterator_list->head);
 
-    uint32_t new_size = ATOMIC_READ(table->size) << 1;
+    size_t new_size = ATOMIC_READ(table->size) << 1;
 
     if (table->max_size && new_size > table->max_size)
         new_size = table->max_size;
@@ -289,7 +289,7 @@ ht_grow_table(hashtable_t *table)
                 //              us to always obtain a valid pointer here
                 TAILQ_INIT(&new_list->head);
                 SPIN_INIT(new_list->lock);
-                uint32_t index = item->hash%new_size;
+                size_t index = item->hash%new_size;
                 ATOMIC_SET(ATOMIC_READ(items_list)[index], new_list);
                 new_list->index = index;
                 TAILQ_INSERT_TAIL(&new_iterator_list->head, new_list, iterator_next);
@@ -321,7 +321,7 @@ ht_grow_table(hashtable_t *table)
 static inline ht_items_list_t *
 ht_get_list(hashtable_t *table, uint32_t hash)
 {
-    uint32_t index = hash%ATOMIC_READ(table->size);
+    size_t index = hash%ATOMIC_READ(table->size);
 
     // first try updating the status assuming we are the first reader requesting
     // access to the table
@@ -382,7 +382,7 @@ ht_set_list(hashtable_t *table, uint32_t hash)
     TAILQ_INIT(&list->head);
     SPIN_LOCK(list->lock);
 
-    uint32_t index = hash%ATOMIC_READ(table->size);
+    size_t index = hash%ATOMIC_READ(table->size);
     list->index = index;
 
     while (!ATOMIC_CAS(table->status, HT_STATUS_IDLE, HT_STATUS_WRITE))
@@ -531,7 +531,7 @@ ht_set_internal(hashtable_t *table,
 
     SPIN_UNLOCK(list->lock);
 
-    uint32_t current_size = ATOMIC_READ(table->size);
+    size_t current_size = ATOMIC_READ(table->size);
     if (ht_count(table) > (current_size + (current_size/3)) && 
         (!table->max_size || current_size < table->max_size))
     {
@@ -1036,7 +1036,7 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
     MUTEX_UNLOCK(table->iterator_lock);
 }
 
-uint32_t
+size_t
 ht_count(hashtable_t *table)
 {
     return ATOMIC_READ(table->count);

@@ -29,10 +29,10 @@ struct _rqueue_s {
     rqueue_page_t             *commit;
     rqueue_page_t             *reader;
     rqueue_free_value_callback_t free_value_cb;
-    uint32_t                size;
+    size_t                     size;
     int                     mode;
-    uint32_t                writes;
-    uint32_t                reads;
+    uint64_t                writes;
+    uint64_t                reads;
     int read_sync;
     int num_writers;
 };
@@ -55,8 +55,8 @@ static void *rqueue_page_value(rqueue_page_t *page) {
 }
 */
 
-rqueue_t *rqueue_create(uint32_t size, rqueue_mode_t mode) {
-    uint32_t i;
+rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
+    size_t i;
     rqueue_t *rb = calloc(1, sizeof(rqueue_t));
     if (!rb)
         return NULL;
@@ -263,11 +263,11 @@ int rqueue_write(rqueue_t *rb, void *value) {
     return 0;
 }
 
-uint32_t rqueue_write_count(rqueue_t *rb) {
+uint64_t rqueue_write_count(rqueue_t *rb) {
     return ATOMIC_READ(rb->writes);
 }
 
-uint32_t rqueue_read_count(rqueue_t *rb) {
+uint64_t rqueue_read_count(rqueue_t *rb) {
     return ATOMIC_READ(rb->reads);
 }
 
@@ -290,8 +290,8 @@ char *rqueue_stats(rqueue_t *rb) {
            "tail:        %p \n"
            "commit:      %p \n"
            "commit_next: %p \n"
-           "reads:       %u \n"
-           "writes:      %u \n"
+           "reads:       %llu \n"
+           "writes:      %llu \n"
            "mode:        %s \n",
            ATOMIC_READ(rb->reader),
            ATOMIC_READ(rb->head),
@@ -313,7 +313,7 @@ int rqueue_isempty(rqueue_t *rb)
     return ((rb->reader == commit || (head == tail && commit != tail) || ATOMIC_READ(rb->writes) == 0));
 }
 
-uint32_t rqueue_size(rqueue_t *rb)
+size_t rqueue_size(rqueue_t *rb)
 {
     return rb->size;
 }

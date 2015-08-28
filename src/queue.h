@@ -51,7 +51,7 @@ queue_t *queue_create();
  * actual values, will be reused when possible by maintaining an internal
  * pool of at most 'size' spare entries
  */
-uint32_t queue_set_bpool_size(queue_t *q, uint32_t size);
+size_t queue_set_bpool_size(queue_t *q, size_t size);
 
 /**
  * @brief Initialize a pre-allocated queue
@@ -77,7 +77,7 @@ void queue_clear(queue_t *q);
  * @param q : A valid pointer to a queue_t structure
  * @return the actual number of items stored in the queue
  */
-uint32_t queue_count(queue_t *q);
+size_t queue_count(queue_t *q);
 
 /**
  * @brief Set the callback which must be called to release values stored in the queue

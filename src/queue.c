@@ -25,11 +25,11 @@ struct _queue_s {
     refcnt_t *refcnt;
     queue_entry_t *head;
     queue_entry_t *tail;
-    uint32_t length;
+    size_t length;
     int free;
     queue_free_value_callback_t free_value_cb;
     rqueue_t *bpool;
-    uint32_t bpool_size;
+    size_t bpool_size;
 };
 #pragma pack(pop)
 
@@ -50,13 +50,13 @@ queue_create()
     return q;
 }
 
-uint32_t
-queue_set_bpool_size(queue_t *q, uint32_t size)
+size_t
+queue_set_bpool_size(queue_t *q, size_t size)
 {
     rqueue_t *new_queue = rqueue_create(size, RQUEUE_MODE_BLOCKING);
     rqueue_set_free_value_callback(new_queue, free);
 
-    uint32_t old_size = ATOMIC_READ(q->bpool_size);
+    size_t old_size = ATOMIC_READ(q->bpool_size);
 
     if (old_size == size) {
         rqueue_destroy(new_queue);
@@ -197,10 +197,10 @@ queue_clear(queue_t *q)
 }
 
 /* Returns actual lenght of queue_t pointed by l */
-uint32_t
+size_t
 queue_count(queue_t *q)
 {
-    uint32_t len;
+    size_t len;
     len = ATOMIC_READ(q->length);
     return len;
 }

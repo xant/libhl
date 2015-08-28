@@ -32,11 +32,11 @@ static void free_value(void *val) {
     free_count++;
 }
 
-int iterator_callback(void *item, uint32_t idx, void *user) {
+int iterator_callback(void *item, size_t idx, void *user) {
     int *failed = (int *)user;
     char *val = (char *)item;
     char test[100];
-    sprintf(test, "test%u", idx+1);
+    sprintf(test, "test%lu", idx+1);
     if (strcmp(test, val) != 0) {
         ut_failure("Value at index %d doesn't match %s  (%s)", idx, test, val);
         *failed = 1;

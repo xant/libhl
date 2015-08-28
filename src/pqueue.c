@@ -12,14 +12,14 @@ typedef struct {
 
 struct _pqueue_s {
     binheap_t *heap;
-    uint32_t max_size;
+    size_t max_size;
     pqueue_free_value_callback free_value_cb;
     pqueue_mode_t mode;
     pthread_mutex_t lock;
 };
 
 pqueue_t *
-pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_callback free_value_cb)
+pqueue_create(pqueue_mode_t mode, size_t size, pqueue_free_value_callback free_value_cb)
 {
     pqueue_t *pq = calloc(1, sizeof(pqueue_t));
     if (!pq)
@@ -39,9 +39,9 @@ pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_callback free
 }
 
 static inline void
-pqueue_drop_items(pqueue_t *pq, uint32_t num_items)
+pqueue_drop_items(pqueue_t *pq, size_t num_items)
 {
-    uint32_t deleted = 0;
+    size_t deleted = 0;
     while(binheap_count(pq->heap) && deleted < num_items) {
         void *deleted_item = NULL;
         if (pq->mode == PQUEUE_MODE_HIGHEST)
@@ -199,11 +199,11 @@ pqueue_remove(pqueue_t *pq, void *value)
     return arg.found ? 0 : -1;
 }
 
-uint32_t
+size_t
 pqueue_count(pqueue_t *pq)
 {
     pthread_mutex_lock(&pq->lock);
-    uint32_t count = binheap_count(pq->heap);
+    size_t count = binheap_count(pq->heap);
     pthread_mutex_unlock(&pq->lock);
     return count;
 }

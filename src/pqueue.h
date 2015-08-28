@@ -40,7 +40,7 @@ typedef void (*pqueue_free_value_callback)(void *value);
  *                        from the queue and the value can be released
  * @return a newly allocated and initialized priority queue
  */
-pqueue_t *pqueue_create(pqueue_mode_t mode, uint32_t size, pqueue_free_value_callback free_value_cb);
+pqueue_t *pqueue_create(pqueue_mode_t mode, size_t size, pqueue_free_value_callback free_value_cb);
 
 /**
  * @brief Insert a new value into the queue with a given priority
@@ -125,7 +125,7 @@ int pqueue_remove(pqueue_t *pq, void *value);
  * @param pq A valid pointer to an initialized pqueue_t structure
  * @return The number of values actually in the queue
  */
-uint32_t pqueue_count(pqueue_t *pq);
+size_t pqueue_count(pqueue_t *pq);
 
 /**
  * @brief Release all the resources used by a priority queue

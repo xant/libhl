@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stdlib.h>
 
 /**
  * @brief Opaque structure representing the actual ringbuffer descriptor
@@ -54,7 +55,7 @@ typedef enum {
  * @return a newly allocated and initialized ringbuffer
  *
  */
-rqueue_t *rqueue_create(uint32_t size, rqueue_mode_t mode);
+rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode);
 
 
 /**
@@ -103,14 +104,14 @@ void rqueue_destroy(rqueue_t *rb);
  * @param rb : A valid pointer to a rqueue_t structure
  * @return The actual number of write operations
  */
-uint32_t rqueue_write_count(rqueue_t *rb);
+uint64_t rqueue_write_count(rqueue_t *rb);
 
 /**
  * @brief Returns the count of 'read operations' executed so far
  * @param rb : A valid pointer to a rqueue_t structure
  * @return The actual number of read operations
  */
-uint32_t rqueue_read_count(rqueue_t *rb);
+uint64_t rqueue_read_count(rqueue_t *rb);
 
 /**
  * @brief Return a string descriptions of the ringbuffer internals
@@ -123,7 +124,7 @@ uint32_t rqueue_read_count(rqueue_t *rb);
  */
 char *rqueue_stats(rqueue_t *rb);
 
-uint32_t rqueue_size(rqueue_t *rb);
+size_t rqueue_size(rqueue_t *rb);
 
 int rqueue_isempty(rqueue_t *tb);
 
