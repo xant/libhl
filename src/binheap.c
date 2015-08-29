@@ -20,26 +20,28 @@ struct _binheap_s {
     int mode;
 };
 
-#define HAS_PRECEDENCE(__bh, __k1, __kl1, __k2, __kl2) \
-((__bh->mode == BINHEAP_MODE_MAX  && __bh->cbs->cmp(__k1, __kl1, __k2, __kl2) >= 0) || \
- (__bh->mode == BINHEAP_MODE_MIN  && __bh->cbs->cmp(__k1, __kl1, __k2, __kl2) <= 0))
+#define HAS_PRECEDENCE(_bh, _k1, _kl1, _k2, _kl2) \
+( \
+   ((_bh)->mode == BINHEAP_MODE_MAX && (_bh)->cbs->cmp((_k1), (_kl1), (_k2), (_kl2)) >= 0) \
+|| ((_bh)->mode == BINHEAP_MODE_MIN && (_bh)->cbs->cmp((_k1), (_kl1), (_k2), (_kl2)) <= 0) \
+)
 
-#define UPDATE_HEAD(__bh) { \
-    __bh->head = NULL;\
-    if (__bh->mode == BINHEAP_MODE_MAX) \
-        __bh->head = binheap_get_maximum(__bh, NULL); \
+#define UPDATE_HEAD(_bh) { \
+    (_bh)->head = NULL;\
+    if ((_bh)->mode == BINHEAP_MODE_MAX) \
+        (_bh)->head = binheap_get_maximum((_bh), NULL); \
     else \
-        __bh->head = binheap_get_minimum(__bh, NULL); \
+        (_bh)->head = binheap_get_minimum((_bh), NULL); \
 }
 
-static inline int __cmp_keys_default(void *k1, size_t kl1, void *k2, size_t kl2)
+static inline int cmp_keys_default(void *k1, size_t kl1, void *k2, size_t kl2)
 {
     if (kl1 != kl2)
         return kl1 - kl2;
     return memcmp(k1, k2, kl1);
 }
 
-static inline void __incr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int incr)
+static inline void incr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int incr)
 {
     size_t size = kl1;
     size_t off = kl1 - 1;
@@ -76,7 +78,7 @@ static inline void __incr_key_default(void *k1, size_t kl1, void **out, size_t *
 
 }
 
-static inline void __decr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int decr)
+static inline void decr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int decr)
 {
     size_t size = kl1;
     size_t off = kl1 - 1;
@@ -113,10 +115,10 @@ static inline void __decr_key_default(void *k1, size_t kl1, void **out, size_t *
 }
 
 
-static binheap_callbacks_t __keys_callbacks_default = {
-    .cmp = __cmp_keys_default,
-    .incr = __incr_key_default,
-    .decr = __decr_key_default
+static binheap_callbacks_t keys_callbacks_default = {
+    .cmp = cmp_keys_default,
+    .incr = incr_key_default,
+    .decr = decr_key_default
 };
 
 static inline int
@@ -370,7 +372,7 @@ binheap_create(const binheap_callbacks_t *keys_callbacks, binheap_mode_t mode)
     if (!bh)
         return NULL;
     bh->trees = list_create();
-    bh->cbs = keys_callbacks ? keys_callbacks : &__keys_callbacks_default;
+    bh->cbs = keys_callbacks ? keys_callbacks : &keys_callbacks_default;
     bh-> mode = mode;
     return bh;
 }
@@ -821,38 +823,38 @@ binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv)
 }
 
 
-#define BINHEAP_CMP_KEYS_TYPE(__type, __k1, __k1s, __k2, __k2s) \
+#define BINHEAP_CMP_KEYS_TYPE(_type, _k1, _k1s, _k2, _k2s) \
 { \
-    if (__k1s < sizeof(__type) || __k2s < sizeof(__type) || __k1s != __k2s) \
-        return __k1s - __k2s; \
-    __type __k1i = *((__type *)__k1); \
-    __type __k2i = *((__type *)__k2); \
-    return __k1i - __k2i; \
+    if ((_k1s) < sizeof(_type) || (_k2s) < sizeof(_type) || (_k1s) != (_k2s)) \
+        return (_k1s) - (_k2s); \
+    _type k1i = *((_type *) _k1); \
+    _type k2i = *((_type *) _k2); \
+    return k1i - k2i; \
 }
 
-#define BINHEAP_INCR_KEY_TYPE(__type, __k, __ks, __nk, __nks, __incr) \
+#define BINHEAP_INCR_KEY_TYPE(_type, _k, _ks, _nk, _nks, _incr) \
 { \
-    __type __ki = *((__type *)(__k)); \
-    __ki += __incr; \
-    if (__nks) \
-        *(__nks) = __ks; \
-    if (__nk) { \
-        *(__nk) = malloc((__ks)); \
-        __type *__nkp = *(__nk); \
-        *(__nkp) = __ki; \
+    _type ki = *((_type *)(_k)); \
+    ki += (_incr); \
+    if (_nks) \
+        *(_nks) = (_ks); \
+    if (_nk) { \
+        *(_nk) = malloc(_ks); \
+        _type *nkp = *(_nk); \
+        *nkp = ki; \
     } \
 }
 
-#define BINHEAP_DECR_KEY_TYPE(__type, __k, __ks, __nk, __nks, __decr) \
+#define BINHEAP_DECR_KEY_TYPE(_type, _k, _ks, _nk, _nks, _decr) \
 { \
-    __type __ki = *((__type *)__k); \
-    __ki -= __decr; \
-    if (__nks) \
-        *(__nks) = __ks; \
-    if (__nk) { \
-        *__nk = malloc(__ks); \
-        __type *__nkp = *__nk; \
-        *__nkp = __ki; \
+    _type ki = *((_type *) _k); \
+    ki -= (_decr); \
+    if (_nks) \
+        *(_nks) = (_ks); \
+    if (_nk) { \
+        *(_nk) = malloc(_ks); \
+        _type *nkp = *(_nk); \
+        *nkp = ki; \
     } \
 }
 
@@ -863,29 +865,29 @@ binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv)
 #define libhl_cmp_keys_uint32_t libhl_cmp_keys_uint32
 #define libhl_cmp_keys_uint64_t libhl_cmp_keys_uint64
 
-#define BINHEAP_KEY_CALLBACKS_TYPE(__type) \
+#define BINHEAP_KEY_CALLBACKS_TYPE(_type) \
 static inline void \
-binheap_incr_key_##__type(void *k, size_t ksize, void **nk, size_t *nksize, int incr) \
+binheap_incr_key_##_type(void *k, size_t ksize, void **nk, size_t *nksize, int incr) \
 { \
-    BINHEAP_INCR_KEY_TYPE(__type, k, ksize, nk, nksize, incr); \
+    BINHEAP_INCR_KEY_TYPE(_type, k, ksize, nk, nksize, incr); \
 } \
 \
 static inline void \
-binheap_decr_key_##__type(void *k, size_t ksize, void **nk, size_t *nksize, int decr) \
+binheap_decr_key_##_type(void *k, size_t ksize, void **nk, size_t *nksize, int decr) \
 { \
-    BINHEAP_DECR_KEY_TYPE(__type, k, ksize, nk, nksize, decr); \
+    BINHEAP_DECR_KEY_TYPE(_type, k, ksize, nk, nksize, decr); \
 } \
 \
 inline const binheap_callbacks_t * \
-binheap_keys_callbacks_##__type() \
+binheap_keys_callbacks_##_type() \
 { \
-    static const binheap_callbacks_t __type##_cbs \
+    static const binheap_callbacks_t _type##_cbs \
     = { \
-          .cmp = libhl_cmp_keys_##__type \
-        , .incr = binheap_incr_key_##__type \
-        , .decr = binheap_decr_key_##__type \
+          .cmp = libhl_cmp_keys_##_type \
+        , .incr = binheap_incr_key_##_type \
+        , .decr = binheap_decr_key_##_type \
     };\
-    return &(__type##_cbs); \
+    return &(_type##_cbs); \
 }
 
 BINHEAP_KEY_CALLBACKS_TYPE(int16_t)

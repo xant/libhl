@@ -10,25 +10,25 @@
 
 #define HT_SIZE_MIN 128
 
-#define HT_KEY_EQUALS(__k1,__kl1, __k2, __kl2) \
-            (((char *)(__k1))[0] == ((char *)(__k2))[0] && \
-            (__kl1) == (__kl2) && \
-            memcmp((__k1), (__k2), (__kl1)) == 0)
+#define HT_KEY_EQUALS(_k1, _kl1, _k2, _kl2) \
+            (((char *)(_k1))[0] == ((char *)(_k2))[0] && \
+            (_kl1) == (_kl2) && \
+            memcmp((_k1), (_k2), (_kl1)) == 0)
 
 
 #pragma pack(push, 1)
-typedef struct __ht_item {
+typedef struct _ht_item {
     uint32_t hash;
     char     kbuf[32];
     void    *key;
     size_t   klen;
     void    *data;
     size_t   dlen;
-    TAILQ_ENTRY(__ht_item) next;
+    TAILQ_ENTRY(_ht_item) next;
 } ht_item_t;
 
-typedef struct __ht_item_list {
-    TAILQ_HEAD(, __ht_item) head;
+typedef struct _ht_item_list {
+    TAILQ_HEAD(, _ht_item) head;
 #ifdef THREAD_SAFE
 #ifdef __MACH__
     OSSpinLock lock;
@@ -37,11 +37,11 @@ typedef struct __ht_item_list {
 #endif
 #endif
     size_t index;
-    TAILQ_ENTRY(__ht_item_list) iterator_next;
+    TAILQ_ENTRY(_ht_item_list) iterator_next;
 } ht_items_list_t;
 
 typedef struct {
-    TAILQ_HEAD(, __ht_item_list) head;
+    TAILQ_HEAD(, _ht_item_list) head;
 } ht_iterator_list_t;
 
 // NOTE : order here matters (and also numbering)
@@ -68,14 +68,14 @@ struct _hashtable_s {
 };
 #pragma pack(pop)
 
-typedef struct __ht_iterator_callback {
+typedef struct _ht_iterator_callback {
     int (*cb)();
     void *user;
     size_t count;
     hashtable_t *table;
 } ht_iterator_callback_t;
 
-typedef struct __ht_collector_arg {
+typedef struct _ht_collector_arg {
     linked_list_t *output;
     size_t count;
 } ht_collector_arg_t;

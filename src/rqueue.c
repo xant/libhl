@@ -8,10 +8,10 @@
 #define RQUEUE_FLAG_UPDATE (0x02)
 #define RQUEUE_FLAG_ALL    (0x03)
 
-#define RQUEUE_FLAG_ON(__addr, __flag) (rqueue_page_t *)(((intptr_t)__addr & -4) | __flag)
-#define RQUEUE_FLAG_OFF(__addr, __flag) (rqueue_page_t *)((intptr_t)__addr & ~__flag)
+#define RQUEUE_FLAG_ON(_addr, _flag) (rqueue_page_t *)(((intptr_t) (_addr) & -4) | (_flag))
+#define RQUEUE_FLAG_OFF(_addr, _flag) (rqueue_page_t *)((intptr_t) (_addr) & ~(_flag))
 
-#define RQUEUE_CHECK_FLAG(__addr, __flag) (((intptr_t)__addr & __flag) == __flag)
+#define RQUEUE_CHECK_FLAG(_addr, _flag) (((intptr_t) (_addr) & (_flag)) == (_flag))
 
 #define RQUEUE_MAX_RETRIES 1000
 
