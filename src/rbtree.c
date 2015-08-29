@@ -6,11 +6,11 @@
 #include <sys/ioctl.h>
 #include "rbtree.h"
 
-#define IS_BLACK(__n) (!(__n) || (__n)->color == RBTREE_COLOR_BLACK)
-#define IS_RED(__n) ((__n) && (__n)->color == RBTREE_COLOR_RED)
+#define IS_BLACK(_n) (!(_n) || (_n)->color == RBTREE_COLOR_BLACK)
+#define IS_RED(_n) ((_n) && (_n)->color == RBTREE_COLOR_RED)
 
-#define PAINT_BLACK(__n) { if (__n) (__n)->color = RBTREE_COLOR_BLACK; }
-#define PAINT_RED(__n) { if (__n) (__n)->color = RBTREE_COLOR_RED; }
+#define PAINT_BLACK(_n) { if (_n) (_n)->color = RBTREE_COLOR_BLACK; }
+#define PAINT_RED(_n) { if (_n) (_n)->color = RBTREE_COLOR_RED; }
 
 typedef enum {
     RBTREE_COLOR_RED = 0,
