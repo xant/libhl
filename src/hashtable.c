@@ -239,13 +239,13 @@ ht_grow_table(hashtable_t *table)
     ht_items_list_t *tmp, *list = NULL;
     TAILQ_FOREACH_SAFE(list, &table->iterator_list->head, iterator_next, tmp) {
         // NOTE : list->index is safe to access outside of the lock
-        ATOMIC_SET(ATOMIC_READ(old_items)[list->index], NULL);
+        ATOMIC_SET(old_items[list->index], NULL);
         // now readers can't access this list anymore
         SPIN_LOCK(list->lock);
         
         // move all the items from the old list to the new one
         while((item = TAILQ_FIRST(&list->head))) {
-            ht_items_list_t *new_list = ATOMIC_READ(ATOMIC_READ(items_list)[item->hash%new_size]);
+            ht_items_list_t *new_list = ATOMIC_READ(items_list[item->hash%new_size]);
             if (!new_list) {
                 new_list = malloc(sizeof(ht_items_list_t));
                 // XXX - if malloc fails here the table is irremediably corrupted
@@ -255,7 +255,7 @@ ht_grow_table(hashtable_t *table)
                 TAILQ_INIT(&new_list->head);
                 SPIN_INIT(new_list->lock);
                 size_t index = item->hash%new_size;
-                ATOMIC_SET(ATOMIC_READ(items_list)[index], new_list);
+                ATOMIC_SET(items_list[index], new_list);
                 new_list->index = index;
                 TAILQ_INSERT_TAIL(&new_iterator_list->head, new_list, iterator_next);
             }
@@ -877,11 +877,15 @@ ht_get_all_keys(hashtable_t *table)
         TAILQ_FOREACH(item, &list->head, next) {
             hashtable_key_t *key = malloc(sizeof(hashtable_key_t));
             if (!key) {
+                SPIN_UNLOCK(list->lock);
+                MUTEX_UNLOCK(table->iterator_lock);
                 list_destroy(output);
                 return NULL;
             }
             key->data = malloc(item->klen);
             if (!key->data) {
+                SPIN_UNLOCK(list->lock);
+                MUTEX_UNLOCK(table->iterator_lock);
                 free(key);
                 list_destroy(output);
                 return NULL;
@@ -913,6 +917,8 @@ ht_get_all_values(hashtable_t *table)
         TAILQ_FOREACH(item, &list->head, next) {
             hashtable_value_t *v = malloc(sizeof(hashtable_value_t));
             if (!v) {
+                SPIN_UNLOCK(list->lock);
+                MUTEX_UNLOCK(table->iterator_lock);
                 list_destroy(output);
                 return NULL;
             }

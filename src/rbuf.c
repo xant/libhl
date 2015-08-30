@@ -110,10 +110,11 @@ rbuf_read(rbuf_t *rb, u_char *out, int size) {
 
 int
 rbuf_write(rbuf_t *rb, u_char *in, int size) {
-    int write_size = rb->available; // don't write more than available size
 
     if(!rb || !in || !size) // safety belt
         return 0;
+
+    int write_size = rb->available; // don't write more than available size
 
     // if requested size fits the available space, use that
     if(write_size > size) {

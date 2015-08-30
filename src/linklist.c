@@ -361,7 +361,13 @@ insert_entry(linked_list_t *list, list_entry_t *entry, size_t pos)
         unsigned int i;
         for (i = list->length; i < pos; i++) {
             list_entry_t *emptyEntry = create_entry();
-            push_entry(list, emptyEntry);
+            if (!emptyEntry || push_entry(list, emptyEntry) != 0)
+            {
+                if (emptyEntry)
+                    destroy_entry(emptyEntry);
+                MUTEX_UNLOCK(list->lock);
+                return -1;
+            }
         }
         ret = push_entry(list, entry);
     }
@@ -518,8 +524,10 @@ list_entry_t *subst_entry(linked_list_t *list, size_t pos, list_entry_t *entry)
     MUTEX_LOCK(list->lock);
 
     old = fetch_entry(list,  pos);
-    if(!old)
+    if(!old) {
+        MUTEX_UNLOCK(list->lock);
         return NULL;
+    }
     insert_entry(list, entry, pos);
 
     MUTEX_UNLOCK(list->lock);
@@ -575,6 +583,10 @@ get_entry_position(list_entry_t *entry)
     linked_list_t *list;
     list_entry_t *p;
     list = entry->list;
+
+    if (!list)
+        return -1;
+
     MUTEX_LOCK(list->lock);
     if(list)
     {

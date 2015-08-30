@@ -164,13 +164,14 @@ trie_remove(trie_t *trie, char *key, void **value, size_t *vsize)
 
     int num_nodes = trie->node_count;
 
-    trie_node_destroy(trie, node);
 
     if (value)
         *value = node->value;
 
     if (vsize)
         *vsize = node->vsize;
+
+    trie_node_destroy(trie, node);
 
     return num_nodes - trie->node_count;
 }

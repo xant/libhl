@@ -316,9 +316,6 @@ avlt_remove(avlt_t *tree, void *key, size_t klen, void **value)
             continue;
         }
 
-        if (!cur)
-            break;
-
         if (cur->left && cur->right) {
             // 2 children case
             avlt_node_t *p = NULL;
