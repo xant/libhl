@@ -48,7 +48,7 @@ typedef int (*libhl_cmp_callback_t)(void *k1,
 /**
  * @brief 16bit signed integers comparator
  */
-static inline int
+static int
 libhl_cmp_keys_int16(void *k1, size_t k1size, void *k2, size_t k2size)
 {
     LIBHL_CMP_KEYS_TYPE(int16_t, k1, k1size, k2, k2size);
@@ -57,7 +57,7 @@ libhl_cmp_keys_int16(void *k1, size_t k1size, void *k2, size_t k2size)
 /**
  * @brief 32bit signed integers comparator
  */
-static inline int libhl_cmp_keys_int32(void *k1, size_t k1size,
+static int libhl_cmp_keys_int32(void *k1, size_t k1size,
                                         void *k2, size_t k2size)
 {
     LIBHL_CMP_KEYS_TYPE(int32_t, k1, k1size, k2, k2size);
@@ -66,7 +66,7 @@ static inline int libhl_cmp_keys_int32(void *k1, size_t k1size,
 /**
  * @brief 64bit signed integers comparator
  */
-static inline int libhl_cmp_keys_int64(void *k1, size_t k1size,
+static int libhl_cmp_keys_int64(void *k1, size_t k1size,
                                         void *k2, size_t k2size)
 {
     LIBHL_CMP_KEYS_TYPE(int64_t, k1, k1size, k2, k2size);
@@ -75,7 +75,7 @@ static inline int libhl_cmp_keys_int64(void *k1, size_t k1size,
 /**
  * @brief 16bit unsigned integers comparator
  */
-static inline int
+static int
 libhl_cmp_keys_uint16(void *k1, size_t k1size,
                        void *k2, size_t k2size)
 {
@@ -85,7 +85,7 @@ libhl_cmp_keys_uint16(void *k1, size_t k1size,
 /**
  * @brief 32bit unsigned integers comparator
  */
-static inline int libhl_cmp_keys_uint32(void *k1, size_t k1size,
+static int libhl_cmp_keys_uint32(void *k1, size_t k1size,
                                          void *k2, size_t k2size)
 {
     LIBHL_CMP_KEYS_TYPE(uint32_t, k1, k1size, k2, k2size);
@@ -94,7 +94,7 @@ static inline int libhl_cmp_keys_uint32(void *k1, size_t k1size,
 /**
  * @brief 64bit unsigned integers comparator
  */
-static inline int libhl_cmp_keys_uint64(void *k1, size_t k1size,
+static int libhl_cmp_keys_uint64(void *k1, size_t k1size,
                                          void *k2, size_t k2size)
 {
     LIBHL_CMP_KEYS_TYPE(uint64_t, k1, k1size, k2, k2size);
@@ -103,7 +103,7 @@ static inline int libhl_cmp_keys_uint64(void *k1, size_t k1size,
 /**
  * @brief float comparator
  */
-static inline int libhl_cmp_keys_float(void *k1, size_t k1size,
+static int libhl_cmp_keys_float(void *k1, size_t k1size,
                                         void *k2, size_t k2size)
 {
     LIBHL_CMP_KEYS_TYPE(float, k1, k1size, k2, k2size);
@@ -112,7 +112,7 @@ static inline int libhl_cmp_keys_float(void *k1, size_t k1size,
 /**
  * @brief double comparator
  */
-static inline int libhl_cmp_keys_double(void *k1, size_t k1size,
+static int libhl_cmp_keys_double(void *k1, size_t k1size,
                                          void *k2, size_t k2size)
 {
     LIBHL_CMP_KEYS_TYPE(double, k1, k1size, k2, k2size);
