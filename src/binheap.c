@@ -34,14 +34,14 @@ struct _binheap_s {
         (_bh)->head = binheap_get_minimum((_bh), NULL); \
 }
 
-static inline int cmp_keys_default(void *k1, size_t kl1, void *k2, size_t kl2)
+static int cmp_keys_default(void *k1, size_t kl1, void *k2, size_t kl2)
 {
     if (kl1 != kl2)
         return kl1 - kl2;
     return memcmp(k1, k2, kl1);
 }
 
-static inline void incr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int incr)
+static void incr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int incr)
 {
     size_t size = kl1;
     size_t off = kl1 - 1;
@@ -78,7 +78,7 @@ static inline void incr_key_default(void *k1, size_t kl1, void **out, size_t *ol
 
 }
 
-static inline void decr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int decr)
+static void decr_key_default(void *k1, size_t kl1, void **out, size_t *olen, int decr)
 {
     size_t size = kl1;
     size_t off = kl1 - 1;
