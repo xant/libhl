@@ -11,3 +11,4 @@ test/*_debug
 .DS_Store
 *.dSYM
 config.log
+autom4te.cache
