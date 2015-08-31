@@ -31,7 +31,7 @@ trie_create(trie_free_value_callback_t free_value_cb)
 
 
 static void
-trie_node_destroy(trie_t *trie, trie_node_t *node)
+trie_node_destroy(trie_t *trie, trie_node_t *node, trie_free_value_callback_t free_value_cb)
 {
     trie_node_t *parent = node->parent;
     int pidx = node->pidx;
@@ -55,7 +55,7 @@ trie_node_destroy(trie_t *trie, trie_node_t *node)
     for (i = 0; i < 256; i++)
         if (node->child[i]) {
             node->child[i]->parent = NULL;
-            trie_node_destroy(trie, node->child[i]);
+            trie_node_destroy(trie, node->child[i], free_value_cb);
             node->child[i] = NULL;
             node->num_children--;
         }
@@ -64,8 +64,8 @@ trie_node_destroy(trie_t *trie, trie_node_t *node)
         trie->count--;
         if (node->is_copy)
             free(node->value);
-        else if (trie->free_value_cb)
-            trie->free_value_cb(node->value);
+        else if (free_value_cb)
+            free_value_cb(node->value);
     }
 
     trie->node_count--;
@@ -75,7 +75,7 @@ trie_node_destroy(trie_t *trie, trie_node_t *node)
 void
 trie_destroy(trie_t *trie)
 {
-    trie_node_destroy(trie, trie->root);
+    trie_node_destroy(trie, trie->root, trie->free_value_cb);
     free(trie);
 }
 
@@ -165,13 +165,15 @@ trie_remove(trie_t *trie, char *key, void **value, size_t *vsize)
     int num_nodes = trie->node_count;
 
 
-    if (value)
-        *value = node->value;
-
     if (vsize)
         *vsize = node->vsize;
 
-    trie_node_destroy(trie, node);
+    if (value) {
+        *value = node->value;
+        trie_node_destroy(trie, node, NULL);
+    } else {
+        trie_node_destroy(trie, node, trie->free_value_cb);
+    }
 
     return num_nodes - trie->node_count;
 }

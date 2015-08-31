@@ -135,6 +135,10 @@ void *trie_find(trie_t *trie, char *key, size_t *vsize);
  *               the value stored at the key being removed
  * @param vsize  If not NULL, the size of the returned value will be stored
  *               at the address pointed by vsize
+ *
+ * @note If a value pointer has been provided, the value will not be freed
+ *       regardless of a free_value_callback being present
+ *
  * @return The total number of internal nodes removed
  */
 int trie_remove(trie_t *trie, char *key, void **value, size_t *vsize);
