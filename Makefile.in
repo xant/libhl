@@ -1,6 +1,7 @@
 SHELL = /bin/sh
 VPATH = @srcdir@
 
+builddir = @builddir@
 subdirs = @subdirs@
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
@@ -53,8 +54,8 @@ ifneq ("$(IS_CLANG)", "")
 CLANG_FLAGS=-Wno-undefined-inline -Wno-unknown-warning-option
 endif
 
-TARGETS = $(patsubst %.c, %.o, $(wildcard src/*.c))
-TESTS = $(patsubst %.c, %, $(wildcard test/*_test.c))
+TARGETS = $(patsubst $(srcdir)/src/%.c, $(builddir)/%.o, $(wildcard $(srcdir)/src/*.c))
+TESTS = $(patsubst %.c, %, $(wildcard $(top_srcdir)/test/*_test.c))
 
 TEST_EXEC_ORDER = fbuf_test \
 		  rbuf_test \
@@ -73,23 +74,30 @@ all: objects static shared
 
 .PHONY: static
 static: objects
-	ar -r libhl.a src/*.o
+	ar -r libhl.a *.o
 
 .PHONY: shared
 shared: objects
-	$(CC) $(LDFLAGS) $(SHAREDFLAGS) src/*.o -o libhl.$(SHAREDEXT)
+	$(CC) $(LDFLAGS) $(SHAREDFLAGS) $(builddir)/*.o -o $(builddir)/libhl.$(SHAREDEXT)
 
-.PHONY: objects
-objects: CFLAGS += -fPIC -Isrc -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function $(CLANG_FLAGS) -DTHREAD_SAFE -g -O3
+%.o : $(srcdir)/src/%.c
+	$(CC) -c $(CFLAGS) $< -o $(builddir)/$@
+
+objects: CFLAGS += -fPIC -I$(top_srcdir)/src -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function $(CLANG_FLAGS) -DTHREAD_SAFE -g -O3
 objects: $(TARGETS)
 
 .PHONY: clean
 clean:
-	rm -f src/*.o
+	@echo "Cleaning libhl"
+	rm -f *.o
 	rm -f test/*_test
 	rm -f libhl.a
 	rm -f libhl.$(SHAREDEXT)
-	@if [ -f support/libut/Makefile ]; then make -C support/libut clean; fi
+	@if [ -f $(top_srcdir)/support/libut/libut.a ]; then \
+	    echo "Cleaning libut"; \
+	    make -C $(top_srcdir)/support/libut clean; \
+	fi
+
 
 .PHONY: distclean
 distclean: clean
@@ -97,16 +105,16 @@ distclean: clean
 
 .PHONY: libut
 libut:
-	@if [ ! -f support/libut/Makefile ]; then git submodule init; git submodule update; fi; make -C support/libut
+	@if [ ! -f $(top_srcdir)/support/libut/Makefile ]; then git submodule init; git submodule update; fi; make -C $(top_srcdir)/support/libut
 
 .PHONY:tests
-tests: CFLAGS += -Isrc -Isupport/libut/src -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function $(CLANG_FLAGS) -DTHREAD_SAFE -g -O3
+tests: CFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/support/libut/src -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function $(CLANG_FLAGS) -DTHREAD_SAFE -g -O3
 tests: libut static
 	@for i in $(TESTS); do\
 	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS) -lm";\
-	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a support/libut/libut.a $(LDFLAGS) -lm;\
+	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(top_srcdir)/support/libut/libut.a $(LDFLAGS) -lm;\
 	done;\
-	for i in $(TEST_EXEC_ORDER); do echo; test/$$i; echo; done
+	for i in $(TEST_EXEC_ORDER); do echo; $(top_srcdir)/test/$$i; echo; done
 
 .PHONY: test
 test: tests
