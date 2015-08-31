@@ -83,12 +83,17 @@ shared: objects
 objects: CFLAGS += -fPIC -Isrc -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function $(CLANG_FLAGS) -DTHREAD_SAFE -g -O3
 objects: $(TARGETS)
 
+.PHONY: clean
 clean:
 	rm -f src/*.o
 	rm -f test/*_test
 	rm -f libhl.a
 	rm -f libhl.$(SHAREDEXT)
 	@if [ -f support/libut/Makefile ]; then make -C support/libut clean; fi
+
+.PHONY: distclean
+distclean: clean
+	rm config.h Makefile config.status config.log
 
 .PHONY: libut
 libut:
