@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([libhl], [3.0.1], [])
+AC_INIT([libhl], [3.0.1], [http://github.com/xant/libhl/issues/new])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.

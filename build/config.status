@@ -421,7 +421,7 @@ $config_files
 Configuration headers:
 $config_headers
 
-Report bugs to the package provider."
+Report bugs to <http://github.com/xant/libhl/issues/new>."
 
 ac_cs_config="'--srcdir=..'"
 ac_cs_version="\
@@ -644,7 +644,7 @@ S["program_transform_name"]="s,x,x,"
 S["prefix"]="/usr/local"
 S["exec_prefix"]="${prefix}"
 S["PACKAGE_URL"]=""
-S["PACKAGE_BUGREPORT"]=""
+S["PACKAGE_BUGREPORT"]="http://github.com/xant/libhl/issues/new"
 S["PACKAGE_STRING"]="libhl 3.0.1"
 S["PACKAGE_VERSION"]="3.0.1"
 S["PACKAGE_TARNAME"]="libhl"
@@ -696,7 +696,7 @@ D["PACKAGE_NAME"]=" \"libhl\""
 D["PACKAGE_TARNAME"]=" \"libhl\""
 D["PACKAGE_VERSION"]=" \"3.0.1\""
 D["PACKAGE_STRING"]=" \"libhl 3.0.1\""
-D["PACKAGE_BUGREPORT"]=" \"\""
+D["PACKAGE_BUGREPORT"]=" \"http://github.com/xant/libhl/issues/new\""
 D["PACKAGE_URL"]=" \"\""
 D["STDC_HEADERS"]=" 1"
 D["HAVE_SYS_TYPES_H"]=" 1"
