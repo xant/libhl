@@ -1,21 +1,22 @@
 SHELL = /bin/sh
+VPATH = @srcdir@
 
 subdirs = @subdirs@
-top_srcdir = .
-srcdir = .
-prefix = /usr/local
-exec_prefix = ${prefix}
+top_srcdir = @top_srcdir@
+srcdir = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
 bindir = $(exec_prefix)/bin
 infodir = $(prefix)/info
 libdir = $(prefix)/lib
 includedir = $(prefix)/include
 mandir = $(prefix)/man/man1
 
-CC = gcc
-CPPFLAGS = 
-CFLAGS = $(CPPFLAGS) -g -O2
-LDFLAGS = 
-LIBS = 
+CC = @CC@
+CPPFLAGS = @CPPFLAGS@
+CFLAGS = $(CPPFLAGS) @CFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
 INSTALL = @INSTALL@
 
 UNAME := $(shell uname)
