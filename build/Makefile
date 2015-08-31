@@ -104,7 +104,7 @@ distclean: clean
 
 .PHONY: libut
 libut:
-	@if [ ! -f $(top_srcdir)/support/libut/Makefile ]; then git submodule init; git submodule update; fi; make -C $(top_srcdir)/support/libut
+	@if [ ! -f $(top_srcdir)/support/libut/Makefile ]; then cd $(top_srcdir); git submodule init; git submodule update; fi; cd -; make -C $(top_srcdir)/support/libut
 
 .PHONY:tests
 tests: CFLAGS += -I$(top_srcdir)/src -I$(top_srcdir)/support/libut/src -Wall -Werror -Wno-parentheses -Wno-pointer-sign -Wno-unused-function $(CLANG_FLAGS) -DTHREAD_SAFE -g -O3
