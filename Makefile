@@ -2,7 +2,6 @@ SHELL = /bin/sh
 
 
 builddir = .
-subdirs = @subdirs@
 top_srcdir = .
 srcdir = .
 prefix = /usr/local

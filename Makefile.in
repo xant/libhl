@@ -2,7 +2,6 @@ SHELL = /bin/sh
 VPATH = @srcdir@
 
 builddir = @builddir@
-subdirs = @subdirs@
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
