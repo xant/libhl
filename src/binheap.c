@@ -650,13 +650,9 @@ binheap_t *binheap_merge(binheap_t *bh1, binheap_t *bh2)
             list_push_value(new_list, node2);
             node2 = list_shift_value(bh2->trees);
             continue;
-        }/* else if (carry && !node1 && !node2) {
-            // XXX - this case should have already been handled earlier
-            //       (we have a carry but neither node1 nor node2)
-            list_push_value(new_list, carry);
-            carry = NULL;
-            continue;
-        }*/
+        }
+        // NOTE: the case where we have a carry but neither node1 nor node2
+        //       has already been handled earlier
 
         
         int order1 = node1->num_children;
