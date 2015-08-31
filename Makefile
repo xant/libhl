@@ -1,5 +1,6 @@
 SHELL = /bin/sh
 
+
 subdirs = @subdirs@
 top_srcdir = .
 srcdir = .
