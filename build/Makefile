@@ -1,9 +1,9 @@
 SHELL = /bin/sh
-
+VPATH = ..
 
 builddir = .
-top_srcdir = .
-srcdir = .
+top_srcdir = ..
+srcdir = ..
 prefix = /usr/local
 exec_prefix = ${prefix}
 bindir = $(exec_prefix)/bin
