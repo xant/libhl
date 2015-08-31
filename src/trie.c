@@ -30,7 +30,7 @@ trie_create(trie_free_value_callback_t free_value_cb)
 }
 
 
-static void
+static inline void
 trie_node_destroy(trie_t *trie, trie_node_t *node, trie_free_value_callback_t free_value_cb)
 {
     trie_node_t *parent = node->parent;
