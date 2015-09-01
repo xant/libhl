@@ -2,8 +2,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([libhl], [3.0.1], [http://github.com/xant/libhl/issues/new])
+AC_INIT([libhl],[3.0.1],[https://github.com/xant/libhl/issues])
+m4_include([m4_ax_pthread.m4])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR([src/atomic_defs.h])
+
+LT_INIT
+
+AC_SUBST([LIBTOOL_DEPS])
 
 # Checks for programs.
 AC_PROG_CC
@@ -31,6 +37,17 @@ AC_TYPE_UINT8_T
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_FUNC_STRCOLL
+AX_PTHREAD( [
+            AC_DEFINE(HAVE_PTHREAD,1,[Define if you have POSIX threads libraries and header files.])
+            CLIBS="$PTHREAD_LIBS $LIBS"
+            CFLAGS="$CFLAGS $PTHREAD_CFLAGS -DTHREAD_SAFE"
+            CC="$PTHREAD_CC"],[])
+
+# Not all compilers include /usr/local in the include and link path
+if test -d /usr/local/include; then
+        CFLAGS="$CFLAGS -I/usr/local/include"
+            LDFLAGS="$LDFLAGS -L/usr/local/lib"
+        fi
 AC_CHECK_FUNCS([gettimeofday memchr memmove memset stpcpy strchr strcspn strdup strerror strpbrk strrchr strspn strstr strtol])
 
 AC_CONFIG_FILES([Makefile])
