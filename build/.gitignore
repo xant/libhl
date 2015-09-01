@@ -3,3 +3,5 @@ config.h
 config.status
 config.log
 libtool
+config.log
+autom4te.cache
