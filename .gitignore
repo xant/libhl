@@ -2,6 +2,7 @@
 *.swp
 *.swo
 *.o
+*.lo
 *.a
 *.out
 *.so
