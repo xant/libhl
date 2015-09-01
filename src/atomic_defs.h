@@ -23,6 +23,8 @@
 }
 
 
+#ifdef THREAD_SAFE
+
 #define __POSIX_C_SOURCE
 #include <pthread.h>
 
@@ -30,7 +32,6 @@
 #include <libkern/OSAtomic.h>
 #endif
 
-#ifdef THREAD_SAFE
 #define MUTEX_INIT(_mutex) if (pthread_mutex_init(&(_mutex), 0) != 0) { abort(); }
 #define MUTEX_DESTROY(_mutex) pthread_mutex_destroy(&(_mutex))
 #define MUTEX_LOCK(_mutex) if (pthread_mutex_lock(&(_mutex)) != 0) { abort(); }
