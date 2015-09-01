@@ -71,7 +71,7 @@ static: objects
 
 .PHONY: shared
 shared: objects
-	./libtool --mode=link $(CC) $(LDFLAGS) $(SHAREDFLAGS) -o $(builddir)/libhl.$(SHAREDEXT) $(builddir)/*.o
+	./libtool --mode=link $(CC) $(LIBS) $(LDFLAGS) $(SHAREDFLAGS) -o $(builddir)/libhl.$(SHAREDEXT) $(builddir)/*.o
 
 %.o : $(srcdir)/src/%.c
 	./libtool --mode=compile $(CC) -c $(CFLAGS) $< -o $(builddir)/$@
