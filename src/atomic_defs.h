@@ -32,10 +32,10 @@
 #include <libkern/OSAtomic.h>
 #endif
 
-#define MUTEX_INIT(_mutex) if (pthread_mutex_init(&(_mutex), 0) != 0) { abort(); }
+#define MUTEX_INIT(_mutex) if (__builtin_expect(pthread_mutex_init(&(_mutex), 0) != 0, 0)) { abort(); }
 #define MUTEX_DESTROY(_mutex) pthread_mutex_destroy(&(_mutex))
-#define MUTEX_LOCK(_mutex) if (pthread_mutex_lock(&(_mutex)) != 0) { abort(); }
-#define MUTEX_UNLOCK(_mutex) if (pthread_mutex_unlock(&(_mutex)) != 0) { abort(); }
+#define MUTEX_LOCK(_mutex) if (__builtin_expect(pthread_mutex_lock(&(_mutex)) != 0, 0)) { abort(); }
+#define MUTEX_UNLOCK(_mutex) if (__builtin_expect(pthread_mutex_unlock(&(_mutex)) != 0, 0)) { abort(); }
 #ifdef __MACH__
 #define SPIN_INIT(_mutex) ((_mutex) = 0)
 #define SPIN_DESTROY(_mutex)
@@ -44,8 +44,8 @@
 #else
 #define SPIN_INIT(_mutex) pthread_spin_init(&(_mutex), 0)
 #define SPIN_DESTROY(_mutex) pthread_spin_destroy(&(_mutex))
-#define SPIN_LOCK(_mutex) if (pthread_spin_lock(&(_mutex)) != 0) { abort(); }
-#define SPIN_UNLOCK(_mutex) if (pthread_spin_unlock(&(_mutex)) != 0) { abort(); }
+#define SPIN_LOCK(_mutex) if (__builtin_expect(pthread_spin_lock(&(_mutex)) != 0, 0)) { abort(); }
+#define SPIN_UNLOCK(_mutex) if (__builtin_expect(pthread_spin_unlock(&(_mutex)) != 0, 0)) { abort(); }
 #endif
 #else
 #define MUTEX_INIT(_mutex)
