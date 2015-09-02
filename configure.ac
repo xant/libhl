@@ -3,6 +3,8 @@
 
 AC_PREREQ([2.69])
 AC_INIT([libhl], m4_esyscmd_s([build-aux/git-version-gen]), [https://github.com/xant/libhl/issues])
+
+
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR([src/atomic_defs.h])
 AC_CONFIG_AUX_DIR([build-aux])
