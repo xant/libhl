@@ -8,8 +8,8 @@ prefix = @prefix@
 exec_prefix = @exec_prefix@
 bindir = $(exec_prefix)/bin
 infodir = $(prefix)/info
-libdir = $(prefix)/lib
-includedir = $(prefix)/include
+libdir = @libdir@
+includedir = @includedir@
 mandir = $(prefix)/man/man1
 
 CC = @CC@
@@ -31,14 +31,12 @@ SHAREDFLAGS = -shared
 SHAREDEXT = so
 endif
 
-LIBDIR = $(libdir)
 ifeq ("$(LIBDIR)", "")
-LIBDIR=/usr/local/lib
+LIBDIR = $(libdir)
 endif
 
-INCDIR = $(includedir)
 ifeq ("$(INCDIR)", "")
-INCDIR=/usr/local/include
+INCDIR = $(includedir)
 endif
 
 IS_CLANG := $(shell $(CC) --version | grep clang)
@@ -123,7 +121,7 @@ install:
 	 cp -v libhl.a $(LIBDIR)/;\
 	 cp -v libhl.$(SHAREDEXT) $(LIBDIR)/;\
 	 echo "Installing headers in $(INCDIR)"; \
-	 cp -v src/*.h $(INCDIR)/;
+	 cp -v $(top_srcdir)/src/*.h $(INCDIR)/;
 
 .PHONY: docs
 docs:
