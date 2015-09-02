@@ -1,0 +1,28 @@
+#!/bin/sh
+
+GVF=GIT-VERSION-FILE
+
+LF='
+'
+
+# First see if there is a version file (included in release tarballs),
+# then try git-describe, then default.
+if test -f version
+then
+	VN=$(cat version)
+elif
+	VN=$(git describe --tags --match 'libhl-[0-9]*' --abbrev=7 HEAD 2>/dev/null) &&
+	case "$VN" in
+	*$LF*) (exit 1) ;;
+	v[0-9]*)
+		git update-index -q --refresh
+		test -z "$(git diff-index --name-only HEAD --)" ||
+		VN="$VN-dirty" ;;
+	esac
+then
+	VN=$(echo "$VN" | sed -e 's/-/./g');
+fi
+
+VN=$(expr "$VN" : v*'\(.*\)')
+
+echo "$VN"
