@@ -316,6 +316,8 @@ int main(int argc, char **argv) {
     if (!failed)
         ut_success();
 
+    list_destroy(t);
+
     ut_summary();
 
     exit(ut_failed);
