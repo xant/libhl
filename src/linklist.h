@@ -1,5 +1,5 @@
 /** 
- * @file linklist.h
+om
  * @author Andrea Guzzo
  * @date 22/09/2013
  * @brief Fast thread-safe linklist implementation
@@ -399,6 +399,19 @@ size_t list_get_tagged_values(linked_list_t *list, char *tag, linked_list_t *val
  *                     actual value stored in the list
  */
 void list_sort(linked_list_t *list, list_comparator_callback_t comparator);
+
+
+/********************************************************************
+ * Slice API 
+ ********************************************************************/
+
+typedef struct  _slice_s slice_t;
+
+slice_t *slice_create(linked_list_t *list, size_t offset, size_t length);
+
+void slice_destroy(slice_t *slice);
+
+int slice_foreach_value(slice_t *slice, item_handler_t item_handler, void *user);
 
 #ifdef __cplusplus
 }

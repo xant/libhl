@@ -26,8 +26,15 @@ struct _linked_list_s {
 #ifdef THREAD_SAFE
     pthread_mutex_t lock;
 #endif
-    int free;
     free_value_callback_t free_value_cb;
+    int refcnt;
+    list_entry_t *slices;
+};
+
+struct _slice_s {
+    linked_list_t *list;
+    size_t offset;
+    size_t length;
 };
 
 /********************************************************************
@@ -61,13 +68,12 @@ static inline int swap_entries(linked_list_t *list, size_t pos1, size_t pos2);
 linked_list_t *
 list_create()
 {
-    linked_list_t *list = (linked_list_t *)malloc(sizeof(linked_list_t));
+    linked_list_t *list = (linked_list_t *)calloc(1, sizeof(linked_list_t));
     if(list) {
         if (list_init(list) != 0) {
             free(list);
             return NULL;
         }
-        list->free = 1;
     }
     return list;
 }
@@ -79,7 +85,6 @@ list_create()
 int
 list_init(linked_list_t *list)
 {
-    memset(list,  0, sizeof(linked_list_t));
 #ifdef THREAD_SAFE
     pthread_mutexattr_t attr;
     if (pthread_mutexattr_init(&attr) != 0) {
@@ -102,11 +107,13 @@ list_destroy(linked_list_t *list)
 {
     if(list)
     {
+        while (list->slices)
+            slice_destroy(list->slices->value);
         list_clear(list);
 #ifdef THREAD_SAFE
         MUTEX_DESTROY(list->lock);
 #endif
-        if(list->free) free(list);
+        free(list);
     }
 }
 
@@ -743,41 +750,13 @@ int
 list_foreach_value(linked_list_t *list, int (*item_handler)(void *item, size_t idx, void *user), void *user)
 {
     MUTEX_LOCK(list->lock);
-    size_t idx = 0;
-    list_entry_t *e = list->head;
-    while(e) {
-        int rc = item_handler(e->value, idx++, user);
-        if (rc == 0) {
-            break;
-        } else if (rc == -1 || rc == -2) {
-            list_entry_t *d = e;
-            e = e->next;
-            if (list->head == list->tail && list->tail == d) {
-                list->head = list->tail = NULL;
-            } else if (d == list->head) {
-                list->head = d->next;
-                list->head->prev = NULL;
-            } else if (d == list->tail) {
-                list->tail = d->prev;
-                list->tail->next = NULL;
-            } else {
-                e->prev = d->prev;
-                e->prev->next = e;
-            }
-            d->list = NULL;
-            list->length--;
-            // the callback got the value and will take care of releasing it
-            destroy_entry(d);
-            if (rc == -2) // -2 means : remove and stop the iteration
-                break;
-            // -1 instead means that we still want to remove the item
-            // but we also want to go ahead with the iteration
-        } else {
-            e = e->next;
-        }
-    }
+    slice_t slice = {
+        .list = list,
+        .offset = 0,
+        .length = list->length
+    };
     MUTEX_UNLOCK(list->lock);
-    return idx;
+    return slice_foreach_value(&slice, item_handler, user);
 }
 
 tagged_value_t *
@@ -1192,6 +1171,95 @@ list_sort(linked_list_t *list, list_comparator_callback_t comparator)
     list->cur = NULL;
     list->pos = 0;
     MUTEX_UNLOCK(list->lock);
+}
+
+slice_t *
+slice_create(linked_list_t *list, size_t offset, size_t length)
+{
+    slice_t *slice = calloc(1, sizeof(slice_t));
+    slice->list = list;
+    slice->offset = offset;
+    slice->length = length;
+    list_entry_t *e = create_entry();
+    e->value = slice;
+    list_entry_t *cur = list->slices;
+    if (!cur) {
+        list->slices = e;
+    } else {
+        while (cur->next)
+            cur = cur->next;
+        cur->next = e;
+        e->prev = cur;
+    }
+
+    return slice;
+}
+
+void
+slice_destroy(slice_t *slice)
+{
+    linked_list_t *list = slice->list;
+    list_entry_t *cur = list->slices;
+    list_entry_t *prev = NULL;
+    while (cur) {
+        if (cur->value == slice) {
+            if (prev) {
+                prev->next = cur->next;
+                cur->next->prev = prev;
+            } else {
+                list->slices = cur->next;
+            }
+            destroy_entry(cur);
+            break;
+        }
+        prev = cur;
+        cur = cur->next;
+    }    
+    free(slice);
+}
+
+int
+slice_foreach_value(slice_t *slice, int (*item_handler)(void *item, size_t idx, void *user), void *user)
+{
+    linked_list_t *list = slice->list;
+    MUTEX_LOCK(list->lock);
+    size_t idx = 0;
+    list_entry_t *e = pick_entry(list, slice->offset);
+    while(e && idx < slice->length) {
+        int rc = item_handler(e->value, idx++, user);
+        if (rc == 0) {
+            break;
+        } else if (rc == -1 || rc == -2) {
+            list_entry_t *d = e;
+            e = e->next;
+            if (list->head == list->tail && list->tail == d) {
+                list->head = list->tail = NULL;
+            } else if (d == list->head) {
+                list->head = d->next;
+                list->head->prev = NULL;
+            } else if (d == list->tail) {
+                list->tail = d->prev;
+                list->tail->next = NULL;
+            } else {
+                e->prev = d->prev;
+                e->prev->next = e;
+            }
+            d->list = NULL;
+            list->length--;
+            slice->length--;
+            // the callback got the value and will take care of releasing it
+            destroy_entry(d);
+            if (rc == -2) // -2 means : remove and stop the iteration
+                break;
+            // -1 instead means that we still want to remove the item
+            // but we also want to go ahead with the iteration
+        } else {
+            e = e->next;
+        }
+    }
+    MUTEX_UNLOCK(list->lock);
+    return idx;
+
 }
 
 // vim: tabstop=4 shiftwidth=4 expandtab:

@@ -45,6 +45,12 @@ int iterator_callback(void *item, size_t idx, void *user) {
     return 1;
 }
 
+int slice_iterator_callback(void *item, size_t idx, void *user) {
+    int *count = (int *)user;
+    (*count)++;
+    return 1;
+}
+
 typedef struct {
     linked_list_t *list;
     int count;
@@ -315,6 +321,14 @@ int main(int argc, char **argv) {
     }
     if (!failed)
         ut_success();
+
+    slice_t *slice = slice_create(t, max_num / 2, max_num / 2);
+
+    int count = 0;
+
+    ut_testing("slice_foreach_value");
+    slice_foreach_value(slice, slice_iterator_callback, &count);
+    ut_validate_int(count, max_num / 2);
 
     list_destroy(t);
 
