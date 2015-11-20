@@ -1245,6 +1245,8 @@ slice_foreach_value(slice_t *slice, int (*item_handler)(void *item, size_t idx, 
                 e->prev->next = e;
             }
             d->list = NULL;
+            if (list->cur == d)
+                list->cur = NULL;
             list->length--;
             slice->length--;
             // the callback got the value and will take care of releasing it
@@ -1259,7 +1261,6 @@ slice_foreach_value(slice_t *slice, int (*item_handler)(void *item, size_t idx, 
     }
     MUTEX_UNLOCK(list->lock);
     return idx;
-
 }
 
 // vim: tabstop=4 shiftwidth=4 expandtab:
