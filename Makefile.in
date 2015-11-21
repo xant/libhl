@@ -59,7 +59,8 @@ TEST_EXEC_ORDER = fbuf_test \
 		  binheap_test \
 		  pqueue_test \
 		  skiplist_test \
-		  trie_test
+		  trie_test \
+		  graph_test
 
 all: objects static shared
 
