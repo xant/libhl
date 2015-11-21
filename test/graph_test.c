@@ -16,7 +16,7 @@ connection_chooser_test(graph_node_t *node, void *context)
 
 int main(int argc, char **argv)
 {
-    ut_init(argv[0]);
+    ut_init(basename(argv[0]));
     ut_testing("Create Graph");
     graph_t *graph = graph_create("Test", NULL);
     ut_result(graph != NULL, "Can't create a new graph");
