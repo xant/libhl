@@ -14,8 +14,8 @@
 #include "fbuf.h"
 #include "ut.h"
 
-#define TESTFILENAME1        "test/fbuf_test.txt"
-#define TESTFILENAME2        "test/fbuf_test.out"
+#define TESTFILENAME1        "fbuf_test.txt"
+#define TESTFILENAME2        "fbuf_test.out"
 
 #define FBUFMAXLEN 13
 
