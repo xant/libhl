@@ -111,9 +111,10 @@ tests: libut static
 	  echo "$(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(LDFLAGS) -lm";\
 	  $(CC) $(CFLAGS) $$i.c -o $$i libhl.a $(top_srcdir)/support/libut/libut.a $(LDFLAGS) -lm;\
 	done;\
-	pushd $(top_srcdir)/test/;\
+	CWD=$(pwd);\
+	cd $(top_srcdir)/test/;\
 	for i in $(TEST_EXEC_ORDER); do echo; ./$$i; echo; done;\
-	popd;
+	cd $$CWD;
 
 .PHONY: test
 test: tests
