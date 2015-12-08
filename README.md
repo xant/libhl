@@ -17,11 +17,13 @@ The provided APIs are :
 - binheap.[ch]    :  A binomial heap implementation (building block for the priority queue implementation)
 - pqueue.[ch]     :  A priority queue implementation
 - skiplist.[ch]   :  A skip list implementation
+- graph.[ch]      :  A generic graph implementation which allow defining chooser functions to determine paths
 
 Provided APIs typically don't depend on each other and can be simply included in an existing project by 
-copying both the .c and the .h files into the project sourcetree.
+copying both the .c and the .h files plus, if necessary, bsd_queue.h and/or atomic_defs.h into the project sourcetree.
 
 The only exceptions are:
 
 - queue => depending on: refcnt
 - pqueue => depending on: binheap
+- graph => depending on: hashtable
