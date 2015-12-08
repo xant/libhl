@@ -99,15 +99,34 @@ int graph_node_connect(graph_node_t *node1,
                         graph_node_chooser_callback_t chooser,
                         void *context);
 
+/**
+ * @brief Returns the current errno for a given graph
+ * @param graph A pointer to a valid and initialized graph structure
+ */
 int graph_errno(graph_t *graph);
 
+/**
+ * @brief Returns a text description for the current error
+ * @param graph A pointer to a valid and initialized graph structure
+ */
 char *graph_strerror(graph_t *graph);
 
-graph_node_t *graph_node_connection_select(graph_node_t *node);
+/**
+ * @brief Select and return the next node in the graph
+ */
+graph_node_t *graph_node_next(graph_node_t *node);
 
-char *graph_node_label_get(graph_node_t *node);
+/**
+ * @brief Returns a copy of the label for a given node
+ * @note The caller is responsible of releasing the resources
+ *       used to store the returned copy of the label
+ */
+const char *graph_node_label_get(graph_node_t *node);
 
 
+/**
+ * @brief Reset the internal error number
+ */
 void graph_error_reset(graph_t *graph);
 
 #endif

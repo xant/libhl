@@ -66,13 +66,19 @@ graph_create(char *label, graph_free_value_callback_t free_value_cb)
     graph->free_value_cb = free_value_cb;
 
     graph->nodes = ht_create(8, 1<<16, (ht_free_item_callback_t)graph_node_destroy);
+    if (!graph->nodes) {
+        free(graph->label);
+        free(graph);
+        return NULL;
+    }
 
     graph_error_reset(graph);
 
     return graph;
 }
 
-void graph_destroy(graph_t *graph)
+void
+graph_destroy(graph_t *graph)
 {
     free(graph->label);
     ht_destroy(graph->nodes);
@@ -170,7 +176,7 @@ graph_node_disconnect(graph_node_t *node1, graph_node_t *node2)
 
 
 graph_node_t *
-graph_node_connection_select(graph_node_t *node)
+graph_node_next(graph_node_t *node)
 {
     graph_node_connection_t *connection;
     graph_node_t *selected_destination = NULL;
@@ -189,10 +195,10 @@ graph_node_connection_select(graph_node_t *node)
     return selected_destination;
 }
 
-char *
+const char *
 graph_node_label_get(graph_node_t *node)
 {
-    return node->label;
+    return strdup(node->label);
 }
 
 graph_node_t *
