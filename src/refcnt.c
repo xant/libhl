@@ -13,7 +13,7 @@ struct _refcnt_node_s {
     void *ptr;
     void *priv;
     uint32_t count;
-    uint8_t delete;
+    uint8_t updating;
 };
 #pragma pack(pop)
 
@@ -91,7 +91,7 @@ deref_link_internal(refcnt_t *refcnt, refcnt_node_t **link, int skip_deleted)
             else
                 node = REFCNT_MARK_OFF(node);
         }
-        if (node && !(ATOMIC_READ(node->delete) == 1 &&
+        if (node && !(ATOMIC_READ(node->updating) == 1 &&
                       ATOMIC_READ(node->count) == 0))
         {
             ATOMIC_INCREMENT(node->count);
@@ -128,14 +128,14 @@ release_ref(refcnt_t *refcnt, refcnt_node_t *ref)
     if (ATOMIC_READ(ref->count) > 0)
         ATOMIC_DECREMENT(ref->count);
 
-    if (ATOMIC_CAS(ref->delete, 0, 1)) {
+    if (ATOMIC_CAS(ref->updating, 0, 1)) {
         if (ATOMIC_READ(ref->count) == 0) {
             if (refcnt->terminate_node_cb)
                 refcnt->terminate_node_cb(ref, ref->priv);
             rqueue_write(refcnt->free_list, ref);
             terminated = 1;
         } else {
-            ATOMIC_CAS(ref->delete, 1, 0);
+            ATOMIC_CAS(ref->updating, 1, 0);
         }
     }
     if (rqueue_write_count(refcnt->free_list) - rqueue_read_count(refcnt->free_list) > refcnt->gc_threshold)
@@ -195,7 +195,7 @@ new_node(refcnt_t *refcnt, void *ptr, void *priv)
     node->ptr = ptr;
     node->priv = priv;
     node->count = 1;
-    node->delete = 0;
+    node->updating = 0;
     return node;
 }
 
