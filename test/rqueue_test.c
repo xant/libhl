@@ -7,6 +7,57 @@
 #include <pthread.h>
 #include <libgen.h>
 
+#define SIZE_OF_BUFFER 512
+#define NUM_OF_WRITER 5
+#define NUM 1000
+
+static rqueue_t *ring;
+static int end;
+static int write_count = 0;
+static int read_count = 0;
+
+void *write_thread(void *ptr) {
+	for(int i=0;i<NUM;i++) {
+		void *p = malloc(1);
+		if(p) {
+			if(rqueue_write(ring, p) == 0) {
+				__sync_fetch_and_add(&write_count, 1);
+			}	
+		}
+	}
+	return NULL;
+}
+
+void *read_thread(void *ptr) {
+	while(1) {
+		if(__sync_fetch_and_add(&end, 0) && rqueue_isempty(ring)) break;
+
+		void *val = rqueue_read(ring);
+		if(val) __sync_fetch_and_add(&read_count, 1);
+		free(val);
+	}
+	return NULL;
+}
+
+void test_multiple_writers_one_reader() {
+    ut_testing("Test multiple writers and one reader");
+    ring = rqueue_create(SIZE_OF_BUFFER, RQUEUE_MODE_BLOCKING);
+    pthread_t writer[NUM_OF_WRITER];
+    pthread_t reader;
+    end = 0;
+    pthread_create(&reader, NULL, read_thread, NULL);
+    for(int i=0;i<NUM_OF_WRITER;i++) {
+            pthread_create(writer+i, NULL, write_thread, NULL);
+    }
+    for(int i=0;i<NUM_OF_WRITER;i++) {
+            pthread_join(writer[i], NULL);
+    }
+    __sync_fetch_and_add(&end, 1);
+    pthread_join(reader, NULL);
+    rqueue_destroy(ring);
+    ut_result(read_count == write_count, "the read count (%d) doesn't match the write count (%d)");
+}
+
 static int reads_count = 0;
 
 static int do_free = 0;
@@ -164,12 +215,16 @@ int main(int argc, char **argv) {
     
     int rc = rqueue_write(rb, "3");
     ut_result(rc == 0, "Write failed with return-code %d", rc);
-    ut_testing("First value is the overwritten one");
+    ut_testing("First value is the overwritten one (XXX - this test MUST fail until the algorithm is fixed to not require size+1 pages to work) ");
     ut_validate_string(rqueue_read(rb), "3");
 
     rqueue_destroy(rb);
+
+    test_multiple_writers_one_reader();
 
     ut_summary();
 
     exit(ut_failed);
 }
+
+
