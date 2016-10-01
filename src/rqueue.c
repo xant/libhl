@@ -218,7 +218,7 @@ rqueue_write(rqueue_t *rb, void *value) {
 
         if (rb->mode == RQUEUE_MODE_BLOCKING && commit == temp_page && temp_page != head && next_page != head) {
             if (retries++ < RQUEUE_MAX_RETRIES) {
-                ATOMIC_CAS_RETURN(rb->tail, temp_page, next_page);
+                ATOMIC_CAS(rb->tail, temp_page, next_page);
                 ATOMIC_DECREMENT(rb->num_writers);
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 sched_yield();
