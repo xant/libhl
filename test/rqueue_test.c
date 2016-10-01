@@ -17,26 +17,28 @@ static int write_count = 0;
 static int read_count = 0;
 
 void *write_thread(void *ptr) {
-	for(int i=0;i<NUM;i++) {
-		void *p = malloc(1);
-		if(p) {
-			if(rqueue_write(ring, p) == 0) {
-				__sync_fetch_and_add(&write_count, 1);
-			}	
-		}
-	}
-	return NULL;
+    int i;
+    for(i = 0; i < NUM; i++) {
+        void *p = malloc(1);
+        if(p) {
+            if(rqueue_write(ring, p) == 0) {
+                __sync_fetch_and_add(&write_count, 1);
+            }
+        }
+    }
+    return NULL;
 }
 
 void *read_thread(void *ptr) {
-	while(1) {
-		if(__sync_fetch_and_add(&end, 0) && rqueue_isempty(ring)) break;
+    while(1) {
+        if(__sync_fetch_and_add(&end, 0) && rqueue_isempty(ring))
+            break;
 
-		void *val = rqueue_read(ring);
-		if(val) __sync_fetch_and_add(&read_count, 1);
-		free(val);
-	}
-	return NULL;
+        void *val = rqueue_read(ring);
+        if(val) __sync_fetch_and_add(&read_count, 1);
+        free(val);
+    }
+    return NULL;
 }
 
 void test_multiple_writers_one_reader() {
@@ -46,10 +48,11 @@ void test_multiple_writers_one_reader() {
     pthread_t reader;
     end = 0;
     pthread_create(&reader, NULL, read_thread, NULL);
-    for(int i=0;i<NUM_OF_WRITER;i++) {
-            pthread_create(writer+i, NULL, write_thread, NULL);
+    int i;
+    for(i = 0; i < NUM_OF_WRITER; i++) {
+            pthread_create(writer + i, NULL, write_thread, NULL);
     }
-    for(int i=0;i<NUM_OF_WRITER;i++) {
+    for(i = 0; i < NUM_OF_WRITER; i++) {
             pthread_join(writer[i], NULL);
     }
     __sync_fetch_and_add(&end, 1);
