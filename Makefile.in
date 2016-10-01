@@ -42,7 +42,7 @@ endif
 IS_CLANG := $(shell $(CC) --version | grep clang)
 
 ifneq ("$(IS_CLANG)", "")
-CLANG_FLAGS=-Wno-undefined-inline -Wno-unknown-warning-option
+CLANG_FLAGS=-Wno-undefined-inline -Wno-unknown-warning-option -Wdeprecated-declarations
 endif
 
 TARGETS = $(patsubst $(srcdir)/src/%.c, $(builddir)/%.o, $(wildcard $(srcdir)/src/*.c))

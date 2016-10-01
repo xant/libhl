@@ -135,7 +135,7 @@ void *rqueue_read(rqueue_t *rb) {
             rqueue_page_t *head = ATOMIC_READ(rb->head);
 
             rqueue_page_t *commit = ATOMIC_READ(rb->commit);
-            rqueue_page_t *tail = ATOMIC_READ(rb->tail);
+            //rqueue_page_t *tail = ATOMIC_READ(rb->tail);
             rqueue_page_t *next = ATOMIC_READ(head->next);
             rqueue_page_t *old_next = ATOMIC_READ(rb->reader->next);
 
@@ -191,15 +191,12 @@ rqueue_update_value(rqueue_t *rb, rqueue_page_t *page, void *value) {
 int
 rqueue_write(rqueue_t *rb, void *value) {
     int retries = 0;
-    int did_update = 0;
-    int did_move_head = 0;
 
     rqueue_page_t *temp_page = NULL;
     rqueue_page_t *next_page = NULL;
     rqueue_page_t *tail = NULL;
     rqueue_page_t *head = NULL;
     rqueue_page_t *commit;
-    int check = -1;
     int count = 0;
     
     // TODO - get rid of this barrier
