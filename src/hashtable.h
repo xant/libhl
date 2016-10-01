@@ -29,9 +29,11 @@ typedef struct _hashtable_s hashtable_t;
  */
 typedef void (*ht_free_item_callback_t)(void *);
 
+#define HT_SIZE_MIN 128
+
 /**
  * @brief Create a new table descriptor
- * @param initial_size : initial size of the table
+ * @param initial_size : initial size of the table; if 0 HT_SIZE_MIN will be used as initial size
  * @param max_size     : maximum size the table can be grown up to
  * @param free_item_cb : the callback to use when an item needs to be released
  * @return a newly allocated and initialized table

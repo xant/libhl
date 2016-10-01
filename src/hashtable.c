@@ -8,8 +8,6 @@
 #include "bsd_queue.h"
 #include "atomic_defs.h"
 
-#define HT_SIZE_MIN 128
-
 #define HT_KEY_EQUALS(_k1, _kl1, _k2, _kl2) \
             (((char *)(_k1))[0] == ((char *)(_k2))[0] && \
             (_kl1) == (_kl2) && \
