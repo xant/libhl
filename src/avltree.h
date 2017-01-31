@@ -7,7 +7,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <sys/types.h>
-#include <comparators.h>
+#include "comparators.h"
 
 typedef struct _avlt_s avlt_t;
 

@@ -83,7 +83,7 @@ list_create()
  * useful when using static list handlers
  */
 int
-list_init(linked_list_t *list)
+list_init(linked_list_t *list __attribute__ ((unused)))
 {
 #ifdef THREAD_SAFE
     pthread_mutexattr_t attr;
@@ -179,13 +179,13 @@ list_set_free_value_callback(linked_list_t *list, free_value_callback_t free_val
 }
 
 void
-list_lock(linked_list_t *list)
+list_lock(linked_list_t *list __attribute__ ((unused)))
 {
     MUTEX_LOCK(list->lock);
 }
 
 void
-list_unlock(linked_list_t *list)
+list_unlock(linked_list_t *list __attribute__ ((unused)))
 {
     MUTEX_UNLOCK(list->lock);
 }
@@ -863,7 +863,7 @@ list_set_tagged_value(linked_list_t *list, char *tag, void *value, size_t len, i
         tval = list_create_tagged_value_nocopy(tag, value);
 
     MUTEX_LOCK(list->lock);
-    for (i = 0; i < list->length; i++) {
+    for (i = 0; i < (int)list->length; i++) {
         tagged_value_t *tv = list_pick_tagged_value(list, i);
         if (tv && tv->tag && tv->tag[0] == tag[0] &&
             strcmp(tv->tag, tag) == 0)

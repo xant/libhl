@@ -150,7 +150,7 @@ typedef struct {
 } pqueue_walk_helper_arg_t;
 
 static int 
-pqueue_walk_helper(binheap_t *bh, void *key, size_t klen, void *value, void *priv)
+pqueue_walk_helper(binheap_t *bh __attribute__ ((unused)), void *key, size_t klen __attribute__ ((unused)), void *value, void *priv)
 {
     pqueue_walk_helper_arg_t *arg = (pqueue_walk_helper_arg_t *)priv;
     uint64_t *prio = (uint64_t *)key;
@@ -175,7 +175,7 @@ typedef struct {
 } pqueue_remove_helper_arg_t;
 
 static inline int
-pqueue_remove_helper(pqueue_t *pq, uint64_t prio, void *value, void *priv)
+pqueue_remove_helper(pqueue_t *pq __attribute__ ((unused)), uint64_t prio __attribute__ ((unused)), void *value, void *priv)
 {
     pqueue_remove_helper_arg_t *arg = (pqueue_remove_helper_arg_t *)priv;
     if (value == arg->value)

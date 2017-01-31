@@ -387,7 +387,7 @@ fbuf_prepend_binary(fbuf_t *fbuf, const char *data, int len)
     if (len <= 0 || !data)
         return 0; // nothing to be done
 
-    if (fbuf->skip >= len) {
+    if ((int)fbuf->skip >= len) {
         memcpy(fbuf->data + fbuf->skip - len, data, len);
         fbuf->skip -= len;
     } else {

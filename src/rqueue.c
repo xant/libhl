@@ -1,9 +1,9 @@
 #include <stdlib.h>
-#include <rqueue.h>
 #include <stdio.h>
 #include <inttypes.h>
 #include <sched.h>
 #include "atomic_defs.h"
+#include "rqueue.h"
 
 #define RQUEUE_FLAG_HEAD   (0x01)
 #define RQUEUE_FLAG_UPDATE (0x02)
@@ -18,12 +18,11 @@
 
 #define RQUEUE_MIN_SIZE 3
 
-#pragma pack(push, 4)
 typedef struct _rqueue_page_s {
     void               *value;
     struct _rqueue_page_s *next;
     struct _rqueue_page_s *prev;
-} rqueue_page_t;
+} __attribute__ ((packed)) rqueue_page_t;
 
 struct _rqueue_s {
     rqueue_page_t             *head;
@@ -38,8 +37,7 @@ struct _rqueue_s {
     int read_sync;
     int write_sync;
     int num_writers;
-};
-#pragma pack(pop)
+} __attribute__ ((packed));
 
 static inline void rqueue_destroy_page(rqueue_page_t *page, rqueue_free_value_callback_t free_value_cb) {
     if (page->value && free_value_cb)

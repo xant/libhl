@@ -1,5 +1,5 @@
 /** 
-om
+ * @file linklist.h
  * @author Andrea Guzzo
  * @date 22/09/2013
  * @brief Fast thread-safe linklist implementation

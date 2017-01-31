@@ -413,7 +413,7 @@ rbt_sibling(rbt_node_t *node)
 }
 
 static inline rbt_node_t *
-rbt_find_next(rbt_t *rbt, rbt_node_t *node)
+rbt_find_next(rbt_node_t *node)
 {
     if (!node->right)
         return NULL;
@@ -427,7 +427,7 @@ rbt_find_next(rbt_t *rbt, rbt_node_t *node)
 }
 
 static inline rbt_node_t *
-rbt_find_prev(rbt_t *rbt, rbt_node_t *node)
+rbt_find_prev(rbt_node_t *node)
 {
     if (!node->left)
         return NULL;
@@ -535,9 +535,9 @@ rbt_remove(rbt_t *rbt, void *k, size_t klen, void **v)
             static int prevnext = 0;
             int isprev = (prevnext++%2 == 0);
             if (isprev)
-                n = rbt_find_prev(rbt, node);
+                n = rbt_find_prev(node);
             else
-                n = rbt_find_next(rbt, node);
+                n = rbt_find_next(node);
             void *new_key = realloc(node->key, n->klen);
             if (!new_key)
                 return -1;

@@ -18,7 +18,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <comparators.h>
+#include "comparators.h"
 
 /**
  * @brief Working modes (max-based or min-based)

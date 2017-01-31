@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include <comparators.h>
+#include "comparators.h"
 
 /**
  * @brief Opaque structure representing the skip list

@@ -1,21 +1,19 @@
-#include "refcnt.h"
-#include "atomic_defs.h"
-
 #include <stdint.h>
 #include <stdlib.h>
-#include <rqueue.h>
 #include <stdio.h>
+
+#include "refcnt.h"
+#include "atomic_defs.h"
+#include "rqueue.h"
 
 #define RQUEUE_MIN_SIZE 1<<8
 
-#pragma pack(push, 1)
 struct _refcnt_node_s {
     void *ptr;
     void *priv;
     uint32_t count;
     uint8_t updating;
-};
-#pragma pack(pop)
+} __attribute__ ((packed));
 
 struct _refcnt_s {
     refcnt_terminate_node_callback_t terminate_node_cb;
@@ -55,7 +53,7 @@ static void
 gc(refcnt_t *refcnt, int force)
 {
 
-    int limit = force ? 0 : refcnt->gc_threshold/2;
+    uint64_t limit = force ? 0 : refcnt->gc_threshold/2;
 
     while (rqueue_write_count(refcnt->free_list) - rqueue_read_count(refcnt->free_list) > limit)
     {
@@ -81,7 +79,7 @@ refcnt_destroy(refcnt_t *refcnt)
 }
 
 refcnt_node_t *
-deref_link_internal(refcnt_t *refcnt, refcnt_node_t **link, int skip_deleted)
+deref_link_internal(refcnt_t *refcnt __attribute__ ((unused)), refcnt_node_t **link, int skip_deleted)
 {
     while (1) {
         refcnt_node_t *node = __sync_fetch_and_add(link, 0);
@@ -145,7 +143,7 @@ release_ref(refcnt_t *refcnt, refcnt_node_t *ref)
 }
 
 int
-compare_and_swap_ref(refcnt_t *refcnt, refcnt_node_t **link, refcnt_node_t *old, refcnt_node_t *ref)
+compare_and_swap_ref(refcnt_t *refcnt __attribute__ ((unused)), refcnt_node_t **link, refcnt_node_t *old, refcnt_node_t *ref)
 {
     if (__sync_bool_compare_and_swap(link, old, ref)) {
         if (ref != NULL) {

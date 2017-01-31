@@ -16,6 +16,7 @@
 extern "C" {
 #endif
 
+#include <sys/types.h>
 
 typedef enum {
     RBUF_MODE_BLOCKING = 0,

@@ -1,6 +1,8 @@
 #ifndef HT_GRAPH_H
 #define HT_GRAPH_H
 
+#include <sys/types.h>
+
 #define EGRAPHNOERR              600
 #define EGRAPHNONODE             601
 #define EGRAPHNOLABEL            602

@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 
 #include "graph.h"
@@ -86,7 +85,7 @@ graph_destroy(graph_t *graph)
 }
 
 int
-graph_node_delete(graph_t *graph, char *label, graph_node_t **connections, int max_connections)
+graph_node_delete(graph_t *graph, char *label __attribute__ ((unused)), graph_node_t **connections, int max_connections)
 {
     graph_node_t *node = NULL;
     int rc = ht_delete(graph->nodes, node->label, strlen(node->label), (void **)&node, NULL);
@@ -227,7 +226,7 @@ char *
 graph_strerror(graph_t *graph)
 {
     int index = graph->errno - 600;
-    if (index >= 0 && index < sizeof(graph_error_messages) / sizeof(char *))
+    if (index >= 0 && index < (int)(sizeof(graph_error_messages) / sizeof(char *)))
         return graph_error_messages[index];
     return NULL;
 }

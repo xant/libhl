@@ -1,7 +1,7 @@
-
-#include "trie.h"
 #include <stdlib.h>
 #include <string.h>
+
+#include "trie.h"
 
 typedef struct _trie_node_s {
     void *value;

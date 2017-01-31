@@ -221,7 +221,7 @@ binomial_tree_node_increase_key(binomial_tree_node_t *node, int incr)
 }
 
 static inline int
-binheap_remove_root_node(void *item, size_t idx, void *user)
+binheap_remove_root_node(void *item, size_t idx __attribute__ ((unused)), void *user)
 {
     if (item == user)
         return -2;
@@ -233,7 +233,7 @@ binheap_maxmin(binheap_t *bh, size_t *index, int maxmin)
 {
     int i;
     binomial_tree_node_t *node = NULL;
-    for (i = 0; i < list_count(bh->trees); i ++) {
+    for (i = 0; i < (int)list_count(bh->trees); i ++) {
         binomial_tree_node_t *curtree = list_pick_value(bh->trees, i);
         if (!node) {
             node = curtree;
@@ -451,7 +451,7 @@ binheap_delete(binheap_t *bh, void *key, size_t klen, void **value)
 {
     binomial_tree_node_t *tree = NULL;
     int i;
-    for (i = 0; i < list_count(bh->trees); i++) {
+    for (i = 0; i < (int)list_count(bh->trees); i++) {
         binomial_tree_node_t *cur_tree = list_pick_value(bh->trees, i);
         if (HAS_PRECEDENCE(bh, cur_tree->key, cur_tree->klen, key, klen)) {
             if (tree) {
@@ -810,7 +810,7 @@ binheap_walk(binheap_t *bh, binheap_walk_callback_t cb, void *priv)
 {
     int cnt = 0;
     int i;
-    for (i = 0; i < list_count(bh->trees); i++) {
+    for (i = 0; i < (int)list_count(bh->trees); i++) {
         binomial_tree_node_t *curtree = list_pick_value(bh->trees, i);
         if (!binomial_tree_walk(curtree, &cnt, cb, priv))
             break;

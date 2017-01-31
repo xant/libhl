@@ -16,7 +16,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <linklist.h>
+#include "linklist.h"
 
 /**
  * @brief Opaque structure representing the actual hash table descriptor

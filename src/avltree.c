@@ -275,7 +275,7 @@ avlt_add(avlt_t *tree, void *key, size_t klen, void *value)
 }
 
 static inline avlt_node_t *
-avlt_find_next(avlt_t *tree, avlt_node_t *node)
+avlt_find_next(avlt_node_t *node)
 {
     if (!node->right)
         return NULL;
@@ -289,7 +289,7 @@ avlt_find_next(avlt_t *tree, avlt_node_t *node)
 }
 
 static inline avlt_node_t *
-avlt_find_prev(avlt_t *tree, avlt_node_t *node)
+avlt_find_prev(avlt_node_t *node)
 {
     if (!node->left)
         return NULL;
@@ -320,9 +320,9 @@ avlt_remove(avlt_t *tree, void *key, size_t klen, void **value)
             // 2 children case
             avlt_node_t *p = NULL;
             if (cur->hl > cur->hr)
-                p = avlt_find_prev(tree, cur);
+                p = avlt_find_prev(cur);
             else
-                p = avlt_find_next(tree, cur);
+                p = avlt_find_next(cur);
             if (p) {
                 void *ktmp = cur->key;
                 size_t kltmp = cur->klen;

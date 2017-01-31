@@ -1,12 +1,13 @@
-#include <hashtable.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
 #include <strings.h>
+#include <sched.h>
 
 #include "bsd_queue.h"
 #include "atomic_defs.h"
+#include "hashtable.h"
 
 #define HT_KEY_EQUALS(_k1, _kl1, _k2, _kl2) \
             (((char *)(_k1))[0] == ((char *)(_k2))[0] && \
@@ -14,7 +15,6 @@
             memcmp((_k1), (_k2), (_kl1)) == 0)
 
 
-#pragma pack(push, 1)
 typedef struct _ht_item {
     uint32_t hash;
     char     kbuf[32];
@@ -23,7 +23,7 @@ typedef struct _ht_item {
     void    *data;
     size_t   dlen;
     TAILQ_ENTRY(_ht_item) next;
-} ht_item_t;
+} __attribute__((packed)) ht_item_t;
 
 typedef struct _ht_item_list {
     TAILQ_HEAD(, _ht_item) head;
@@ -36,11 +36,11 @@ typedef struct _ht_item_list {
 #endif
     size_t index;
     TAILQ_ENTRY(_ht_item_list) iterator_next;
-} ht_items_list_t;
+} __attribute__((packed)) ht_items_list_t;
 
 typedef struct {
     TAILQ_HEAD(, _ht_item_list) head;
-} ht_iterator_list_t;
+} __attribute__((packed)) ht_iterator_list_t;
 
 // NOTE : order here matters (and also numbering)
 typedef enum {
@@ -49,7 +49,7 @@ typedef enum {
     HT_STATUS_GROW  = 2,
     HT_STATUS_IDLE  = 3,
     HT_STATUS_READ  = 4
-} ht_status_t;
+} __attribute__((packed)) ht_status_t;
 
 struct _hashtable_s {
     size_t size;
@@ -63,8 +63,7 @@ struct _hashtable_s {
 #ifdef THREAD_SAFE
     pthread_mutex_t iterator_lock;
 #endif
-};
-#pragma pack(pop)
+} __attribute__((packed));
 
 typedef struct _ht_iterator_callback {
     int (*cb)();
@@ -628,7 +627,7 @@ typedef struct {
 } ht_set_if_equals_helper_arg_t;
 
 static int
-ht_set_if_equals_helper(hashtable_t *table, void *key, size_t klen, void **value, size_t *vlen, void *user)
+ht_set_if_equals_helper(hashtable_t *table, void *key __attribute__ ((unused)), size_t klen __attribute__ ((unused)), void **value, size_t *vlen, void *user)
 {
     ht_set_if_equals_helper_arg_t *arg = (ht_set_if_equals_helper_arg_t *)user;
      
@@ -694,7 +693,7 @@ typedef struct
 } ht_delete_helper_arg_t;
 
 static int
-ht_delete_helper(hashtable_t *table, void *key, size_t klen, void **value, size_t *vlen, void *user)
+ht_delete_helper(hashtable_t *table, void *key __attribute__ ((unused)), size_t klen __attribute__ ((unused)), void **value, size_t *vlen, void *user)
 {
     ht_delete_helper_arg_t *arg = (ht_delete_helper_arg_t *)user;
 
@@ -788,7 +787,7 @@ typedef struct {
 } ht_get_helper_arg_t;
 
 static int
-ht_get_helper(hashtable_t *table, void *key, size_t klen, void **value, size_t *vlen, void *user)
+ht_get_helper(hashtable_t *table __attribute__ ((unused)), void *key __attribute__ ((unused)), size_t klen __attribute__ ((unused)), void **value, size_t *vlen, void *user)
 {
     ht_get_helper_arg_t *arg = (ht_get_helper_arg_t *)user;
 
@@ -939,7 +938,7 @@ typedef struct {
 } ht_iterator_arg_t;
 
 static int
-ht_foreach_key_helper(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user)
+ht_foreach_key_helper(hashtable_t *table, void *key, size_t klen, void *value __attribute__ ((unused)), size_t vlen __attribute__ ((unused)), void *user)
 {
     ht_iterator_arg_t *arg = (ht_iterator_arg_t *)user;
     return arg->cb(table, key, klen, arg->user);
@@ -953,7 +952,7 @@ ht_foreach_key(hashtable_t *table, ht_key_iterator_callback_t cb, void *user)
 }
 
 static int
-ht_foreach_value_helper(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user)
+ht_foreach_value_helper(hashtable_t *table, void *key __attribute__ ((unused)), size_t klen __attribute__ ((unused)), void *value, size_t vlen, void *user)
 {
     ht_iterator_arg_t *arg = (ht_iterator_arg_t *)user;
     return arg->cb(table, value, vlen, arg->user);
