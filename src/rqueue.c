@@ -18,11 +18,17 @@
 
 #define RQUEUE_MIN_SIZE 3
 
+#ifdef USE_PACKED_STRUCTURES
+#define PACK_IF_NECESSARY __attribute__((packed))
+#else
+#define PACK_IF_NECESSARY
+#endif
+
 typedef struct _rqueue_page_s {
     void               *value;
     struct _rqueue_page_s *next;
     struct _rqueue_page_s *prev;
-} __attribute__ ((packed)) rqueue_page_t;
+} PACK_IF_NECESSARY rqueue_page_t;
 
 struct _rqueue_s {
     rqueue_page_t             *head;
@@ -37,7 +43,7 @@ struct _rqueue_s {
     int read_sync;
     int write_sync;
     int num_writers;
-} __attribute__ ((packed));
+} PACK_IF_NECESSARY;
 
 static inline void rqueue_destroy_page(rqueue_page_t *page, rqueue_free_value_callback_t free_value_cb) {
     if (page->value && free_value_cb)

@@ -10,6 +10,12 @@
 #include "rqueue.h"
 #include "atomic_defs.h"
 
+#ifdef USE_PACKED_STRUCTURES
+#define PACK_IF_NECESSARY __attribute__((packed))
+#else
+#define PACK_IF_NECESSARY
+#endif
+
 // size is 32 bytes on 32bit systems and 64 bytes on 64bit ones
 typedef struct _queue_entry_s {
     refcnt_node_t *node;
@@ -17,7 +23,7 @@ typedef struct _queue_entry_s {
     refcnt_node_t *next;
     void *value;
     queue_t *queue;
-} __attribute__ ((packed)) queue_entry_t;
+} PACK_IF_NECESSARY queue_entry_t;
 
 // size is 32 bytes on 32bit systems and 64 bytes on 64bit ones
 struct _queue_s {
@@ -29,7 +35,7 @@ struct _queue_s {
     queue_free_value_callback_t free_value_cb;
     rqueue_t *bpool;
     size_t bpool_size;
-} __attribute__ ((packed));
+} PACK_IF_NECESSARY;
 
 /*
  * Create a new queue_t. Allocates resources and returns

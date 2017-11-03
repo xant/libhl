@@ -8,12 +8,18 @@
 
 #define RQUEUE_MIN_SIZE 1<<8
 
+#ifdef USE_PACKED_STRUCTURES
+#define PACK_IF_NECESSARY __attribute__((packed))
+#else
+#define PACK_IF_NECESSARY
+#endif
+
 struct _refcnt_node_s {
     void *ptr;
     void *priv;
     uint32_t count;
     uint8_t updating;
-} __attribute__ ((packed));
+} PACK_IF_NECESSARY;
 
 struct _refcnt_s {
     refcnt_terminate_node_callback_t terminate_node_cb;

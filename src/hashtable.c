@@ -9,6 +9,12 @@
 #include "atomic_defs.h"
 #include "hashtable.h"
 
+#ifdef USE_PACKED_STRUCTURES
+#define PACK_IF_NECESSARY __attribute__((packed))
+#else
+#define PACK_IF_NECESSARY
+#endif
+
 #define HT_KEY_EQUALS(_k1, _kl1, _k2, _kl2) \
             (((char *)(_k1))[0] == ((char *)(_k2))[0] && \
             (_kl1) == (_kl2) && \
@@ -23,7 +29,7 @@ typedef struct _ht_item {
     void    *data;
     size_t   dlen;
     TAILQ_ENTRY(_ht_item) next;
-} __attribute__((packed)) ht_item_t;
+} PACK_IF_NECESSARY ht_item_t;
 
 typedef struct _ht_item_list {
     TAILQ_HEAD(, _ht_item) head;
@@ -36,11 +42,11 @@ typedef struct _ht_item_list {
 #endif
     size_t index;
     TAILQ_ENTRY(_ht_item_list) iterator_next;
-} __attribute__((packed)) ht_items_list_t;
+} PACK_IF_NECESSARY ht_items_list_t;
 
 typedef struct {
     TAILQ_HEAD(, _ht_item_list) head;
-} __attribute__((packed)) ht_iterator_list_t;
+} PACK_IF_NECESSARY ht_iterator_list_t;
 
 // NOTE : order here matters (and also numbering)
 typedef enum {
@@ -49,7 +55,7 @@ typedef enum {
     HT_STATUS_GROW  = 2,
     HT_STATUS_IDLE  = 3,
     HT_STATUS_READ  = 4
-} __attribute__((packed)) ht_status_t;
+} PACK_IF_NECESSARY ht_status_t;
 
 struct _hashtable_s {
     size_t size;
@@ -63,7 +69,7 @@ struct _hashtable_s {
 #ifdef THREAD_SAFE
     pthread_mutex_t iterator_lock;
 #endif
-} __attribute__((packed));
+} PACK_IF_NECESSARY;
 
 typedef struct _ht_iterator_callback {
     int (*cb)();
