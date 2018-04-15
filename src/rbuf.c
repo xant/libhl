@@ -222,25 +222,20 @@ rbuf_read_until(rbuf_t *rb, u_char octet, u_char *out, int maxsize)
     int size = rbuf_used(rb);
     int to_read = size;
     int found = 0;
-    for (i = rb->rfx; i < rb->size; i++, j++) {
+    for (i = rb->rfx; i < rb->size && (size-to_read) < maxsize; i++, j++) {
         to_read--;
+        out[j] = rb->buf[i];
         if(rb->buf[i] == octet)  {
             found = 1;
             break;
-        } else if ((size-to_read) == maxsize) {
-            break;
-        } else {
-            out[j] = rb->buf[i];
         }
     }
     if(!found) {
         for (i = 0; to_read > 0 && (size-to_read) < maxsize; i++, j++) {
             to_read--;
+            out[j] = rb->buf[i];
             if(rb->buf[i] == octet) {
                 break;
-            }
-            else {
-                out[j] = rb->buf[i];
             }
         }
     }

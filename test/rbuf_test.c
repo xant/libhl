@@ -78,8 +78,15 @@ main (int argc, char **argv)
     // fill the buffer so that it looks like '0123456789ABCDEFxxxxxxxx'
     rbuf_write(rb, buffer1, 16);
     rbuf_write(rb, buffer2, 16);
+    ut_testing("rb has space for only 24 bytes of the 32 we tried to write");
+    ut_validate_int(rbuf_size(rb), 24);
+
     ut_testing("rbuf_read_until(rb, 'x', test, 24)");
     ut_validate_int(rbuf_read_until(rb, 'x', test, rb->size), 17); // 16bytes + first 'x' occurence
+
+    ut_testing("output buffer contains the correct data");
+    ut_validate_string("0123456789ABCDEFx", test);
+
     ut_testing("rbuf_find(rb, 'x') == 0");
     ut_validate_int(rbuf_find(rb, 'x'), 0);
     // now check if rbuf_read_until is able to wrap around the buffer
@@ -90,8 +97,16 @@ main (int argc, char **argv)
     ut_testing("rbuf_available(rb) == rbuf_size(rb) - rbuf_used(rb)");
     ut_validate_int(rbuf_available(rb), rbuf_size(rb) - rbuf_used(rb));
 
+    memset(test, 0, sizeof(test));
+
     ut_testing("rbuf_read_until(rb, 'E', test, 24)");
     ut_validate_int(rbuf_read_until(rb, 'E', test, rb->size), 22);
+
+    // check if the outputbuffer gets properly populated also when calling
+    // rbuf_read_until() on a rbuf already used for reading (hence rbuf->rfx > 0)
+    ut_testing("output buffer contains the correct data (rbuf->rfx > 0)");
+    ut_validate_string("xxxxxxx0123456789ABCDE", test);
+
     // first byte now has to be 'F' (which follows the 'E' we looked for)
     ut_testing("rbuf_find(rb, 'F') == 0");
     ut_validate_int(rbuf_find(rb, 'F'), 0);
