@@ -83,6 +83,9 @@ main (int argc, char **argv)
     ut_testing("rbuf_read_until(rb, 'x', test, 24)");
     ut_validate_int(rbuf_read_until(rb, 'x', test, rb->size), 17); // 16bytes + first 'x' occurence
 
+    ut_testing("rbuf_used(rb) == 7");
+    ut_validate_int(rbuf_used(rb), 7);
+
     ut_testing("output buffer contains the correct data");
     ut_validate_string("0123456789ABCDEFx", test);
 
@@ -92,6 +95,8 @@ main (int argc, char **argv)
     rbuf_write(rb, buffer1, 16);
     ut_testing("rb->rfx > rb->wfx");
     ut_validate_int((rb->rfx > rb->wfx), 1);
+    ut_testing("rbuf_used(rb) == 23");
+    ut_validate_int(rbuf_used(rb), 23);
 
     ut_testing("rbuf_available(rb) == rbuf_size(rb) - rbuf_used(rb)");
     ut_validate_int(rbuf_available(rb), rbuf_size(rb) - rbuf_used(rb));
@@ -100,6 +105,8 @@ main (int argc, char **argv)
 
     ut_testing("rbuf_read_until(rb, 'E', test, 24)");
     ut_validate_int(rbuf_read_until(rb, 'E', test, rb->size), 22);
+    ut_testing("rbuf_used(rb) == 1");
+    ut_validate_int(rbuf_used(rb), 1);
 
     // check if the outputbuffer gets properly populated also when calling
     // rbuf_read_until() on a rbuf already used for reading (hence rbuf->rfx > 0)
