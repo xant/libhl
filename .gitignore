@@ -11,3 +11,10 @@ test/*_test
 test/*_debug
 .DS_Store
 *.dSYM
+Makefile
+autom4te.cache/
+config.h
+config.log
+config.status
+configure
+libtool
