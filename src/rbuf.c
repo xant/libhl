@@ -11,7 +11,6 @@
 struct _rbuf_s {
     u_char *buf;        // the buffer
     int size;           // buffer size
-    int available;      // buffer size
     int used;           // used size
     int rfx;            // read offset
     int wfx;            // write offset
@@ -27,29 +26,16 @@ rbuf_create(int size) {
         return NULL;
     }
     if(size == 0)
-        new_rb->size = RBUF_DEFAULT_SIZE+1;
+        new_rb->size = RBUF_DEFAULT_SIZE;
     else
-        new_rb->size = size+1;
+        new_rb->size = size;
     new_rb->buf = (u_char *)malloc(new_rb->size);
     if(!new_rb->buf) {
         /* TODO - Error Messaeggs */
         free(new_rb);
         return NULL;
     }
-    new_rb->available = new_rb->size - 1;
     return new_rb;
-}
-
-static void
-rbuf_update_size(rbuf_t *rb) {
-    if(rb->wfx == rb->rfx)
-        rb->used = 0;
-    else if(rb->wfx < rb->rfx)
-        rb->used = rb->wfx+(rb->size-rb->rfx);
-    else
-        rb->used = rb->wfx-rb->rfx;
-
-    rb->available = rb->size - rb->used - 1;
 }
 
 void
@@ -66,9 +52,11 @@ rbuf_mode(rbuf_t *rbuf)
 
 void
 rbuf_skip(rbuf_t *rb, int size) {
-    if(size >= rb->size) { // just empty the ringbuffer
+    if(size >= rb->used) { // just empty the ringbuffer
         rb->rfx = rb->wfx;
+        rb->used = 0;
     } else {
+        rb->used -= size;
         if (size > rb->size-rb->rfx) {
             size -= rb->size-rb->rfx;
             rb->rfx = size;
@@ -76,35 +64,22 @@ rbuf_skip(rbuf_t *rb, int size) {
             rb->rfx+=size;
         }
     }
-    rbuf_update_size(rb);
 }
 
 int
 rbuf_read(rbuf_t *rb, u_char *out, int size) {
-    int read_size = rb->used; // never read more than available data
+    int read_size = size > rb->used ? rb->used : size;
     int to_end = rb->size - rb->rfx;
-
-    // requested size is less than stored data, return only what has been requested
-    if(read_size > size)
-        read_size = size;
-
-    if(read_size > 0) {
-        // if the write pointer is beyond the read pointer or the requested read_size is
-        // smaller than the number of octets between the read pointer and the end of the buffer,
-        // than we can safely copy all the octets in a single shot
-        if(rb->wfx > rb->rfx || to_end >= read_size) {
-            memcpy(out, &rb->buf[rb->rfx], read_size);
-            rb->rfx += read_size;
-        }
-        else { // otherwise we have to wrap around the buffer and copy octest in two times
-            memcpy(out, &rb->buf[rb->rfx], to_end);
-            memcpy(out+to_end, &rb->buf[0], read_size - to_end);
-            rb->rfx = read_size - to_end;
-        }
+    if (read_size > to_end) { // check if we need to wrap around
+        memcpy(out, &rb->buf[rb->rfx], to_end);
+        int start_size = read_size - to_end;
+        memcpy(out + to_end, &rb->buf[0], start_size);
+        rb->rfx = start_size;
+    } else {
+        memcpy(out, &rb->buf[rb->rfx], read_size);
+        rb->rfx += read_size;
     }
-
-    rbuf_update_size(rb);
-
+    rb->used -= read_size;
     return read_size;
 }
 
@@ -114,22 +89,22 @@ rbuf_write(rbuf_t *rb, u_char *in, int size) {
     if(!rb || !in || !size) // safety belt
         return 0;
 
-    int write_size = rb->available; // don't write more than available size
-
-    // if requested size fits the available space, use that
-    if(write_size > size) {
-        write_size = size;
-    } else if (rb->mode == RBUF_MODE_OVERWRITE) {
-        if (size > rb->size - 1) {
+    int available_size = rb->size - rb->used;
+    int to_end = rb->size - rb->wfx;
+    int write_size = (size > available_size) ? available_size : size;
+    if (write_size < size && rb->mode == RBUF_MODE_OVERWRITE) {
+        if (size > rb->size) {
             // the provided buffer is bigger than the
             // ringbuffer itself. Since we are in overwrite mode,
             // only the last chunk will be actually stored.
-            write_size = rb->size - 1;
+            write_size = rb->size;
             in = in + (size - write_size);
             rb->rfx = 0;
+            rb->wfx = 0;
             memcpy(rb->buf, in, write_size);
-            rb->wfx = write_size;
-            rbuf_update_size(rb);
+            rb->used = write_size;
+            // NOTE: we still tell the caller we have written all the data
+            // even if the initial part has been thrown away
             return size;
         }
         // we are in overwrite mode, so let's make some space
@@ -139,25 +114,20 @@ rbuf_write(rbuf_t *rb, u_char *in, int size) {
         write_size += diff;
         if (rb->rfx >= rb->size)
             rb->rfx -= rb->size;
+        rb->used -= diff;
     }
+    
 
-    if(rb->wfx >= rb->rfx) { // write pointer is ahead
-        if(write_size <= rb->size - rb->wfx) {
-            memcpy(&rb->buf[rb->wfx], in, write_size);
-            rb->wfx+=write_size;
-        } else { // and we have to wrap around the buffer
-            int to_end = rb->size - rb->wfx;
-            memcpy(&rb->buf[rb->wfx], in, to_end);
-            memcpy(rb->buf, in+to_end, write_size - to_end);
-            rb->wfx = write_size - to_end;
-        }
-    } else { // read pointer is ahead we can safely memcpy the entire chunk
+    if (write_size > to_end) {
+        memcpy(&rb->buf[rb->wfx], in, to_end);
+        int from_start = write_size - to_end;
+        memcpy(&rb->buf[0], in + to_end, from_start);
+        rb->wfx = from_start;
+    } else {
         memcpy(&rb->buf[rb->wfx], in, write_size);
-        rb->wfx+=write_size;
+        rb->wfx += write_size;
     }
-
-    rbuf_update_size(rb);
-
+    rb->used += write_size;
     return write_size;
 }
 
@@ -168,18 +138,18 @@ rbuf_used(rbuf_t *rb) {
 
 int
 rbuf_size(rbuf_t *rb) {
-    return rb->size - 1;
+    return rb->size;
 }
 
 int
 rbuf_available(rbuf_t *rb) {
-    return rb->available;
+    return rb->size - rb->used;
 }
 
 void
 rbuf_clear(rbuf_t *rb) {
     rb->rfx = rb->wfx = 0;
-    rbuf_update_size(rb);
+    rb->used = 0;
 }
 
 void
@@ -197,7 +167,7 @@ rbuf_find(rbuf_t *rb, u_char octet) {
         return -1;
 
     if(rb->wfx > rb->rfx) {
-        for (i = rb->rfx; i < rb->wfx; i++) {
+        for (i = rb->rfx; i <= rb->wfx; i++) {
             if(rb->buf[i] == octet)
                 return(i-rb->rfx);
         }
@@ -206,7 +176,7 @@ rbuf_find(rbuf_t *rb, u_char octet) {
             if(rb->buf[i] == octet)
                 return(i-rb->rfx);
         }
-        for (i = 0; i < rb->wfx; i++) {
+        for (i = 0; i <= rb->wfx; i++) {
             if(rb->buf[i] == octet)
                 return((rb->size-rb->rfx)+i);
         }
@@ -219,7 +189,7 @@ rbuf_read_until(rbuf_t *rb, u_char octet, u_char *out, int maxsize)
 {
     int i;
     int j = 0;
-    int size = rbuf_used(rb);
+    int size = rb->used;
     int to_read = size;
     int found = 0;
     for (i = rb->rfx; i < rb->size && (size-to_read) < maxsize; i++, j++) {
@@ -307,7 +277,7 @@ rbuf_copy_internal(rbuf_t *src, rbuf_t *dst, int len, int move)
         }
         dst->wfx = remainder;
     }
-    rbuf_update_size(dst);
+    dst->used = to_copy;
     return to_copy;
 }
 

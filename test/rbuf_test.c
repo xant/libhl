@@ -18,7 +18,6 @@
 struct _rbuf_s {
     u_char *buf;        // the buffer
     int size;           // buffer size
-    int available;      // buffer size
     int used;           // used size
     int rfx;            // read offset
     int wfx;            // write offset
