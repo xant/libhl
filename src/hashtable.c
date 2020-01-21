@@ -984,22 +984,24 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
         ht_item_t *item = NULL;
         TAILQ_FOREACH(item, &list->head, next) {
             rc = cb(table, item->key, item->klen, item->data, item->dlen, user);
-            if (rc <= 0)
+            if (rc != HT_ITERATOR_CONTINUE)
                 break;
         }
 
         if (item) {
-            if (rc == 0) {
+            if (rc == HT_ITERATOR_STOP) {
                 SPIN_UNLOCK(list->lock);
                 break;
-            } else if (rc < 0) {
+            } else {
+                // rc is either HT_ITERATOR_REMOVE or HT_ITERATOR_REMOVE_AND_STOP
                 TAILQ_REMOVE(&list->head, item, next);
                 if (table->free_item_cb)
                     table->free_item_cb(item->data);
                 if (item->key != item->kbuf)
                     free(item->key);
                 free(item);
-                if (rc == -2) {
+                ATOMIC_DECREMENT(table->count);
+                if (rc == HT_ITERATOR_REMOVE_AND_STOP) {
                     SPIN_UNLOCK(list->lock);
                     break;
                 }
