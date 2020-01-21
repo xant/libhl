@@ -25,6 +25,15 @@ static void *parallel_insert(void *user) {
     return NULL;
 }
 
+int remove_item(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user) {
+    char *key_to_remove = (char *)user;
+    size_t key_len = strlen(key_to_remove);
+    if (klen == key_len && memcmp(key_to_remove, key, klen) == 0) {
+        return HT_ITERATOR_REMOVE_AND_STOP;
+    }
+    return HT_ITERATOR_CONTINUE;
+}
+
 int check_item(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user) {
     int *check_item_count = (int *)user;
     char test[25];
@@ -41,7 +50,7 @@ int check_item(hashtable_t *table, void *key, size_t klen, void *value, size_t v
         ut_progress(count);
         last_count = count;
     }
-    return 1;
+    return HT_ITERATOR_CONTINUE;
 }
 
 static int free_count = 0;
@@ -148,6 +157,14 @@ int main(int argc, char **argv) {
               "returned list doesn't match the table count (%u != %u)",
               list_count(values),
               ht_count(table));
+
+
+    ht_set(table, "to_remove", 9, "value", 5);
+    int count = ht_count(table);
+    ut_testing("ht_foreach_pair() can remove items");
+    ht_foreach_pair(table, remove_item, "to_remove");
+    ut_result(count == ht_count(table) + 1, "the item was not removed from the table");
+
 
     ut_testing("returned list contains all correct values");
     hashtable_t *tmptable = ht_create(0, 0, NULL);
