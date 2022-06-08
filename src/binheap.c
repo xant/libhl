@@ -360,6 +360,7 @@ binomial_tree_node_destroy(binomial_tree_node_t *node, int rindex)
     if (node == node->bh->head)
         UPDATE_HEAD(node->bh);
 
+    free(node->children);
     free(node->key);
     node->bh->count--;
     free(node);
