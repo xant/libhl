@@ -939,7 +939,7 @@ ht_get_all_values(hashtable_t *table)
 }
 
 typedef struct {
-    int (*cb)();
+    int (*cb)(hashtable_t *, void *, size_t, void *);
     void *user;
 } ht_iterator_arg_t;
 
@@ -979,18 +979,18 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
 
     MUTEX_LOCK(table->iterator_lock);
     ht_items_list_t *list = NULL;
+    int stop = 0;
     TAILQ_FOREACH(list, &table->iterator_list->head, iterator_next) {
         SPIN_LOCK(list->lock);
         ht_item_t *item = NULL;
-        TAILQ_FOREACH(item, &list->head, next) {
+        ht_item_t *tmp = NULL;
+        TAILQ_FOREACH_SAFE(item, &list->head, next, tmp) {
             rc = cb(table, item->key, item->klen, item->data, item->dlen, user);
-            if (rc != HT_ITERATOR_CONTINUE)
-                break;
-        }
-
-        if (item) {
-            if (rc == HT_ITERATOR_STOP) {
+            if (rc == HT_ITERATOR_CONTINUE) {
+                continue;
+            } else if (rc == HT_ITERATOR_STOP) {
                 SPIN_UNLOCK(list->lock);
+                stop = 1;
                 break;
             } else {
                 // rc is either HT_ITERATOR_REMOVE or HT_ITERATOR_REMOVE_AND_STOP
@@ -1003,11 +1003,15 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
                 ATOMIC_DECREMENT(table->count);
                 if (rc == HT_ITERATOR_REMOVE_AND_STOP) {
                     SPIN_UNLOCK(list->lock);
+                    stop = 1;
                     break;
                 }
             }
         }
         SPIN_UNLOCK(list->lock);
+        if (stop) {
+            break;
+        }
     }
     MUTEX_UNLOCK(table->iterator_lock);
 }

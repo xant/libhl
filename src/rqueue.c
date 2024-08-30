@@ -201,7 +201,6 @@ rqueue_write(rqueue_t *rb, void *value) {
     rqueue_page_t *tail = NULL;
     rqueue_page_t *head = NULL;
     rqueue_page_t *commit;
-    int count = 0;
     
     // TODO - get rid of this barrier
     while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1))
@@ -209,7 +208,6 @@ rqueue_write(rqueue_t *rb, void *value) {
 
     ATOMIC_INCREMENT(rb->num_writers);
     do {
-        count++;
         temp_page = ATOMIC_READ(rb->tail);
         commit = ATOMIC_READ(rb->commit);
         next_page = RQUEUE_FLAG_OFF(ATOMIC_READ(temp_page->next), RQUEUE_FLAG_ALL);

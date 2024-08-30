@@ -34,6 +34,13 @@ int remove_item(hashtable_t *table, void *key, size_t klen, void *value, size_t 
     return HT_ITERATOR_CONTINUE;
 }
 
+int remove_all(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user) {
+    int *counter = (int *)user;
+    (*counter)++;
+    return HT_ITERATOR_REMOVE;
+}
+
+
 int check_item(hashtable_t *table, void *key, size_t klen, void *value, size_t vlen, void *user) {
     int *check_item_count = (int *)user;
     char test[25];
@@ -192,6 +199,13 @@ int main(int argc, char **argv) {
     }
     if (!failed)
         ut_success();
+
+    count = ht_count(tmptable);
+    int count2 = 0;
+    ut_testing("ht_iterateor can be used to remove all items");
+    ht_foreach_pair(tmptable, remove_all, &count2);
+    ut_result(count == count2, "Not all items have been removed (%d to remove, %d removed)", count, count2);
+
     list_destroy(values);
     ht_destroy(tmptable);
 
