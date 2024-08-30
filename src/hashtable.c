@@ -989,7 +989,6 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
             if (rc == HT_ITERATOR_CONTINUE) {
                 continue;
             } else if (rc == HT_ITERATOR_STOP) {
-                SPIN_UNLOCK(list->lock);
                 stop = 1;
                 break;
             } else {
@@ -1002,7 +1001,6 @@ ht_foreach_pair(hashtable_t *table, ht_pair_iterator_callback_t cb, void *user)
                 free(item);
                 ATOMIC_DECREMENT(table->count);
                 if (rc == HT_ITERATOR_REMOVE_AND_STOP) {
-                    SPIN_UNLOCK(list->lock);
                     stop = 1;
                     break;
                 }
