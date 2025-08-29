@@ -16,7 +16,7 @@
 
 #define RQUEUE_MAX_RETRIES 1000
 
-#define RQUEUE_MIN_SIZE 3
+#define RQUEUE_MIN_SIZE 2
 
 #ifdef USE_PACKED_STRUCTURES
 #define PACK_IF_NECESSARY __attribute__((packed))
@@ -69,11 +69,17 @@ rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
         return NULL;
     rb->size = (size > RQUEUE_MIN_SIZE) ? size : RQUEUE_MIN_SIZE;
     rb->mode = mode;
-    for (i = 0; i <= size; i++) { // NOTE : we create one page more than the requested size
+    for (i = 0; i <= rb->size; i++) { // NOTE : we create one page more than the requested size
         rqueue_page_t *page = calloc(1, sizeof(rqueue_page_t));
         if (!page) {
+            // Free all previously allocated pages (ring not yet closed, so simple traversal)
+            rqueue_page_t *current = rb->head;
+            while (current) {
+                rqueue_page_t *next = current->next;
+                free(current);
+                current = next;
+            }
             free(rb);
-            // TODO - free the pages allocated so far
             return NULL;
         }
         if (!rb->head) {
@@ -90,7 +96,7 @@ rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
         return NULL;
     }
 
-    // close the ringbuffer
+    // close the ringbuffer - safe to dereference since we just verified non-NULL above
     rb->head->prev = rb->tail;
     rb->tail->next = rb->head;
     rb->tail->next = RQUEUE_FLAG_ON(rb->tail->next, RQUEUE_FLAG_HEAD);
@@ -102,6 +108,13 @@ rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
     // the reader page is out of the ringbuffer
     rb->reader = calloc(1, sizeof(rqueue_page_t));
     if (!rb->reader) {
+        // Free all ring buffer pages
+        rqueue_page_t *page = rb->head;
+        do {
+            rqueue_page_t *next = RQUEUE_FLAG_OFF(page->next, RQUEUE_FLAG_ALL);
+            free(page);
+            page = next;
+        } while (page != rb->head);
         free(rb);
         return NULL;
     }
@@ -172,6 +185,7 @@ void *rqueue_read(rqueue_t *rb) {
                     break;
                 } else {
                     fprintf(stderr, "head swap failed\n");
+                    // Safe to use ATOMIC_SET since we hold read_sync lock - no other reader can modify rb->reader->next
                     ATOMIC_SET(rb->reader->next, old_next);
                     sched_yield();
                 }
@@ -186,8 +200,12 @@ void *rqueue_read(rqueue_t *rb) {
 
 static inline void
 rqueue_update_value(rqueue_t *rb, rqueue_page_t *page, void *value) {
-    void *old_value = ATOMIC_READ(page->value);
-    ATOMIC_CAS(page->value, old_value, value);
+    // Only free the old value if we successfully replace it
+    void *old_value;
+    do {
+        old_value = ATOMIC_READ(page->value);
+    } while (!ATOMIC_CAS(page->value, old_value, value));
+    
     if (old_value && rb->free_value_cb)
         rb->free_value_cb(old_value);
 }
@@ -206,13 +224,13 @@ rqueue_write(rqueue_t *rb, void *value) {
     while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1))
         sched_yield();
 
-    ATOMIC_INCREMENT(rb->num_writers);
+    ATOMIC_INCREMENT(rb->num_writers);  // Entry: increment once per thread
     do {
         temp_page = ATOMIC_READ(rb->tail);
         commit = ATOMIC_READ(rb->commit);
         next_page = RQUEUE_FLAG_OFF(ATOMIC_READ(temp_page->next), RQUEUE_FLAG_ALL);
         if (!next_page) {
-            ATOMIC_DECREMENT(rb->num_writers);
+            ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
             ATOMIC_CAS(rb->write_sync, 1, 0); 
             return -1;
         }
@@ -221,17 +239,17 @@ rqueue_write(rqueue_t *rb, void *value) {
         if (rb->mode == RQUEUE_MODE_BLOCKING && commit == temp_page && temp_page != head && next_page != head) {
             if (retries++ < RQUEUE_MAX_RETRIES) {
                 ATOMIC_CAS(rb->tail, temp_page, next_page);
-                ATOMIC_DECREMENT(rb->num_writers);
+                ATOMIC_DECREMENT(rb->num_writers);  // Retry: decrement before yield
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 sched_yield();
 
                 while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1))
                     sched_yield();
 
-                ATOMIC_INCREMENT(rb->num_writers);
+                ATOMIC_INCREMENT(rb->num_writers);  // Retry: increment after reacquire
                 continue;
             } else {
-                ATOMIC_DECREMENT(rb->num_writers);
+                ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 //fprintf(stderr, "queue full: %s \n", rqueue_stats(rb));
                 return -2;
@@ -239,28 +257,6 @@ rqueue_write(rqueue_t *rb, void *value) {
         }
 
        if (RQUEUE_CHECK_FLAG(ATOMIC_READ(temp_page->next), RQUEUE_FLAG_HEAD) || (next_page == head && !rqueue_isempty(rb))) {
-           /* TODO - FIXME 
-            if (rb->mode == RQUEUE_MODE_BLOCKING) {
-               if (ATOMIC_CAS(rb->read_sync, 0, 1)) { // TODO - it shouldn't be necessary to synchronize with the reader
-                   temp_page = ATOMIC_READ(rb->tail);
-                   head = ATOMIC_READ(rb->head);
-                   if (commit->next == temp_page && RQUEUE_FLAG_OFF(temp_page->next, RQUEUE_FLAG_ALL) == head) {
-                       rqueue_update_value(rb, temp_page, value);
-                       ATOMIC_SET(rb->commit, temp_page);
-                       ATOMIC_INCREMENT(rb->writes);
-                       ATOMIC_DECREMENT(rb->num_writers);
-                       ATOMIC_CAS(rb->read_sync, 1, 0);
-                       ATOMIC_CAS(rb->write_sync, 1, 0);
-                       return 0;
-                   } else {
-                       ATOMIC_DECREMENT(rb->num_writers);
-                       ATOMIC_CAS(rb->read_sync, 1, 0);
-                       ATOMIC_CAS(rb->write_sync, 1, 0);
-                       return -2;
-                   }
-                   ATOMIC_CAS(rb->read_sync, 1, 0);
-               }
-            } else if (rb->mode == RQUEUE_MODE_OVERWRITE && commit == temp_page) { */
             if (rb->mode == RQUEUE_MODE_OVERWRITE && ATOMIC_READ(commit->next) == temp_page) {  // DELETE ME WHEN FIXED
                if (ATOMIC_CAS(rb->read_sync, 0, 1)) { // TODO - it shouldn't be necessary to synchronize with the reader
                     // we need to advance the head if in overwrite mode ...otherwise we must stop
@@ -268,6 +264,7 @@ rqueue_write(rqueue_t *rb, void *value) {
                     rqueue_page_t *nextpp = RQUEUE_FLAG_OFF(ATOMIC_READ(head->next), RQUEUE_FLAG_ALL);
                     if (ATOMIC_CAS(head->next, nextpp, RQUEUE_FLAG_ON(nextpp, RQUEUE_FLAG_HEAD))) {
                         ATOMIC_CAS(temp_page->next, RQUEUE_FLAG_ON(head, RQUEUE_FLAG_HEAD), head);
+                        // Safe to use ATOMIC_SET since we hold read_sync lock - no concurrent head modifications possible
                         ATOMIC_SET(rb->head, nextpp);
                     }
                    ATOMIC_CAS(rb->read_sync, 1, 0);
@@ -275,17 +272,17 @@ rqueue_write(rqueue_t *rb, void *value) {
                }
             }
             if (retries++ < RQUEUE_MAX_RETRIES) {
-                ATOMIC_DECREMENT(rb->num_writers);
+                ATOMIC_DECREMENT(rb->num_writers);  // Retry: decrement before yield
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 sched_yield();
 
                 while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1))
                     sched_yield();
 
-                ATOMIC_INCREMENT(rb->num_writers);
+                ATOMIC_INCREMENT(rb->num_writers);  // Retry: increment after reacquire
                 continue;
             } else {
-                ATOMIC_DECREMENT(rb->num_writers);
+                ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 //fprintf(stderr, "queue full: %s \n", rqueue_stats(rb));
                 return -2;
@@ -299,14 +296,18 @@ rqueue_write(rqueue_t *rb, void *value) {
     } while (tail != temp_page && retries++ < RQUEUE_MAX_RETRIES);
 
     if (!tail || tail != temp_page) {
-        ATOMIC_DECREMENT(rb->num_writers);
+        ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
         ATOMIC_CAS(rb->write_sync, 1, 0);
         return -1;
     } 
 
 
-    void *old_value = ATOMIC_READ(tail->value);
-    ATOMIC_CAS(tail->value, old_value, value);
+    // Only free the old value if we successfully replace it
+    void *old_value;
+    do {
+        old_value = ATOMIC_READ(tail->value);
+    } while (!ATOMIC_CAS(tail->value, old_value, value));
+    
     if (old_value && rb->free_value_cb)
         rb->free_value_cb(old_value);
 
@@ -315,7 +316,7 @@ rqueue_write(rqueue_t *rb, void *value) {
 
     if (ATOMIC_READ(rb->num_writers) == 1)
         ATOMIC_CAS(rb->commit, ATOMIC_READ(rb->commit), tail);
-    ATOMIC_DECREMENT(rb->num_writers);
+    ATOMIC_DECREMENT(rb->num_writers);  // Success path: decrement once
     ATOMIC_CAS(rb->write_sync, 1, 0);
 
     return 0;
@@ -338,11 +339,7 @@ rqueue_mode_t rqueue_mode(rqueue_t *rb) {
 }
 
 char *rqueue_stats(rqueue_t *rb) {
-    char *buf = malloc(1024);
-    if (!buf)
-        return NULL;
-
-    snprintf(buf, 1024,
+    const char *format = 
            "reader:      %p \n"
            "head:        %p \n"
            "tail:        %p \n"
@@ -351,17 +348,32 @@ char *rqueue_stats(rqueue_t *rb) {
            "commit_next: %p \n"
            "reads:       %"PRId64" \n"
            "writes:      %"PRId64" \n"
-           "mode:        %s \n",
-           ATOMIC_READ(rb->reader),
-           ATOMIC_READ(rb->head),
-           ATOMIC_READ(rb->tail),
-           ATOMIC_READ(ATOMIC_READ(rb->tail)->next),
-           ATOMIC_READ(rb->commit),
-           ATOMIC_READ(ATOMIC_READ(rb->commit)->next),
-           ATOMIC_READ(rb->reads),
-           ATOMIC_READ(rb->writes),
-           rb->mode == RQUEUE_MODE_BLOCKING ? "blocking" : "overwrite");
+           "mode:        %s \n";
 
+#define STATS_ARGS \
+           ATOMIC_READ(rb->reader), \
+           ATOMIC_READ(rb->head), \
+           ATOMIC_READ(rb->tail), \
+           ATOMIC_READ(ATOMIC_READ(rb->tail)->next), \
+           ATOMIC_READ(rb->commit), \
+           ATOMIC_READ(ATOMIC_READ(rb->commit)->next), \
+           ATOMIC_READ(rb->reads), \
+           ATOMIC_READ(rb->writes), \
+           rb->mode == RQUEUE_MODE_BLOCKING ? "blocking" : "overwrite"
+
+    // First pass: calculate exact size needed
+    int needed = snprintf(NULL, 0, format, STATS_ARGS);
+    
+    if (needed < 0)
+        return NULL;
+        
+    char *buf = malloc(needed + 1);
+    if (!buf)
+        return NULL;
+
+    snprintf(buf, needed + 1, format, STATS_ARGS);
+
+#undef STATS_ARGS
     return buf;
 }
 
