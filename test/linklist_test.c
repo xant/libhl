@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
 
     list_sort(t, cmp);
     failed = 0;
-    int prev, len = list_count(t);
+    int prev = 0, len = list_count(t);
     for (i = 0; i < len; i++) {
         int cur = *((int *)list_pick_value(t, i));
         if (i > 0 && cur < prev) {
