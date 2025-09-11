@@ -204,10 +204,12 @@ rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
     for (i = 0; i <= rb->size; i++) { // NOTE : we create one page more than the requested size
         rqueue_page_t *page = calloc(1, sizeof(rqueue_page_t));
         if (!page) {
-            // Free all previously allocated pages (ring not yet closed, so simple traversal)
+            // CLEANUP SAFETY: Ring is not yet closed and no flags are embedded in next pointers.
+            // All next pointers are clean at this point, so simple traversal is safe.
+            // Flag embedding only happens after successful completion of this allocation loop.
             rqueue_page_t *current = rb->head;
             while (current) {
-                rqueue_page_t *next = current->next;
+                rqueue_page_t *next = current->next;  // Safe: no flags embedded yet
                 free(current);
                 current = next;
             }
@@ -228,7 +230,9 @@ rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
         return NULL;
     }
 
-    // close the ringbuffer - safe to dereference since we just verified non-NULL above
+    // RING CLOSURE: Close the ringbuffer and embed flags. This is the first point where
+    // flags are embedded in next pointers. All previous error cleanup paths deal with
+    // clean pointers only. After this point, any cleanup must use flag-aware traversal.
     rb->head->prev = rb->tail;
     rb->tail->next = rb->head;
     ATOMIC_STORE_RELEASE(rb->tail->next, RQUEUE_FLAG_ON(rb->head, RQUEUE_FLAG_HEAD));
@@ -240,10 +244,12 @@ rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
     // the reader page is out of the ringbuffer
     rb->reader = calloc(1, sizeof(rqueue_page_t));
     if (!rb->reader) {
-        // Free all ring buffer pages
+        // CLEANUP SAFETY: Ring is now closed with embedded flags in next pointers.
+        // Must use flag-aware traversal (RQUEUE_FLAG_OFF) to get clean pointers.
+        // This cleanup correctly handles the flagged pointers created during ring closure.
         rqueue_page_t *page = rb->head;
         do {
-            rqueue_page_t *next = RQUEUE_FLAG_OFF(page->next, RQUEUE_FLAG_ALL);
+            rqueue_page_t *next = RQUEUE_FLAG_OFF(page->next, RQUEUE_FLAG_ALL);  // Remove flags
             free(page);
             page = next;
         } while (page != rb->head);
