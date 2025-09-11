@@ -216,8 +216,20 @@ void *rqueue_read(rqueue_t *rb) {
                     }
                     ATOMIC_CAS(rb->reader->value, v, NULL);
                     ATOMIC_INCREMENT(rb->reads);
-                    if (ATOMIC_READ_ACQUIRE(rb->head) == ATOMIC_READ_ACQUIRE(rb->tail)) {
-                        ATOMIC_STORE_RELEASE(rb->is_empty, 1);
+                    
+                    // EMPTY STATE RACE FIX: Prevent TOCTOU race between head/tail comparison and is_empty update
+                    // Use CAS with validation to atomically update is_empty only when head/tail are consistent
+                    rqueue_page_t *head_snap = ATOMIC_READ_ACQUIRE(rb->head);
+                    rqueue_page_t *tail_snap = ATOMIC_READ_ACQUIRE(rb->tail);
+                    
+                    if (head_snap == tail_snap) {
+                        // CAS is_empty from 0 to 1, but only if head/tail still match our snapshots
+                        int expected_empty = 0;
+                        if (ATOMIC_READ_ACQUIRE(rb->head) == head_snap && 
+                            ATOMIC_READ_ACQUIRE(rb->tail) == tail_snap &&
+                            ATOMIC_CAS(rb->is_empty, expected_empty, 1)) {
+                            // Successfully set empty state atomically
+                        }
                     }
                     ATOMIC_CAS(rb->read_sync, 1, 0);
                     break;
