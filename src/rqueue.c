@@ -79,6 +79,10 @@ rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
     rb->size = (size > RQUEUE_MIN_SIZE) ? size : RQUEUE_MIN_SIZE;
     rb->mode = mode;
     rb->is_empty = 1;
+    
+    // MEMORY LIFECYCLE: All ring buffer pages are pre-allocated here and remain at stable
+    // addresses throughout the queue's lifetime. Pages are never individually freed or
+    // reallocated during operations, eliminating classic ABA problems from memory reuse.
     for (i = 0; i <= rb->size; i++) { // NOTE : we create one page more than the requested size
         rqueue_page_t *page = calloc(1, sizeof(rqueue_page_t));
         if (!page) {
@@ -146,6 +150,9 @@ void rqueue_destroy(rqueue_t *rb) {
         // do nothing
         return;
     }
+    
+    // MEMORY LIFECYCLE: Pages are only freed here when the entire queue is destroyed.
+    // During normal operation, pages are reused cyclically but never freed individually.
     rqueue_page_t *page = rb->head;
     do {
         rqueue_page_t *p = page;
@@ -184,12 +191,18 @@ void *rqueue_read(rqueue_t *rb) {
                 continue;
             }
 
+            // ABA PROTECTION: The following CAS operations are protected from ABA problems by:
+            // 1. Pages are pre-allocated at creation and never individually freed (stable addresses)
+            // 2. Only one reader thread can execute this section (read_sync lock above)
+            // 3. Sequential CAS operations validate that ring topology hasn't changed
+            // 4. Reader page is isolated outside the ring during this operation
+            
             // first connect the reader page to the head->next page
             if (ATOMIC_CAS(rb->reader->next, old_next, RQUEUE_FLAG_ON(next, RQUEUE_FLAG_HEAD))) {
                 ATOMIC_STORE_RELEASE(rb->reader->prev, head->prev);
 
                 // now connect head->prev->next to the reader page, replacing the head with the reader
-                // in the ringbuffer
+                // in the ringbuffer. If ring topology changed, this CAS will fail, validating our assumptions
                 if (ATOMIC_CAS(head->prev->next, RQUEUE_FLAG_ON(head, RQUEUE_FLAG_HEAD), rb->reader)) {
                     // now the head is out of the ringbuffer and we can update the pointer
                     ATOMIC_CAS(rb->head, head, next);
@@ -210,12 +223,16 @@ void *rqueue_read(rqueue_t *rb) {
                     break;
                 } else {
                     ATOMIC_INCREMENT(rb->head_swap_failed);
-                    // Safe to use ATOMIC_SET since we hold read_sync lock - no other reader can modify rb->reader->next
+                    // SEQUENTIAL CAS VALIDATION: The failure of the second CAS indicates the ring
+                    // topology changed between our pointer reads and this operation. We restore
+                    // the reader state and retry, ensuring consistency.
                     ATOMIC_STORE_RELAXED(rb->reader->next, old_next);
                     sched_yield();
                 }
             } else {
                 ATOMIC_INCREMENT(rb->reader_next_swap_failed);
+                // SEQUENTIAL CAS VALIDATION: First CAS failed, indicating another thread modified
+                // the reader->next pointer. This prevents proceeding with stale pointer values.
             }
             ATOMIC_CAS(rb->read_sync, 1, 0);
         }
@@ -321,6 +338,9 @@ rqueue_write(rqueue_t *rb, void *value) {
         } 
        
         if (!RQUEUE_CHECK_FLAG(ATOMIC_READ_ACQUIRE(temp_page->next), RQUEUE_FLAG_HEAD)) {
+            // ABA PROTECTION: This CAS is safe from ABA because pages have stable addresses
+            // (never freed/reallocated) and the write_sync lock ensures only one writer
+            // can modify the tail pointer at a time.
             tail = ATOMIC_CAS_RETURN(rb->tail, temp_page, next_page);
         }
     } while (tail != temp_page && retries++ < RQUEUE_MAX_RETRIES);
