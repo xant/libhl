@@ -271,13 +271,16 @@ rqueue_write(rqueue_t *rb, void *value) {
     while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1))
         sched_yield();
 
-    ATOMIC_INCREMENT(rb->num_writers);  // Entry: increment once per thread
+    // WRITER COUNTING: Track active writers holding write_sync lock.
+    // This count is used for commit optimization - only increment when we're actively writing.
+    // Must be decremented before releasing write_sync to maintain accurate active count.
+    ATOMIC_INCREMENT(rb->num_writers);
     do {
         temp_page = ATOMIC_READ_ACQUIRE(rb->tail);
         commit = ATOMIC_READ_ACQUIRE(rb->commit);
         next_page = RQUEUE_FLAG_OFF(ATOMIC_READ_ACQUIRE(temp_page->next), RQUEUE_FLAG_ALL);
         if (!next_page) {
-            ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
+            ATOMIC_DECREMENT(rb->num_writers);  // Exit path: single decrement
             ATOMIC_CAS(rb->write_sync, 1, 0); 
             return -1;
         }
@@ -286,17 +289,19 @@ rqueue_write(rqueue_t *rb, void *value) {
         if (rb->mode == RQUEUE_MODE_BLOCKING && commit == temp_page && temp_page != head && next_page != head) {
             if (retries++ < RQUEUE_MAX_RETRIES) {
                 ATOMIC_CAS(rb->tail, temp_page, next_page);
-                ATOMIC_DECREMENT(rb->num_writers);  // Retry: decrement before yield
+                // WRITER COUNTING: Decrement before releasing lock to maintain active writer count
+                ATOMIC_DECREMENT(rb->num_writers);
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 sched_yield();
 
                 while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1))
                     sched_yield();
 
-                ATOMIC_INCREMENT(rb->num_writers);  // Retry: increment after reacquire
+                // WRITER COUNTING: Increment when reacquiring lock to resume active writing
+                ATOMIC_INCREMENT(rb->num_writers);
                 continue;
             } else {
-                ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
+                ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement before releasing lock
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 ATOMIC_INCREMENT(rb->queue_full_counter);
                 return -2;
@@ -319,17 +324,19 @@ rqueue_write(rqueue_t *rb, void *value) {
                }
             }
             if (retries++ < RQUEUE_MAX_RETRIES) {
-                ATOMIC_DECREMENT(rb->num_writers);  // Retry: decrement before yield
+                // WRITER COUNTING: Decrement before releasing lock to maintain active writer count
+                ATOMIC_DECREMENT(rb->num_writers);
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 sched_yield();
 
                 while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1))
                     sched_yield();
 
-                ATOMIC_INCREMENT(rb->num_writers);  // Retry: increment after reacquire
+                // WRITER COUNTING: Increment when reacquiring lock to resume active writing
+                ATOMIC_INCREMENT(rb->num_writers);
                 continue;
             } else {
-                ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
+                ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement before releasing lock
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 ATOMIC_INCREMENT(rb->queue_full_counter);
                 return -2;
@@ -346,7 +353,7 @@ rqueue_write(rqueue_t *rb, void *value) {
     } while (tail != temp_page && retries++ < RQUEUE_MAX_RETRIES);
 
     if (!tail || tail != temp_page) {
-        ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
+        ATOMIC_DECREMENT(rb->num_writers);  // Exit path: single decrement
         ATOMIC_CAS(rb->write_sync, 1, 0);
         return -1;
     } 
@@ -365,9 +372,12 @@ rqueue_write(rqueue_t *rb, void *value) {
     ATOMIC_INCREMENT(rb->writes);
     ATOMIC_STORE_RELEASE(rb->is_empty, 0);
 
+    // COMMIT OPTIMIZATION: If this is the only active writer, advance the commit pointer.
+    // This optimization relies on num_writers tracking active writers holding write_sync.
     if (ATOMIC_READ_RELAXED(rb->num_writers) == 1)
         ATOMIC_CAS(rb->commit, ATOMIC_READ_ACQUIRE(rb->commit), tail);
-    ATOMIC_DECREMENT(rb->num_writers);  // Success path: decrement once
+    
+    ATOMIC_DECREMENT(rb->num_writers);  // Success path: single decrement
     ATOMIC_CAS(rb->write_sync, 1, 0);
 
     return 0;
