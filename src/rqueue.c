@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <sched.h>
+#include <time.h>
+#include <unistd.h>
 #include "atomic_defs.h"
 #include "rqueue.h"
 
@@ -14,9 +16,22 @@
 
 #define RQUEUE_CHECK_FLAG(_addr, _flag) (((intptr_t) (_addr) & (_flag)) == (_flag))
 
-#define RQUEUE_MAX_RETRIES 1000
+// Operation-specific retry limits based on operation complexity and expected contention
+#define RQUEUE_READER_MAX_RETRIES     1500    // Complex multi-step operations need more retries
+#define RQUEUE_WRITER_CAS_MAX_RETRIES  100    // Simple atomic operations should fail fast
+#define RQUEUE_BLOCKING_MAX_RETRIES   2000    // Blocking mode can be more patient
+#define RQUEUE_OVERWRITE_MAX_RETRIES    50    // Overwrite should fail fast if can't get reader sync
+#define RQUEUE_MAX_RETRIES RQUEUE_READER_MAX_RETRIES  // Legacy compatibility
 
 #define RQUEUE_MIN_SIZE 2
+
+// Retry strategies for different operation types
+typedef enum {
+    RQUEUE_RETRY_FAST,        // Simple CAS operations - fail fast with minimal backoff
+    RQUEUE_RETRY_PATIENT,     // Blocking mode waits - exponential backoff
+    RQUEUE_RETRY_COMPLEX,     // Multi-step reader operations - longer delays
+    RQUEUE_RETRY_CRITICAL     // Overwrite mode - very short delays, fail quickly
+} rqueue_retry_strategy_t;
 
 #ifdef USE_PACKED_STRUCTURES
 #define PACK_IF_NECESSARY __attribute__((packed))
@@ -55,6 +70,14 @@ struct _rqueue_s {
     int                          concurrent_writer_detected;
     int                          overwrite_state_changed;
     int                          head_next_changed;
+    // Retry statistics for performance monitoring and tuning
+    int                          fast_retries_succeeded;
+    int                          patient_retries_succeeded;
+    int                          complex_retries_succeeded;
+    int                          critical_retries_succeeded;
+    int                          total_retry_failures;
+    uint64_t                     total_retry_attempts;
+    uint64_t                     total_backoff_time_us;
 } PACK_IF_NECESSARY;
 
 // Ensure pointer alignment for flag embedding
@@ -80,6 +103,79 @@ static inline int rqueue_validate_writer_snapshot(rqueue_t *rb,
     return (ATOMIC_READ_ACQUIRE(rb->tail) == tail &&
             ATOMIC_READ_ACQUIRE(rb->commit) == commit &&
             ATOMIC_READ_ACQUIRE(rb->head) == head);
+}
+
+// ENHANCED RETRY LOGIC: Exponential backoff with jitter and operation-specific strategies
+static inline void rqueue_backoff_with_strategy(rqueue_t *rb, rqueue_retry_strategy_t strategy, 
+                                               int retry_count, uint64_t *backoff_time_us) {
+    uint64_t start_time = 0;
+    int delay_us = 0;
+    
+    // Record start time for statistics
+    struct timespec ts_start;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts_start) == 0) {
+        start_time = ts_start.tv_sec * 1000000ULL + ts_start.tv_nsec / 1000;
+    }
+    
+    switch (strategy) {
+        case RQUEUE_RETRY_FAST:
+            // Simple CAS operations - minimal backoff, fail fast
+            if (retry_count < 10) {
+                sched_yield();  // First few retries just yield
+            } else if (retry_count < 50) {
+                delay_us = 1 << ((retry_count - 10) / 5);  // 1, 2, 4, 8 μs
+                delay_us = (delay_us > 100) ? 100 : delay_us;  // Cap at 100μs
+            }
+            break;
+            
+        case RQUEUE_RETRY_PATIENT:
+            // Blocking mode - exponential backoff for persistent full conditions
+            if (retry_count < 5) {
+                sched_yield();
+            } else {
+                delay_us = 1 << ((retry_count - 5) / 10);  // 1, 2, 4, 8, 16... μs
+                delay_us = (delay_us > 10000) ? 10000 : delay_us;  // Cap at 10ms
+            }
+            break;
+            
+        case RQUEUE_RETRY_COMPLEX:
+            // Multi-step reader operations - longer delays for complex operations
+            if (retry_count < 3) {
+                sched_yield();
+            } else {
+                delay_us = (1 << ((retry_count - 3) / 8)) * 2;  // 2, 4, 8, 16... μs
+                delay_us = (delay_us > 5000) ? 5000 : delay_us;  // Cap at 5ms
+            }
+            break;
+            
+        case RQUEUE_RETRY_CRITICAL:
+            // Overwrite mode - very short delays, designed to fail quickly
+            if (retry_count < 5) {
+                sched_yield();
+            } else {
+                delay_us = retry_count;  // Linear increase: 5, 6, 7, 8... μs
+                delay_us = (delay_us > 50) ? 50 : delay_us;  // Cap at 50μs
+            }
+            break;
+    }
+    
+    if (delay_us > 0) {
+        // Add jitter to prevent thundering herd (±25% variance)
+        int jitter = (rand() % (delay_us / 2 + 1)) - (delay_us / 4);
+        delay_us = delay_us + jitter;
+        if (delay_us < 1) delay_us = 1;  // Minimum 1μs
+        
+        usleep(delay_us);
+        
+        // Update statistics with actual backoff time
+        if (backoff_time_us && start_time > 0) {
+            struct timespec ts_end;
+            if (clock_gettime(CLOCK_MONOTONIC, &ts_end) == 0) {
+                uint64_t end_time = ts_end.tv_sec * 1000000ULL + ts_end.tv_nsec / 1000;
+                *backoff_time_us += (end_time - start_time);
+            }
+        }
+    }
 }
 
 /*
@@ -199,9 +295,11 @@ void *rqueue_read(rqueue_t *rb) {
     void *v = NULL;
 
     // READER SYNCHRONIZATION: This loop ensures bounded execution time for read operations.
-    // The read_sync lock is always released within RQUEUE_MAX_RETRIES iterations, preventing
+    // The read_sync lock is always released within RQUEUE_READER_MAX_RETRIES iterations, preventing
     // any possibility of indefinite blocking for writers in overwrite mode.
-    for (i = 0; i < RQUEUE_MAX_RETRIES; i++) {
+    uint64_t backoff_time = 0;
+    for (i = 0; i < RQUEUE_READER_MAX_RETRIES; i++) {
+        ATOMIC_INCREMENT(rb->total_retry_attempts);
 
         if (__builtin_expect(ATOMIC_CAS(rb->read_sync, 0, 1), 1)) {
             rqueue_page_t *head = ATOMIC_READ_ACQUIRE(rb->head);
@@ -222,6 +320,8 @@ void *rqueue_read(rqueue_t *rb) {
                 // Topology changed - retry with fresh snapshot
                 ATOMIC_INCREMENT(rb->topology_change_detected);
                 ATOMIC_CAS(rb->read_sync, 1, 0);
+                // Use complex retry strategy for topology changes
+                rqueue_backoff_with_strategy(rb, RQUEUE_RETRY_COMPLEX, i, &backoff_time);
                 continue;
             }
 
@@ -245,6 +345,8 @@ void *rqueue_read(rqueue_t *rb) {
                     // Restore reader state
                     ATOMIC_STORE_RELAXED(rb->reader->next, old_next);
                     ATOMIC_CAS(rb->read_sync, 1, 0);
+                    // Use complex retry strategy for concurrent head movement
+                    rqueue_backoff_with_strategy(rb, RQUEUE_RETRY_COMPLEX, i, &backoff_time);
                     continue;
                 }
 
@@ -286,16 +388,29 @@ void *rqueue_read(rqueue_t *rb) {
                     // topology changed between our pointer reads and this operation. We restore
                     // the reader state and retry, ensuring consistency.
                     ATOMIC_STORE_RELAXED(rb->reader->next, old_next);
-                    sched_yield();
+                    rqueue_backoff_with_strategy(rb, RQUEUE_RETRY_COMPLEX, i, &backoff_time);
                 }
             } else {
                 ATOMIC_INCREMENT(rb->reader_next_swap_failed);
                 // SEQUENTIAL CAS VALIDATION: First CAS failed, indicating another thread modified
                 // the reader->next pointer. This prevents proceeding with stale pointer values.
+                rqueue_backoff_with_strategy(rb, RQUEUE_RETRY_COMPLEX, i, &backoff_time);
             }
             ATOMIC_CAS(rb->read_sync, 1, 0);
+        } else {
+            // Failed to acquire read_sync - another reader is active
+            rqueue_backoff_with_strategy(rb, RQUEUE_RETRY_COMPLEX, i, &backoff_time);
         }
     }
+    
+    // Update retry statistics based on outcome
+    ATOMIC_INCREASE(rb->total_backoff_time_us, backoff_time);
+    if (v != NULL) {
+        ATOMIC_INCREMENT(rb->complex_retries_succeeded);
+    } else {
+        ATOMIC_INCREMENT(rb->total_retry_failures);
+    }
+    
     // READER SYNC GUARANTEE: All code paths above release read_sync in bounded time.
     // This ensures writers in overwrite mode cannot be blocked indefinitely.
     return v;
@@ -365,15 +480,22 @@ rqueue_write(rqueue_t *rb, void *value) {
         }
 
         if (rb->mode == RQUEUE_MODE_BLOCKING && commit == temp_page && temp_page != head && next_page != head) {
-            if (retries++ < RQUEUE_MAX_RETRIES) {
+            if (retries++ < RQUEUE_BLOCKING_MAX_RETRIES) {
+                ATOMIC_INCREMENT(rb->total_retry_attempts);
                 ATOMIC_CAS(rb->tail, temp_page, next_page);
                 // WRITER COUNTING: Decrement before releasing lock to maintain active writer count
                 ATOMIC_DECREMENT(rb->num_writers);
                 ATOMIC_CAS(rb->write_sync, 1, 0);
-                sched_yield();
+                
+                // Use patient retry strategy for blocking mode (queue full scenario)
+                uint64_t backoff_time = 0;
+                rqueue_backoff_with_strategy(rb, RQUEUE_RETRY_PATIENT, retries, &backoff_time);
+                ATOMIC_INCREASE(rb->total_backoff_time_us, backoff_time);
 
-                while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1))
-                    sched_yield();
+                while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1)) {
+                    rqueue_backoff_with_strategy(rb, RQUEUE_RETRY_PATIENT, retries, &backoff_time);
+                    ATOMIC_INCREASE(rb->total_backoff_time_us, backoff_time);
+                }
 
                 // WRITER COUNTING: Increment when reacquiring lock to resume active writing
                 ATOMIC_INCREMENT(rb->num_writers);
@@ -382,6 +504,8 @@ rqueue_write(rqueue_t *rb, void *value) {
                 ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement before releasing lock
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 ATOMIC_INCREMENT(rb->queue_full_counter);
+                ATOMIC_INCREMENT(rb->total_retry_failures);
+                ATOMIC_INCREMENT(rb->patient_retries_succeeded);  // Reached max retries, but was using patient strategy
                 return -2;
             }
         }
@@ -439,14 +563,21 @@ rqueue_write(rqueue_t *rb, void *value) {
                }
                // CAS failed - reader is active. Continue with normal write retry logic.
             }
-            if (retries++ < RQUEUE_MAX_RETRIES) {
+            if (retries++ < RQUEUE_WRITER_CAS_MAX_RETRIES) {
+                ATOMIC_INCREMENT(rb->total_retry_attempts);
                 // WRITER COUNTING: Decrement before releasing lock to maintain active writer count
                 ATOMIC_DECREMENT(rb->num_writers);
                 ATOMIC_CAS(rb->write_sync, 1, 0);
-                sched_yield();
+                
+                // Use fast retry strategy for simple CAS operations
+                uint64_t backoff_time = 0;
+                rqueue_backoff_with_strategy(rb, RQUEUE_RETRY_FAST, retries, &backoff_time);
+                ATOMIC_INCREASE(rb->total_backoff_time_us, backoff_time);
 
-                while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1))
-                    sched_yield();
+                while (!__builtin_expect(ATOMIC_CAS(rb->write_sync, 0, 1), 1)) {
+                    rqueue_backoff_with_strategy(rb, RQUEUE_RETRY_FAST, retries, &backoff_time);
+                    ATOMIC_INCREASE(rb->total_backoff_time_us, backoff_time);
+                }
 
                 // WRITER COUNTING: Increment when reacquiring lock to resume active writing
                 ATOMIC_INCREMENT(rb->num_writers);
@@ -455,6 +586,8 @@ rqueue_write(rqueue_t *rb, void *value) {
                 ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement before releasing lock
                 ATOMIC_CAS(rb->write_sync, 1, 0);
                 ATOMIC_INCREMENT(rb->queue_full_counter);
+                ATOMIC_INCREMENT(rb->total_retry_failures);
+                ATOMIC_INCREMENT(rb->fast_retries_succeeded);  // Reached max retries, but was using fast strategy
                 return -2;
             }
 
@@ -466,7 +599,7 @@ rqueue_write(rqueue_t *rb, void *value) {
             // can modify the tail pointer at a time.
             tail = ATOMIC_CAS_RETURN(rb->tail, temp_page, next_page);
         }
-    } while (tail != temp_page && retries++ < RQUEUE_MAX_RETRIES);
+    } while (tail != temp_page && retries++ < RQUEUE_WRITER_CAS_MAX_RETRIES);
 
     if (!tail || tail != temp_page) {
         ATOMIC_DECREMENT(rb->num_writers);  // Exit path: single decrement
@@ -492,6 +625,11 @@ rqueue_write(rqueue_t *rb, void *value) {
     // This optimization relies on num_writers tracking active writers holding write_sync.
     if (ATOMIC_READ_RELAXED(rb->num_writers) == 1)
         ATOMIC_CAS(rb->commit, ATOMIC_READ_ACQUIRE(rb->commit), tail);
+    
+    // Update retry statistics for successful write
+    if (retries > 0) {
+        ATOMIC_INCREMENT(rb->fast_retries_succeeded);  // Most writes use fast strategy
+    }
     
     ATOMIC_DECREMENT(rb->num_writers);  // Success path: single decrement
     ATOMIC_CAS(rb->write_sync, 1, 0);
@@ -563,7 +701,15 @@ char *rqueue_stats(rqueue_t *rb) {
            "commit_advancement_detected: %d \n"
            "concurrent_writer_detected: %d \n"
            "overwrite_state_changed:   %d \n"
-           "head_next_changed:         %d \n";
+           "head_next_changed:         %d \n"
+           "fast_retries_succeeded:    %d \n"
+           "patient_retries_succeeded: %d \n"
+           "complex_retries_succeeded: %d \n"
+           "critical_retries_succeeded: %d \n"
+           "total_retry_failures:      %d \n"
+           "total_retry_attempts:      %"PRIu64" \n"
+           "total_backoff_time_us:     %"PRIu64" \n"
+           "avg_backoff_per_retry_us:  %.2f \n";
 
 #define STATS_ARGS \
            reader, \
@@ -585,7 +731,16 @@ char *rqueue_stats(rqueue_t *rb) {
            ATOMIC_READ_RELAXED(rb->commit_advancement_detected), \
            ATOMIC_READ_RELAXED(rb->concurrent_writer_detected), \
            ATOMIC_READ_RELAXED(rb->overwrite_state_changed), \
-           ATOMIC_READ_RELAXED(rb->head_next_changed) \
+           ATOMIC_READ_RELAXED(rb->head_next_changed), \
+           ATOMIC_READ_RELAXED(rb->fast_retries_succeeded), \
+           ATOMIC_READ_RELAXED(rb->patient_retries_succeeded), \
+           ATOMIC_READ_RELAXED(rb->complex_retries_succeeded), \
+           ATOMIC_READ_RELAXED(rb->critical_retries_succeeded), \
+           ATOMIC_READ_RELAXED(rb->total_retry_failures), \
+           ATOMIC_READ_RELAXED(rb->total_retry_attempts), \
+           ATOMIC_READ_RELAXED(rb->total_backoff_time_us), \
+           (ATOMIC_READ_RELAXED(rb->total_retry_attempts) > 0) ? \
+               ((double)ATOMIC_READ_RELAXED(rb->total_backoff_time_us) / ATOMIC_READ_RELAXED(rb->total_retry_attempts)) : 0.0 \
 
     // First pass: calculate exact size needed
     int needed = snprintf(NULL, 0, format, STATS_ARGS);
