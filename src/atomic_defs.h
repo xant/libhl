@@ -2,12 +2,22 @@
 #define HL_ATOMIC_DEFS_H
 
 #define ATOMIC_READ(_v) __sync_fetch_and_add(&(_v), 0)
+#define ATOMIC_READ_ACQUIRE(_v) __atomic_load_n(&(_v), __ATOMIC_ACQUIRE)
+#define ATOMIC_READ_RELAXED(_v) __atomic_load_n(&(_v), __ATOMIC_RELAXED)
+#define ATOMIC_STORE_RELEASE(_v, _val) __atomic_store_n(&(_v), (_val), __ATOMIC_RELEASE)
+#define ATOMIC_STORE_RELAXED(_v, _val) __atomic_store_n(&(_v), (_val), __ATOMIC_RELAXED)
 #define ATOMIC_INCREMENT(_v) (void)__sync_fetch_and_add(&(_v), 1)
 #define ATOMIC_DECREMENT(_v) (void)__sync_fetch_and_sub(&(_v), 1)
 #define ATOMIC_INCREASE(_v, _n) __sync_add_and_fetch(&(_v), (_n))
 #define ATOMIC_DECREASE(_v, _n) __sync_sub_and_fetch(&(_v), (_n))
 #define ATOMIC_CAS(_v, _o, _n) __sync_bool_compare_and_swap(&(_v), (_o), (_n))
+#define ATOMIC_CAS_ACQ_REL(_v, _expected, _desired) \
+    __atomic_compare_exchange_n(&(_v), &(_expected), (_desired), false, \
+                                __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)
 #define ATOMIC_CAS_RETURN(_v, _o, _n) __sync_val_compare_and_swap(&(_v), (_o), (_n))
+#define ATOMIC_CAS_RETURN_ACQ_REL(_v, _expected, _desired) \
+    __atomic_compare_exchange_n(&(_v), &(_expected), (_desired), false, \
+                                __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE) ? (_expected) : __atomic_load_n(&(_v), __ATOMIC_ACQUIRE)
 
 #define ATOMIC_SET(_v, _n) {\
     int _b = 0;\
@@ -15,6 +25,8 @@
         _b = ATOMIC_CAS(_v, ATOMIC_READ(_v), _n);\
     } while (__builtin_expect(!_b, 0));\
 }
+
+#define ATOMIC_SET_RELEASE(_v, _n) ATOMIC_STORE_RELEASE(_v, _n)
 
 #define ATOMIC_SET_IF(_v, _c, _n, _t) {\
     _t _o = ATOMIC_READ(_v);\
