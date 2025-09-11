@@ -23,7 +23,7 @@
 #define RQUEUE_OVERWRITE_MAX_RETRIES    50    // Overwrite should fail fast if can't get reader sync
 #define RQUEUE_MAX_RETRIES RQUEUE_READER_MAX_RETRIES  // Legacy compatibility
 
-#define RQUEUE_MIN_SIZE 2
+#define RQUEUE_MIN_SIZE 2 // A single-element queue wouldn't make any sense
 
 // Retry strategies for different operation types
 typedef enum {
@@ -614,14 +614,8 @@ rqueue_write(rqueue_t *rb, void *value) {
     } 
 
 
-    // Only free the old value if we successfully replace it
-    void *old_value;
-    do {
-        old_value = ATOMIC_READ_ACQUIRE(tail->value);
-    } while (!ATOMIC_CAS(tail->value, old_value, value));
-    
-    if (old_value && rb->free_value_cb)
-        rb->free_value_cb(old_value);
+    // Use helper function to safely replace value and free old one
+    rqueue_update_value(rb, tail, value);
 
 
     ATOMIC_INCREMENT(rb->writes);
