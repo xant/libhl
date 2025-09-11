@@ -31,19 +31,28 @@ typedef struct _rqueue_page_s {
 } PACK_IF_NECESSARY rqueue_page_t;
 
 struct _rqueue_s {
-    rqueue_page_t             *head;
-    rqueue_page_t             *tail;
-    rqueue_page_t             *commit;
-    rqueue_page_t             *reader;
+    rqueue_page_t                *head;
+    rqueue_page_t                *tail;
+    rqueue_page_t                *commit;
+    rqueue_page_t                *reader;
     rqueue_free_value_callback_t free_value_cb;
-    size_t                     size;
-    int                     mode;
-    uint64_t                writes;
-    uint64_t                reads;
-    int read_sync;
-    int write_sync;
-    int num_writers;
+    size_t                       size;
+    int                          mode;
+    uint64_t                     writes;
+    uint64_t                     reads;
+    int                          read_sync;
+    int                          write_sync;
+    int                          num_writers;
+    int                          head_swap_failed;
+    int                          reader_next_swap_failed;
+    int                          queue_full_counter;
+    int                          overwrite_counter;
+    int                          is_empty;
 } PACK_IF_NECESSARY;
+
+// Ensure pointer alignment for flag embedding
+_Static_assert(sizeof(void*) >= 4, "Pointer size must be at least 4 bytes for flag embedding");
+_Static_assert(_Alignof(rqueue_page_t) >= 4, "rqueue_page_t must be 4-byte aligned for flag embedding");
 
 static inline void rqueue_destroy_page(rqueue_page_t *page, rqueue_free_value_callback_t free_value_cb) {
     if (page->value && free_value_cb)
@@ -69,6 +78,7 @@ rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
         return NULL;
     rb->size = (size > RQUEUE_MIN_SIZE) ? size : RQUEUE_MIN_SIZE;
     rb->mode = mode;
+    rb->is_empty = 1;
     for (i = 0; i <= rb->size; i++) { // NOTE : we create one page more than the requested size
         rqueue_page_t *page = calloc(1, sizeof(rqueue_page_t));
         if (!page) {
@@ -165,11 +175,10 @@ void *rqueue_read(rqueue_t *rb) {
             rqueue_page_t *head = ATOMIC_READ(rb->head);
 
             rqueue_page_t *commit = ATOMIC_READ(rb->commit);
-            //rqueue_page_t *tail = ATOMIC_READ(rb->tail);
             rqueue_page_t *next = ATOMIC_READ(head->next);
             rqueue_page_t *old_next = ATOMIC_READ(rb->reader->next);
 
-            if (rb->reader == commit || rqueue_isempty(rb))
+            if (rb->reader == commit || ATOMIC_READ(rb->is_empty))
             { // nothing to read
                 ATOMIC_CAS(rb->read_sync, 1, 0);
                 continue;
@@ -177,7 +186,7 @@ void *rqueue_read(rqueue_t *rb) {
 
             // first connect the reader page to the head->next page
             if (ATOMIC_CAS(rb->reader->next, old_next, RQUEUE_FLAG_ON(next, RQUEUE_FLAG_HEAD))) {
-                rb->reader->prev = head->prev;
+                ATOMIC_SET(rb->reader->prev, head->prev);
 
                 // now connect head->prev->next to the reader page, replacing the head with the reader
                 // in the ringbuffer
@@ -185,8 +194,8 @@ void *rqueue_read(rqueue_t *rb) {
                     // now the head is out of the ringbuffer and we can update the pointer
                     ATOMIC_CAS(rb->head, head, next);
 
-                    next->prev = rb->reader;
-                    rb->reader = head; // the head is the new reader
+                    ATOMIC_SET(next->prev, rb->reader);
+                    ATOMIC_SET(rb->reader, head); // the head is the new reader
                     v = ATOMIC_READ(rb->reader->value);
                     if (v == NULL) { 
                         ATOMIC_CAS(rb->read_sync, 1, 0);
@@ -194,16 +203,19 @@ void *rqueue_read(rqueue_t *rb) {
                     }
                     ATOMIC_CAS(rb->reader->value, v, NULL);
                     ATOMIC_INCREMENT(rb->reads);
+                    if (ATOMIC_READ(rb->head) == ATOMIC_READ(rb->tail)) {
+                        ATOMIC_SET(rb->is_empty, 1);
+                    }
                     ATOMIC_CAS(rb->read_sync, 1, 0);
                     break;
                 } else {
-                    fprintf(stderr, "head swap failed\n");
+                    ATOMIC_INCREMENT(rb->head_swap_failed);
                     // Safe to use ATOMIC_SET since we hold read_sync lock - no other reader can modify rb->reader->next
                     ATOMIC_SET(rb->reader->next, old_next);
                     sched_yield();
                 }
             } else {
-                fprintf(stderr, "reader->next swap failed\n");
+                ATOMIC_INCREMENT(rb->reader_next_swap_failed);
             }
             ATOMIC_CAS(rb->read_sync, 1, 0);
         }
@@ -269,16 +281,16 @@ rqueue_write(rqueue_t *rb, void *value) {
             } else {
                 ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
                 ATOMIC_CAS(rb->write_sync, 1, 0);
-                //fprintf(stderr, "queue full: %s \n", rqueue_stats(rb));
+                ATOMIC_INCREMENT(rb->queue_full_counter);
                 return -2;
             }
         }
 
-       if (RQUEUE_CHECK_FLAG(ATOMIC_READ(temp_page->next), RQUEUE_FLAG_HEAD) || (next_page == head && !rqueue_isempty(rb))) {
+       if (RQUEUE_CHECK_FLAG(ATOMIC_READ(temp_page->next), RQUEUE_FLAG_HEAD) || (next_page == head && !ATOMIC_READ(rb->is_empty))) {
             if (rb->mode == RQUEUE_MODE_OVERWRITE && ATOMIC_READ(commit->next) == temp_page) {  // DELETE ME WHEN FIXED
                if (ATOMIC_CAS(rb->read_sync, 0, 1)) { // TODO - it shouldn't be necessary to synchronize with the reader
                     // we need to advance the head if in overwrite mode ...otherwise we must stop
-                    //fprintf(stderr, "Will advance head and overwrite old data\n");
+                    ATOMIC_INCREMENT(rb->overwrite_counter);
                     rqueue_page_t *nextpp = RQUEUE_FLAG_OFF(ATOMIC_READ(head->next), RQUEUE_FLAG_ALL);
                     if (ATOMIC_CAS(head->next, nextpp, RQUEUE_FLAG_ON(nextpp, RQUEUE_FLAG_HEAD))) {
                         ATOMIC_CAS(temp_page->next, RQUEUE_FLAG_ON(head, RQUEUE_FLAG_HEAD), head);
@@ -302,7 +314,7 @@ rqueue_write(rqueue_t *rb, void *value) {
             } else {
                 ATOMIC_DECREMENT(rb->num_writers);  // Exit path: decrement once
                 ATOMIC_CAS(rb->write_sync, 1, 0);
-                //fprintf(stderr, "queue full: %s \n", rqueue_stats(rb));
+                ATOMIC_INCREMENT(rb->queue_full_counter);
                 return -2;
             }
 
@@ -331,6 +343,7 @@ rqueue_write(rqueue_t *rb, void *value) {
 
 
     ATOMIC_INCREMENT(rb->writes);
+    ATOMIC_SET(rb->is_empty, 0);
 
     if (ATOMIC_READ(rb->num_writers) == 1)
         ATOMIC_CAS(rb->commit, ATOMIC_READ(rb->commit), tail);
@@ -341,43 +354,80 @@ rqueue_write(rqueue_t *rb, void *value) {
 }
 
 uint64_t rqueue_write_count(rqueue_t *rb) {
+    if (rb == NULL) {
+        return 0;
+    }
     return ATOMIC_READ(rb->writes);
 }
 
 uint64_t rqueue_read_count(rqueue_t *rb) {
+    if (rb == NULL) {
+        return 0;
+    }
     return ATOMIC_READ(rb->reads);
 }
 
 void rqueue_set_mode(rqueue_t *rb, rqueue_mode_t mode) {
+    if (rb == NULL) {
+        // do nothing
+        return;
+    }
     rb->mode = mode;
 }
 
 rqueue_mode_t rqueue_mode(rqueue_t *rb) {
+    if (rb == NULL) {
+        // do nothing
+        return RQUEUE_MODE_INVALID;
+    }
     return rb->mode;
 }
 
+// Only for debugging purposes
 char *rqueue_stats(rqueue_t *rb) {
+    if (!rb) {
+        return "Invalid pointer";
+    }
+
+    // Take snapshot of key pointers
+    rqueue_page_t *reader = ATOMIC_READ(rb->reader);
+    rqueue_page_t *head = ATOMIC_READ(rb->head);
+    rqueue_page_t *tail = ATOMIC_READ(rb->tail);
+    rqueue_page_t *commit = ATOMIC_READ(rb->commit);
+    rqueue_page_t *tail_next = tail ? ATOMIC_READ(tail->next) : NULL;
+    rqueue_page_t *commit_next = commit ? ATOMIC_READ(commit->next) : NULL;
+
     const char *format = 
-           "reader:      %p \n"
-           "head:        %p \n"
-           "tail:        %p \n"
-           "tail_next:   %p \n"
-           "commit:      %p \n"
-           "commit_next: %p \n"
-           "reads:       %"PRId64" \n"
-           "writes:      %"PRId64" \n"
-           "mode:        %s \n";
+           "reader:                    %p \n"
+           "head:                      %p \n"
+           "tail:                      %p \n"
+           "tail_next:                 %p \n"
+           "commit:                    %p \n"
+           "commit_next:               %p \n"
+           "reads:                     %"PRId64" \n"
+           "writes:                    %"PRId64" \n"
+           "mode:                      %s \n"
+           "is_empty:                  %s \n"
+           "head_swap_failed:          %d \n"
+           "reader_next_swap_failed:   %d \n"
+           "queue_full_counter:        %d \n"
+           "overwrite_counter:         %d \n";
 
 #define STATS_ARGS \
-           ATOMIC_READ(rb->reader), \
-           ATOMIC_READ(rb->head), \
-           ATOMIC_READ(rb->tail), \
-           ATOMIC_READ(ATOMIC_READ(rb->tail)->next), \
-           ATOMIC_READ(rb->commit), \
-           ATOMIC_READ(ATOMIC_READ(rb->commit)->next), \
+           ATOMIC_READ(reader), \
+           ATOMIC_READ(head), \
+           ATOMIC_READ(tail), \
+           ATOMIC_READ(tail_next), \
+           ATOMIC_READ(commit), \
+           ATOMIC_READ(commit_next), \
            ATOMIC_READ(rb->reads), \
            ATOMIC_READ(rb->writes), \
-           rb->mode == RQUEUE_MODE_BLOCKING ? "blocking" : "overwrite"
+           rb->mode == RQUEUE_MODE_BLOCKING ? "blocking" : "overwrite", \
+           ATOMIC_READ(rb->is_empty) ? "true" : "false", \
+           ATOMIC_READ(rb->head_swap_failed), \
+           ATOMIC_READ(rb->reader_next_swap_failed), \
+           ATOMIC_READ(rb->queue_full_counter), \
+           ATOMIC_READ(rb->overwrite_counter) \
 
     // First pass: calculate exact size needed
     int needed = snprintf(NULL, 0, format, STATS_ARGS);
@@ -395,14 +445,6 @@ char *rqueue_stats(rqueue_t *rb) {
     return buf;
 }
 
-int rqueue_isempty(rqueue_t *rb)
-{
-    rqueue_page_t *head = ATOMIC_READ(rb->head);
-    rqueue_page_t *commit = ATOMIC_READ(rb->commit);
-    rqueue_page_t *tail = ATOMIC_READ(rb->tail);
-    return ((rb->reader == commit || (head == tail && commit != tail) || ATOMIC_READ(rb->writes) == 0));
-}
-
 size_t rqueue_size(rqueue_t *rb)
 {
     if (!rb) {
@@ -411,5 +453,11 @@ size_t rqueue_size(rqueue_t *rb)
     return rb->size;
 }
 
+int rqueue_isempty(rqueue_t *rb) {
+    if (!rb) {
+        return -1;
+    }
+    return ATOMIC_READ(rb->is_empty);
+}
 // vim: tabstop=4 shiftwidth=4 expandtab:
 /* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */

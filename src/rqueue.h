@@ -41,8 +41,9 @@ void rqueue_set_free_value_callback(rqueue_t *rb, rqueue_free_value_callback_t c
  *      writers will overwrite values when the ringbuffer is full
  */
 typedef enum {
+    RQUEUE_MODE_INVALID = -1,
     RQUEUE_MODE_BLOCKING = 0,
-    RQUEUE_MODE_OVERWRITE
+    RQUEUE_MODE_OVERWRITE = 1
 } rqueue_mode_t;
 
 /**
@@ -126,7 +127,7 @@ char *rqueue_stats(rqueue_t *rb);
 
 size_t rqueue_size(rqueue_t *rb);
 
-int rqueue_isempty(rqueue_t *tb);
+int rqueue_isempty(rqueue_t *rb);
 
 #ifdef __cplusplus
 }

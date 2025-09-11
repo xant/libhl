@@ -171,6 +171,9 @@ int main(int argc, char **argv) {
         free(stats);
     }
 
+    rqueue_destroy(rb);
+    rb = rqueue_create(rqueue_size, RQUEUE_MODE_BLOCKING);
+
     ut_testing("Multi-threaded producer/consumer (%d items, buffer prefilled before starting readers)", rqueue_size);
 
     reads_count = 0;
@@ -181,7 +184,7 @@ int main(int argc, char **argv) {
     start_readers(num_readers, reader_th, rb);
     wait_for_readers(num_readers, reader_th);
 
-    ut_result(rqueue_write_count(rb) / 2 == reads_count && reads_count == rqueue_size, "Number of reads and/or writes doesn't match the ringbuffer size "
+    ut_result(rqueue_write_count(rb) == reads_count && reads_count == rqueue_size, "Number of reads and/or writes doesn't match the ringbuffer size "
              "reads: %d, writes: %d, size: %d", reads_count, rqueue_write_count(rb), rqueue_size);
 
     if (reads_count < rqueue_size) {
@@ -217,8 +220,10 @@ int main(int argc, char **argv) {
     rqueue_set_mode(rb, RQUEUE_MODE_OVERWRITE);
     
     int rc = rqueue_write(rb, "3");
+    rc = rqueue_write(rb, "4");
     ut_result(rc == 0, "Write failed with return-code %d", rc);
-    ut_testing("First value is the overwritten one (XXX - this test MUST fail until the algorithm is fixed to not require size+1 pages to work) ");
+
+    ut_testing("First value is the overwritten one");
     ut_validate_string(rqueue_read(rb), "3");
 
     rqueue_destroy(rb);
