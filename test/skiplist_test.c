@@ -21,7 +21,7 @@ main(int argc, char **argv)
     int i;
     for (i = 0; i < 100; i++) { 
         char *val = malloc(4);
-        snprintf(val, 4, "%d", i);
+        snprintf(val, 12, "%d", i);
         skiplist_insert(skl, &i, sizeof(i), val);
     }
     ut_validate_int(skiplist_count(skl), 100);
