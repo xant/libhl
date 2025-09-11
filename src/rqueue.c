@@ -124,10 +124,18 @@ rqueue_t *rqueue_create(size_t size, rqueue_mode_t mode) {
 }
 
 void rqueue_set_free_value_callback(rqueue_t *rb, rqueue_free_value_callback_t cb) {
+    if (rb == NULL) {
+        // do nothing
+        return;
+    }
     rb->free_value_cb = cb;
 }
 
 void rqueue_destroy(rqueue_t *rb) {
+    if (rb == NULL) {
+        // do nothing
+        return;
+    }
     rqueue_page_t *page = rb->head;
     do {
         rqueue_page_t *p = page;
@@ -143,6 +151,11 @@ void rqueue_destroy(rqueue_t *rb) {
 }
 
 void *rqueue_read(rqueue_t *rb) {
+    if (rb == NULL) {
+        // do nothing
+        return NULL;
+    }
+
     int i;
     void *v = NULL;
 
@@ -212,6 +225,11 @@ rqueue_update_value(rqueue_t *rb, rqueue_page_t *page, void *value) {
 
 int
 rqueue_write(rqueue_t *rb, void *value) {
+    if (rb == NULL) {
+        // do nothing
+        return -1; // Invalid queue pointer
+    }
+
     int retries = 0;
 
     rqueue_page_t *temp_page = NULL;
@@ -387,6 +405,9 @@ int rqueue_isempty(rqueue_t *rb)
 
 size_t rqueue_size(rqueue_t *rb)
 {
+    if (!rb) {
+        return 0;
+    }
     return rb->size;
 }
 
