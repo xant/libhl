@@ -9,6 +9,7 @@ static char *graph_error_messages[] = {
     "No node has been found",
     "Label not present",
     "Allocation failed (OOM?)",
+    "Hashtable error",
     "The connection hasn't been found"
 };
 
@@ -91,7 +92,7 @@ graph_node_delete(graph_t *graph, char *label __attribute__ ((unused)), graph_no
         if (graph) graph->errno = EGRAPHNOLABEL;
         return -1;
     }
-    
+
     graph_node_t *node = NULL;
     int rc = ht_delete(graph->nodes, label, strlen(label), (void **)&node, NULL);
     if (rc != 0) {
