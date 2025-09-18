@@ -87,8 +87,13 @@ graph_destroy(graph_t *graph)
 int
 graph_node_delete(graph_t *graph, char *label __attribute__ ((unused)), graph_node_t **connections, int max_connections)
 {
+    if (!graph || !label) {
+        if (graph) graph->errno = EGRAPHNOLABEL;
+        return -1;
+    }
+    
     graph_node_t *node = NULL;
-    int rc = ht_delete(graph->nodes, node->label, strlen(node->label), (void **)&node, NULL);
+    int rc = ht_delete(graph->nodes, label, strlen(label), (void **)&node, NULL);
     if (rc != 0) {
         graph->errno = EGRAPHTABLEERR;
         return -1;
