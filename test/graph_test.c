@@ -95,6 +95,11 @@ int main(int argc, char **argv)
     test_node2 = graph_node_next(node2);
     ut_result(test_node == node3 && test_node2 == node4, "Node selection doesn't honor weights returned by the chooser");
 
+    ut_testing("Deleting an existing node from the graph");
+    int delete_ret;
+    delete_ret = graph_node_delete(graph, "start_node", NULL, 100);
+    ut_result(delete_ret == 0, "Delete failed");
+
     graph_destroy(graph);
 
     ut_summary();
