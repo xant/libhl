@@ -102,6 +102,16 @@ int graph_node_connect(graph_node_t *node1,
                         void *context);
 
 /**
+ * @brief Remove the connection between two nodes in the graph
+ * @param node1 A pointer to a valid graph_node_t structure representing the
+ *              start of the connection
+ * @param node2 A pointer to a valid graph_node_t structure representing the
+ *              end of the connection
+ * @return 0 on success; -1 if the connection wasn't found
+ */
+int graph_node_disconnect(graph_node_t *node1, graph_node_t *node2);
+
+/**
  * @brief Returns the current errno for a given graph
  * @param graph A pointer to a valid and initialized graph structure
  */

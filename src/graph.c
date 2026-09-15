@@ -136,6 +136,8 @@ graph_node_add(graph_t *graph, char *label, void *value, size_t vsize)
 {
     // first check if we already have a node with the same name
     graph_node_t *node = graph_node_create(graph, label, value, vsize);
+    if (!node)
+        return NULL;
     node->graph = graph;
     TAILQ_INIT(&node->connections);
     if (ht_set(graph->nodes, label, strlen(label), node, sizeof(graph_node_t)) != 0) {
@@ -226,6 +228,12 @@ graph_node_connections_get(graph_node_t *node, graph_node_t **connections, int m
     }
     return num_connections;
 
+}
+
+int
+graph_errno(graph_t *graph)
+{
+    return graph->errno;
 }
 
 char *
